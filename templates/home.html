@@ -7,19 +7,142 @@
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Your podcast production overview.</p>
     </div>
 
-    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <a href="/shows" class="block rounded-lg bg-white dark:bg-gray-800 p-6 shadow hover:shadow-md transition-shadow">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Shows</h3>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Manage your podcasts</p>
+    <!-- Stat cards -->
+    <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <a href="/shows" class="rounded-lg bg-white dark:bg-gray-800 p-5 shadow hover:shadow-md transition-shadow">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Shows</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{.TotalShows}}</p>
         </a>
-        <a href="/episodes" class="block rounded-lg bg-white dark:bg-gray-800 p-6 shadow hover:shadow-md transition-shadow">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Episodes</h3>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Track episode production</p>
+        <a href="/episodes" class="rounded-lg bg-white dark:bg-gray-800 p-5 shadow hover:shadow-md transition-shadow">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Episodes</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{.TotalEpisodes}}</p>
         </a>
-        <a href="/guests" class="block rounded-lg bg-white dark:bg-gray-800 p-6 shadow hover:shadow-md transition-shadow">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Guests</h3>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Manage guest contacts</p>
+        <a href="/episodes?status=published" class="rounded-lg bg-white dark:bg-gray-800 p-5 shadow hover:shadow-md transition-shadow">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Published</p>
+            <p class="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">{{.PublishedCount}}</p>
+        </a>
+        <a href="/guests" class="rounded-lg bg-white dark:bg-gray-800 p-5 shadow hover:shadow-md transition-shadow">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Guests</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{.TotalGuests}}</p>
         </a>
     </div>
+
+    <!-- Production pipeline -->
+    {{if .GlobalSegments}}
+    <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+        <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Production Pipeline</h2>
+        <div class="flex h-4 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+            {{range .GlobalSegments}}
+            <div class="{{statusBarColor .Status}} transition-all" style="width:{{printf "%.1f" .Percent}}%" title="{{statusLabel .Status}}: {{.Count}}"></div>
+            {{end}}
+        </div>
+        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {{range .GlobalSegments}}
+            <span class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+                <span class="inline-block h-2.5 w-2.5 rounded-full {{statusBarColor .Status}}"></span>
+                {{statusLabel .Status}} <span class="font-medium text-gray-900 dark:text-gray-100">{{.Count}}</span>
+            </span>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+
+    <!-- Two-column: Recent + Upcoming -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <!-- Recent activity -->
+        <div class="rounded-lg bg-white dark:bg-gray-800 shadow">
+            <div class="flex items-center justify-between px-6 pt-5 pb-3">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400">Recently Updated</h2>
+                <a href="/episodes" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">View all</a>
+            </div>
+            {{if .Recent}}
+            <ul class="divide-y divide-gray-100 dark:divide-gray-700">
+                {{range .Recent}}
+                <li>
+                    <a href="/episodes/{{.ID}}" class="flex items-center justify-between px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <div class="flex items-center gap-3 min-w-0">
+                            {{if .Artwork}}
+                            <img src="/uploads/{{.Artwork}}" alt="" class="h-8 w-8 flex-shrink-0 rounded object-cover">
+                            {{else}}
+                            <div class="h-8 w-8 flex-shrink-0 rounded bg-gray-100 dark:bg-gray-700"></div>
+                            {{end}}
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{.Title}}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{.ShowName}}</p>
+                            </div>
+                        </div>
+                        <span class="ml-3 flex-shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{statusColor .Status}}">{{statusLabel .Status}}</span>
+                    </a>
+                </li>
+                {{end}}
+            </ul>
+            {{else}}
+            <p class="px-6 pb-5 text-sm text-gray-400 dark:text-gray-500 italic">No episodes yet.</p>
+            {{end}}
+        </div>
+
+        <!-- Upcoming schedule -->
+        <div class="rounded-lg bg-white dark:bg-gray-800 shadow">
+            <div class="flex items-center justify-between px-6 pt-5 pb-3">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400">Upcoming Schedule</h2>
+                <a href="/calendar" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">Calendar</a>
+            </div>
+            {{if .Upcoming}}
+            <ul class="divide-y divide-gray-100 dark:divide-gray-700">
+                {{range .Upcoming}}
+                <li>
+                    <a href="/episodes/{{.ID}}" class="flex items-center justify-between px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <div class="flex items-center gap-3 min-w-0">
+                            {{if .Artwork}}
+                            <img src="/uploads/{{.Artwork}}" alt="" class="h-8 w-8 flex-shrink-0 rounded object-cover">
+                            {{else}}
+                            <div class="h-8 w-8 flex-shrink-0 rounded bg-gray-100 dark:bg-gray-700"></div>
+                            {{end}}
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{.Title}}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{.ShowName}}</p>
+                            </div>
+                        </div>
+                        <span class="ml-3 flex-shrink-0 text-sm font-medium text-gray-600 dark:text-gray-300">{{.PublishDate.Format "Jan 2"}}</span>
+                    </a>
+                </li>
+                {{end}}
+            </ul>
+            {{else}}
+            <p class="px-6 pb-5 text-sm text-gray-400 dark:text-gray-500 italic">No upcoming episodes scheduled.</p>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Per-show cards -->
+    {{if .ShowCards}}
+    <div>
+        <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Shows</h2>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {{range .ShowCards}}
+            <a href="/shows/{{.Show.ID}}" class="rounded-lg bg-white dark:bg-gray-800 p-5 shadow hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-4">
+                    {{if .Show.Artwork}}
+                    <img src="/uploads/{{.Show.Artwork}}" alt="" class="h-14 w-14 flex-shrink-0 rounded-lg object-cover">
+                    {{else}}
+                    <div class="h-14 w-14 flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700"></div>
+                    {{end}}
+                    <div class="min-w-0 flex-1">
+                        <p class="font-medium text-gray-900 dark:text-gray-100 truncate">{{.Show.Name}}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{.Total}} episode{{if ne .Total 1}}s{{end}}</p>
+                    </div>
+                </div>
+                {{if .Segments}}
+                <div class="mt-3 flex h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                    {{range .Segments}}
+                    <div class="{{statusBarColor .Status}}" style="width:{{printf "%.1f" .Percent}}%" title="{{statusLabel .Status}}: {{.Count}}"></div>
+                    {{end}}
+                </div>
+                {{end}}
+            </a>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
 </div>
 {{end}}

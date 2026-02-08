@@ -54,19 +54,16 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	// Home
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		if err := views.Render(w, "home.html", nil); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	})
-
 	// Stores
 	showStore := models.NewShowStore(db)
 	episodeStore := models.NewEpisodeStore(db)
 	assetStore := models.NewAssetStore(db)
 	guestStore := models.NewGuestStore(db)
 	tagStore := models.NewTagStore(db)
+
+	// Home / Dashboard
+	dashboardHandler := handlers.NewDashboardHandler(episodeStore, showStore, guestStore)
+	r.Get("/", dashboardHandler.Dashboard)
 
 	// Shows
 	showHandler := handlers.NewShowHandler(showStore, episodeStore, cfg.DataDir)
