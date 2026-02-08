@@ -1,0 +1,33 @@
+{{define "title"}}Shows — PodForge{{end}}
+
+{{define "content"}}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Shows</h1>
+            <p class="mt-1 text-sm text-gray-500">Your podcasts</p>
+        </div>
+        <a href="/shows/new" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+            New Show
+        </a>
+    </div>
+
+    {{if .Shows}}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {{range .Shows}}
+        <a href="/shows/{{.ID}}" class="block rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow">
+            <h3 class="text-lg font-medium text-gray-900">{{.Name}}</h3>
+            {{if .Description}}
+            <p class="mt-2 text-sm text-gray-500 line-clamp-2">{{.Description}}</p>
+            {{end}}
+        </a>
+        {{end}}
+    </div>
+    {{else}}
+    <div class="rounded-lg bg-white p-12 text-center shadow">
+        <p class="text-gray-500">No shows yet.</p>
+        <a href="/shows/new" class="mt-4 inline-block text-indigo-600 hover:text-indigo-700">Create your first show</a>
+    </div>
+    {{end}}
+</div>
+{{end}}

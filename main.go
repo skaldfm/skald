@@ -8,6 +8,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mhermansson/podforge/internal/config"
 	"github.com/mhermansson/podforge/internal/database"
+	"github.com/mhermansson/podforge/internal/handlers"
+	"github.com/mhermansson/podforge/internal/models"
 	"github.com/mhermansson/podforge/internal/views"
 )
 
@@ -52,6 +54,11 @@ func main() {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
+
+	// Shows
+	showStore := models.NewShowStore(db)
+	showHandler := handlers.NewShowHandler(showStore)
+	r.Mount("/shows", showHandler.Routes())
 
 	log.Printf("PodForge starting on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
