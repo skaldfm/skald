@@ -1,0 +1,56 @@
+{{define "title"}}New Episode — PodForge{{end}}
+
+{{define "content"}}
+<div class="mx-auto max-w-2xl">
+    <h1 class="text-2xl font-bold text-gray-900">New Episode</h1>
+
+    {{if .Error}}
+    <div class="mt-4 rounded-md bg-red-50 p-4">
+        <p class="text-sm text-red-700">{{.Error}}</p>
+    </div>
+    {{end}}
+
+    <form method="POST" action="/episodes" class="mt-6 space-y-6">
+        <div>
+            <label for="show_id" class="block text-sm font-medium text-gray-700">Show</label>
+            <select name="show_id" id="show_id" required
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <option value="">Select a show</option>
+                {{range .Shows}}
+                <option value="{{.ID}}" {{if eq (printf "%d" .ID) $.ShowID}}selected{{end}}>{{.Name}}</option>
+                {{end}}
+            </select>
+        </div>
+
+        <div>
+            <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
+            <input type="text" name="title" id="title" value="{{if .Title}}{{.Title}}{{end}}"
+                   class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                   required autofocus>
+        </div>
+
+        <div>
+            <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+            <textarea name="description" id="description" rows="3"
+                      class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">{{if .Description}}{{.Description}}{{end}}</textarea>
+        </div>
+
+        <div>
+            <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+            <select name="status" id="status"
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                {{range .Statuses}}
+                <option value="{{.}}" {{if eq . "idea"}}selected{{end}}>{{statusLabel .}}</option>
+                {{end}}
+            </select>
+        </div>
+
+        <div class="flex items-center justify-end space-x-3">
+            <a href="/episodes" class="rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</a>
+            <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                Create Episode
+            </button>
+        </div>
+    </form>
+</div>
+{{end}}

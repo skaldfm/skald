@@ -60,6 +60,11 @@ func main() {
 	showHandler := handlers.NewShowHandler(showStore)
 	r.Mount("/shows", showHandler.Routes())
 
+	// Episodes
+	episodeStore := models.NewEpisodeStore(db)
+	episodeHandler := handlers.NewEpisodeHandler(episodeStore, showStore)
+	r.Mount("/episodes", episodeHandler.Routes())
+
 	log.Printf("PodForge starting on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
 		log.Fatalf("Server failed: %v", err)
