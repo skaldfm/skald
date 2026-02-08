@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mhermansson/podforge/internal/config"
 	"github.com/mhermansson/podforge/internal/database"
+	"github.com/mhermansson/podforge/internal/views"
 )
 
 func main() {
@@ -25,6 +26,11 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
+	// Load templates
+	if err := views.Load("templates"); err != nil {
+		log.Fatalf("Failed to load templates: %v", err)
+	}
+
 	// Set up router
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -40,10 +46,11 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
-	// Placeholder root
+	// Home
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write([]byte("<h1>PodForge</h1><p>Coming soon.</p>"))
+		if err := views.Render(w, "home.html", nil); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	})
 
 	log.Printf("PodForge starting on :%s", cfg.Port)
