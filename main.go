@@ -60,13 +60,14 @@ func main() {
 	episodeStore := models.NewEpisodeStore(db)
 	assetStore := models.NewAssetStore(db)
 	guestStore := models.NewGuestStore(db)
+	tagStore := models.NewTagStore(db)
 
 	// Shows
 	showHandler := handlers.NewShowHandler(showStore)
 	r.Mount("/shows", showHandler.Routes())
 
 	// Episodes
-	episodeHandler := handlers.NewEpisodeHandler(episodeStore, showStore, assetStore, guestStore)
+	episodeHandler := handlers.NewEpisodeHandler(episodeStore, showStore, assetStore, guestStore, tagStore)
 	r.Mount("/episodes", episodeHandler.Routes())
 
 	// Assets (upload/download/delete routes)
