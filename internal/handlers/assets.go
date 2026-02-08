@@ -23,9 +23,8 @@ func NewAssetHandler(store *models.AssetStore, dataDir string) *AssetHandler {
 
 func (h *AssetHandler) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/episodes/{episodeID}/assets", h.Upload)
-	r.Get("/assets/{id}/download", h.Download)
-	r.Post("/assets/{id}/delete", h.Delete)
+	r.Get("/{id}/download", h.Download)
+	r.Post("/{id}/delete", h.Delete)
 	return r
 }
 

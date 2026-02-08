@@ -164,6 +164,12 @@
                     </div>
                 </dl>
             </div>
+            {{if .Episode.Artwork}}
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Artwork</h2>
+                <img src="/uploads/{{.Episode.Artwork}}" alt="Episode artwork" class="w-full rounded-lg object-cover">
+            </div>
+            {{end}}
         </div>
     </div>
 </div>

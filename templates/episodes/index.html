@@ -49,12 +49,21 @@
                 {{range .Episodes}}
                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td class="px-6 py-4">
-                        <a href="/episodes/{{.ID}}" class="font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400">{{.Title}}</a>
-                        {{if .EpisodeNumber}}
-                        <span class="ml-2 text-xs text-gray-400 dark:text-gray-500">
-                            {{if .SeasonNumber}}S{{.SeasonNumber}}{{end}}E{{.EpisodeNumber}}
-                        </span>
-                        {{end}}
+                        <div class="flex items-center space-x-3">
+                            {{if .Artwork}}
+                            <img src="/uploads/{{.Artwork}}" alt="" class="h-10 w-10 flex-shrink-0 rounded object-cover">
+                            {{else}}
+                            <div class="h-10 w-10 flex-shrink-0 rounded bg-gray-100 dark:bg-gray-700"></div>
+                            {{end}}
+                            <div>
+                                <a href="/episodes/{{.ID}}" class="font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400">{{.Title}}</a>
+                                {{if .EpisodeNumber}}
+                                <span class="ml-2 text-xs text-gray-400 dark:text-gray-500">
+                                    {{if .SeasonNumber}}S{{.SeasonNumber}}{{end}}E{{.EpisodeNumber}}
+                                </span>
+                                {{end}}
+                            </div>
+                        </div>
                     </td>
                     <td class="hidden px-6 py-4 text-sm text-gray-500 dark:text-gray-400 sm:table-cell">
                         <a href="/shows/{{.ShowID}}" class="hover:text-indigo-600 dark:hover:text-indigo-400">{{.ShowName}}</a>
