@@ -13,6 +13,8 @@ import (
 	"github.com/mhermansson/skald/internal/views"
 )
 
+var version = "dev"
+
 func main() {
 	cfg := config.Load()
 
@@ -86,7 +88,7 @@ func main() {
 	prompterHandler := handlers.NewPrompterHandler(episodeStore)
 	r.Get("/prompter/{id}", prompterHandler.Prompter)
 
-	log.Printf("Skald starting on :%s", cfg.Port)
+	log.Printf("Skald %s starting on :%s", version, cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
