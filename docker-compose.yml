@@ -1,0 +1,13 @@
+services:
+  podforge:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - podforge-data:/app/data
+    environment:
+      - PODFORGE_PORT=8080
+    restart: unless-stopped
+
+volumes:
+  podforge-data:
