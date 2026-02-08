@@ -3,8 +3,8 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  bin = "./tmp/podforge"
-  cmd = "go build -o ./tmp/podforge ."
+  bin = "./tmp/skald"
+  cmd = "go build -o ./tmp/skald ."
   delay = 1000
   exclude_dir = ["data", "tmp", "dist", "node_modules", "static"]
   exclude_regex = ["_test\\.go$"]

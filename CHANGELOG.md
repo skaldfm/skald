@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to PodForge will be documented in this file.
+All notable changes to Skald will be documented in this file.
 
 ## [Unreleased]
 

@@ -1,4 +1,4 @@
-# PodForge
+# Skald
 
 Self-hosted podcast management tool for indie podcasters who want control over their workflow and data. Covers the full production lifecycle: planning, scripting, recording support (prompter), and publishing coordination.
 
@@ -62,7 +62,7 @@ Asset type enum: `script`, `audio`, `artwork`, `notes`, `other`
 ## Project Structure
 
 ```
-podforge/
+skald/
 ├── CLAUDE.md
 ├── README.md
 ├── Dockerfile
@@ -120,11 +120,11 @@ podforge/
 ## Configuration
 
 ```
-PODFORGE_PORT=8080
-PODFORGE_DATA_DIR=./data
-PODFORGE_DB_TYPE=sqlite
-PODFORGE_DB_URL=              # PostgreSQL connection string if needed
-PODFORGE_SECRET_KEY=          # Session signing
+SKALD_PORT=7707
+SKALD_DATA_DIR=./data
+SKALD_DB_TYPE=sqlite
+SKALD_DB_URL=              # PostgreSQL connection string if needed
+SKALD_SECRET_KEY=          # Session signing
 ```
 
 ## Prior Art
