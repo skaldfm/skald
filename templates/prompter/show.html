@@ -1,0 +1,239 @@
+{{define "title"}}Prompter — {{.Episode.Title}}{{end}}
+
+{{define "content"}}
+<div id="prompter-container" class="relative">
+    <!-- Controls bar -->
+    <div id="prompter-controls" class="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-90 text-white px-4 py-3 transition-opacity">
+        <div class="mx-auto max-w-4xl flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <a href="/episodes/{{.Episode.ID}}" class="text-sm text-gray-300 hover:text-white">&larr; Back</a>
+                <span class="text-sm text-gray-400">{{.Episode.Title}}</span>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <!-- Speed control -->
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-gray-400">Speed</label>
+                    <button onclick="adjustSpeed(-0.5)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">-</button>
+                    <span id="speed-display" class="w-8 text-center text-sm">2</span>
+                    <button onclick="adjustSpeed(0.5)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">+</button>
+                </div>
+
+                <!-- Font size -->
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-gray-400">Font</label>
+                    <button onclick="adjustFont(-4)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">A-</button>
+                    <span id="font-display" class="w-8 text-center text-sm">32</span>
+                    <button onclick="adjustFont(4)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">A+</button>
+                </div>
+
+                <!-- Play/Pause -->
+                <button id="play-btn" onclick="togglePlay()"
+                        class="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-700">
+                    Play
+                </button>
+
+                <!-- Fullscreen -->
+                <button onclick="toggleFullscreen()"
+                        class="rounded bg-gray-700 px-3 py-2 text-xs hover:bg-gray-600">
+                    Fullscreen
+                </button>
+
+                <!-- Mirror -->
+                <button onclick="toggleMirror()"
+                        class="rounded bg-gray-700 px-3 py-2 text-xs hover:bg-gray-600"
+                        title="Mirror text (for reflected teleprompter)">
+                    Mirror
+                </button>
+            </div>
+
+            <!-- Progress -->
+            <div class="flex items-center gap-2">
+                <span id="progress" class="text-xs text-gray-400">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script content -->
+    <div id="prompter-scroll" class="bg-black min-h-screen px-8 py-16 pb-24">
+        <!-- Top padding so text starts below viewport center -->
+        <div style="height: 50vh"></div>
+
+        <div id="prompter-text" class="mx-auto max-w-3xl text-white leading-relaxed whitespace-pre-wrap"
+             style="font-size: 32px; line-height: 1.6">{{.Episode.Script}}</div>
+
+        <!-- Bottom padding so text can scroll past center -->
+        <div style="height: 50vh"></div>
+    </div>
+
+    <!-- Center line guide -->
+    <div class="pointer-events-none fixed left-0 right-0 top-1/2 z-40 border-t-2 border-red-500 opacity-30"></div>
+</div>
+
+<style>
+    /* Hide nav in prompter */
+    nav { display: none !important; }
+    main { padding: 0 !important; max-width: none !important; }
+    body { background: black !important; }
+
+    #prompter-scroll {
+        overflow-y: auto;
+        height: 100vh;
+        scroll-behavior: auto;
+    }
+
+    .mirrored {
+        transform: scaleX(-1);
+    }
+
+    /* Hide scrollbar */
+    #prompter-scroll::-webkit-scrollbar { display: none; }
+    #prompter-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Auto-hide controls */
+    #prompter-controls.hidden-controls { opacity: 0; }
+    #prompter-controls:hover { opacity: 1 !important; }
+</style>
+
+<script>
+(function() {
+    const scrollEl = document.getElementById('prompter-scroll');
+    const textEl = document.getElementById('prompter-text');
+    const playBtn = document.getElementById('play-btn');
+    const speedDisplay = document.getElementById('speed-display');
+    const fontDisplay = document.getElementById('font-display');
+    const progressEl = document.getElementById('progress');
+    const controls = document.getElementById('prompter-controls');
+
+    let speed = 2;       // pixels per frame at 60fps
+    let fontSize = 32;
+    let playing = false;
+    let animFrame = null;
+    let hideTimer = null;
+
+    window.togglePlay = function() {
+        playing = !playing;
+        playBtn.textContent = playing ? 'Pause' : 'Play';
+        playBtn.classList.toggle('bg-indigo-600', !playing);
+        playBtn.classList.toggle('bg-red-600', playing);
+
+        if (playing) {
+            scroll();
+            hideControlsAfterDelay();
+        } else {
+            cancelAnimationFrame(animFrame);
+            showControls();
+        }
+    };
+
+    function scroll() {
+        scrollEl.scrollTop += speed;
+        updateProgress();
+        animFrame = requestAnimationFrame(scroll);
+
+        // Stop at end
+        if (scrollEl.scrollTop >= scrollEl.scrollHeight - scrollEl.clientHeight) {
+            playing = false;
+            playBtn.textContent = 'Play';
+            playBtn.classList.add('bg-indigo-600');
+            playBtn.classList.remove('bg-red-600');
+            cancelAnimationFrame(animFrame);
+            showControls();
+        }
+    }
+
+    function updateProgress() {
+        const max = scrollEl.scrollHeight - scrollEl.clientHeight;
+        const pct = max > 0 ? Math.round((scrollEl.scrollTop / max) * 100) : 0;
+        progressEl.textContent = pct + '%';
+    }
+
+    window.adjustSpeed = function(delta) {
+        speed = Math.max(0.5, Math.min(10, speed + delta));
+        speedDisplay.textContent = speed;
+    };
+
+    window.adjustFont = function(delta) {
+        fontSize = Math.max(16, Math.min(72, fontSize + delta));
+        textEl.style.fontSize = fontSize + 'px';
+        fontDisplay.textContent = fontSize;
+    };
+
+    window.toggleFullscreen = function() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    };
+
+    window.toggleMirror = function() {
+        textEl.classList.toggle('mirrored');
+    };
+
+    function showControls() {
+        controls.classList.remove('hidden-controls');
+        clearTimeout(hideTimer);
+    }
+
+    function hideControlsAfterDelay() {
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(function() {
+            if (playing) {
+                controls.classList.add('hidden-controls');
+            }
+        }, 3000);
+    }
+
+    // Keyboard controls
+    document.addEventListener('keydown', function(e) {
+        switch(e.key) {
+            case ' ':
+            case 'k':
+                e.preventDefault();
+                togglePlay();
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                adjustSpeed(0.5);
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                adjustSpeed(-0.5);
+                break;
+            case '+':
+            case '=':
+                adjustFont(4);
+                break;
+            case '-':
+                adjustFont(-4);
+                break;
+            case 'f':
+                toggleFullscreen();
+                break;
+            case 'm':
+                toggleMirror();
+                break;
+            case 'Escape':
+                if (playing) togglePlay();
+                break;
+        }
+    });
+
+    // Mouse movement shows controls
+    document.addEventListener('mousemove', function() {
+        showControls();
+        if (playing) hideControlsAfterDelay();
+    });
+
+    // Touch shows controls
+    document.addEventListener('touchstart', function() {
+        showControls();
+        if (playing) hideControlsAfterDelay();
+    });
+
+    // Track scroll progress manually
+    scrollEl.addEventListener('scroll', updateProgress);
+})();
+</script>
+{{end}}
