@@ -31,5 +31,11 @@ Thumbs.db
 # Docker
 docker-compose.override.yml
 
+# Tailwind standalone CLI binary
+tailwindcss
+
+# Tailwind output
+static/css/style.css
+
 # Temporary
 /tmp/
