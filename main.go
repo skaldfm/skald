@@ -55,22 +55,29 @@ func main() {
 		}
 	})
 
-	// Shows
+	// Stores
 	showStore := models.NewShowStore(db)
+	episodeStore := models.NewEpisodeStore(db)
+	assetStore := models.NewAssetStore(db)
+	guestStore := models.NewGuestStore(db)
+
+	// Shows
 	showHandler := handlers.NewShowHandler(showStore)
 	r.Mount("/shows", showHandler.Routes())
 
 	// Episodes
-	episodeStore := models.NewEpisodeStore(db)
-	episodeHandler := handlers.NewEpisodeHandler(episodeStore, showStore)
+	episodeHandler := handlers.NewEpisodeHandler(episodeStore, showStore, assetStore, guestStore)
 	r.Mount("/episodes", episodeHandler.Routes())
+
+	// Assets (upload/download/delete routes)
+	assetHandler := handlers.NewAssetHandler(assetStore, cfg.DataDir)
+	r.Mount("/", assetHandler.Routes())
 
 	// Kanban board
 	kanbanHandler := handlers.NewKanbanHandler(episodeStore, showStore)
 	r.Mount("/kanban", kanbanHandler.Routes())
 
 	// Guests
-	guestStore := models.NewGuestStore(db)
 	guestHandler := handlers.NewGuestHandler(guestStore)
 	r.Mount("/guests", guestHandler.Routes())
 

@@ -18,6 +18,7 @@ func FuncMap() template.FuncMap {
 	return template.FuncMap{
 		"statusLabel": StatusLabel,
 		"statusColor": StatusColor,
+		"formatBytes": formatBytes,
 	}
 }
 
@@ -49,6 +50,19 @@ func StatusColor(s string) string {
 		return c
 	}
 	return "bg-gray-100 text-gray-800"
+}
+
+func formatBytes(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
 // Load parses all templates from the templates directory.

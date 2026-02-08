@@ -13,10 +13,12 @@ import (
 type EpisodeHandler struct {
 	episodes *models.EpisodeStore
 	shows    *models.ShowStore
+	assets   *models.AssetStore
+	guests   *models.GuestStore
 }
 
-func NewEpisodeHandler(episodes *models.EpisodeStore, shows *models.ShowStore) *EpisodeHandler {
-	return &EpisodeHandler{episodes: episodes, shows: shows}
+func NewEpisodeHandler(episodes *models.EpisodeStore, shows *models.ShowStore, assets *models.AssetStore, guests *models.GuestStore) *EpisodeHandler {
+	return &EpisodeHandler{episodes: episodes, shows: shows, assets: assets, guests: guests}
 }
 
 func (h *EpisodeHandler) Routes() chi.Router {
@@ -121,9 +123,14 @@ func (h *EpisodeHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	assets, _ := h.assets.ListForEpisode(ep.ID)
+	guests, _ := h.guests.GuestsForEpisode(ep.ID)
+
 	data := map[string]any{
 		"Episode":  ep,
 		"Statuses": models.Statuses,
+		"Assets":   assets,
+		"Guests":   guests,
 	}
 	if err := views.Render(w, "episodes/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
