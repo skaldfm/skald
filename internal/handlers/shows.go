@@ -62,7 +62,7 @@ func (h *ShowHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"Description": description,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		views.Render(w, "shows/new.html", data)
+		_ = views.Render(w, "shows/new.html", data)
 		return
 	}
 
@@ -118,7 +118,7 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 			"Error": "Name is required",
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		views.Render(w, "shows/edit.html", data)
+		_ = views.Render(w, "shows/edit.html", data)
 		return
 	}
 
