@@ -65,7 +65,7 @@ func main() {
 	tagStore := models.NewTagStore(db)
 
 	// Shows
-	showHandler := handlers.NewShowHandler(showStore)
+	showHandler := handlers.NewShowHandler(showStore, episodeStore)
 	r.Mount("/shows", showHandler.Routes())
 
 	// Episodes
