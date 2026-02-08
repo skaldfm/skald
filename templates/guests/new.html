@@ -1,0 +1,47 @@
+{{define "title"}}New Guest — PodForge{{end}}
+
+{{define "content"}}
+<div class="mx-auto max-w-2xl">
+    <h1 class="text-2xl font-bold text-gray-900">New Guest</h1>
+
+    {{if .Error}}
+    <div class="mt-4 rounded-md bg-red-50 p-4">
+        <p class="text-sm text-red-700">{{.Error}}</p>
+    </div>
+    {{end}}
+
+    <form method="POST" action="/guests" class="mt-6 space-y-6">
+        <div>
+            <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+            <input type="text" name="name" id="name" value="{{if .Name}}{{.Name}}{{end}}"
+                   class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                   required autofocus>
+        </div>
+
+        <div>
+            <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+            <input type="email" name="email" id="email" value="{{if .Email}}{{.Email}}{{end}}"
+                   class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        </div>
+
+        <div>
+            <label for="bio" class="block text-sm font-medium text-gray-700">Bio</label>
+            <textarea name="bio" id="bio" rows="3"
+                      class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">{{if .Bio}}{{.Bio}}{{end}}</textarea>
+        </div>
+
+        <div>
+            <label for="website" class="block text-sm font-medium text-gray-700">Website</label>
+            <input type="url" name="website" id="website" value="{{if .Website}}{{.Website}}{{end}}"
+                   class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        </div>
+
+        <div class="flex items-center justify-end space-x-3">
+            <a href="/guests" class="rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</a>
+            <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                Add Guest
+            </button>
+        </div>
+    </form>
+</div>
+{{end}}

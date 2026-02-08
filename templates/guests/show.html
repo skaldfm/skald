@@ -1,0 +1,60 @@
+{{define "title"}}{{.Guest.Name}} — PodForge{{end}}
+
+{{define "content"}}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <a href="/guests" class="text-sm text-gray-500 hover:text-gray-700">&larr; Guests</a>
+            <h1 class="mt-2 text-2xl font-bold text-gray-900">{{.Guest.Name}}</h1>
+        </div>
+        <a href="/guests/{{.Guest.ID}}/edit" class="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50">
+            Edit
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div class="lg:col-span-2">
+            {{if .Guest.Bio}}
+            <div class="rounded-lg bg-white p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 mb-2">Bio</h2>
+                <p class="text-gray-700 whitespace-pre-wrap">{{.Guest.Bio}}</p>
+            </div>
+            {{end}}
+
+            {{if .Episodes}}
+            <div class="mt-6 rounded-lg bg-white p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 mb-3">Episodes</h2>
+                <ul class="divide-y divide-gray-200">
+                    {{range .Episodes}}
+                    <li class="py-3">
+                        <a href="/episodes/{{.EpisodeID}}" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">{{.EpisodeTitle}}</a>
+                        <span class="ml-2 text-xs text-gray-400">{{.Role}}</span>
+                    </li>
+                    {{end}}
+                </ul>
+            </div>
+            {{end}}
+        </div>
+
+        <div>
+            <div class="rounded-lg bg-white p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 mb-3">Contact</h2>
+                <dl class="space-y-3 text-sm">
+                    {{if .Guest.Email}}
+                    <div>
+                        <dt class="text-gray-500">Email</dt>
+                        <dd class="mt-1"><a href="mailto:{{.Guest.Email}}" class="text-indigo-600 hover:text-indigo-700">{{.Guest.Email}}</a></dd>
+                    </div>
+                    {{end}}
+                    {{if .Guest.Website}}
+                    <div>
+                        <dt class="text-gray-500">Website</dt>
+                        <dd class="mt-1"><a href="{{.Guest.Website}}" target="_blank" rel="noopener" class="text-indigo-600 hover:text-indigo-700">{{.Guest.Website}}</a></dd>
+                    </div>
+                    {{end}}
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
