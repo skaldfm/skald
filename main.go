@@ -84,6 +84,12 @@ func main() {
 	kanbanHandler := handlers.NewKanbanHandler(episodeStore, showStore)
 	r.Mount("/kanban", kanbanHandler.Routes())
 
+	// Calendar and Timeline
+	calendarHandler := handlers.NewCalendarHandler(episodeStore, showStore)
+	r.Mount("/calendar", calendarHandler.Routes())
+	timelineHandler := handlers.NewTimelineHandler(episodeStore, showStore)
+	r.Mount("/timeline", timelineHandler.Routes())
+
 	// Guests
 	guestHandler := handlers.NewGuestHandler(guestStore)
 	r.Mount("/guests", guestHandler.Routes())
