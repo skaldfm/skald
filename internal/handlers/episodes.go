@@ -121,6 +121,42 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse episode/season numbers early for validation
+	var epNumber, seNumber *int
+	if epNum := r.FormValue("episode_number"); epNum != "" {
+		n, _ := strconv.Atoi(epNum)
+		epNumber = &n
+	}
+	if seNum := r.FormValue("season_number"); seNum != "" {
+		n, _ := strconv.Atoi(seNum)
+		seNumber = &n
+	}
+
+	// Check for duplicate episode number
+	if epNumber != nil {
+		exists, err := h.episodes.EpisodeNumberExists(showID, seNumber, epNumber, 0)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if exists {
+			shows, _ := h.shows.List()
+			code := views.EpisodeCode(seNumber, epNumber)
+			data := map[string]any{
+				"Error":       fmt.Sprintf("%s already exists in this show", code),
+				"Title":       title,
+				"Description": description,
+				"Status":      status,
+				"ShowID":      showIDStr,
+				"Shows":       shows,
+				"Statuses":    models.Statuses,
+			}
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_ = views.Render(w, "episodes/new.html", data)
+			return
+		}
+	}
+
 	ep, err := h.episodes.Create(showID, title, description, status)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -128,14 +164,8 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set additional fields that Create() doesn't handle
-	if epNum := r.FormValue("episode_number"); epNum != "" {
-		n, _ := strconv.Atoi(epNum)
-		ep.EpisodeNumber = &n
-	}
-	if seNum := r.FormValue("season_number"); seNum != "" {
-		n, _ := strconv.Atoi(seNum)
-		ep.SeasonNumber = &n
-	}
+	ep.EpisodeNumber = epNumber
+	ep.SeasonNumber = seNumber
 	if pd := r.FormValue("publish_date"); pd != "" {
 		if t, err := time.Parse("2006-01-02", pd); err == nil {
 			ep.PublishDate = &t
@@ -269,10 +299,14 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if epNum := r.FormValue("episode_number"); epNum != "" {
 		n, _ := strconv.Atoi(epNum)
 		ep.EpisodeNumber = &n
+	} else {
+		ep.EpisodeNumber = nil
 	}
 	if seNum := r.FormValue("season_number"); seNum != "" {
 		n, _ := strconv.Atoi(seNum)
 		ep.SeasonNumber = &n
+	} else {
+		ep.SeasonNumber = nil
 	}
 	if pd := r.FormValue("publish_date"); pd != "" {
 		if t, err := time.Parse("2006-01-02", pd); err == nil {
@@ -280,6 +314,34 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		ep.PublishDate = nil
+	}
+
+	// Check for duplicate episode number
+	if ep.EpisodeNumber != nil {
+		exists, err := h.episodes.EpisodeNumberExists(ep.ShowID, ep.SeasonNumber, ep.EpisodeNumber, ep.ID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if exists {
+			shows, _ := h.shows.List()
+			tags, _ := h.tags.TagsForEpisode(ep.ID)
+			var tagNames []string
+			for _, t := range tags {
+				tagNames = append(tagNames, t.Name)
+			}
+			code := views.EpisodeCode(ep.SeasonNumber, ep.EpisodeNumber)
+			data := map[string]any{
+				"Episode":  ep,
+				"Shows":    shows,
+				"Statuses": models.Statuses,
+				"Tags":     strings.Join(tagNames, ", "),
+				"Error":    fmt.Sprintf("%s already exists in this show", code),
+			}
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_ = views.Render(w, "episodes/edit.html", data)
+			return
+		}
 	}
 
 	// Handle artwork upload

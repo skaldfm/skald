@@ -59,7 +59,7 @@
                                 <a href="/episodes/{{.ID}}" class="font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400">{{.Title}}</a>
                                 {{if .EpisodeNumber}}
                                 <span class="ml-2 text-xs text-gray-400 dark:text-gray-500">
-                                    {{if .SeasonNumber}}S{{.SeasonNumber}}{{end}}E{{.EpisodeNumber}}
+                                    {{episodeCode .SeasonNumber .EpisodeNumber}}
                                 </span>
                                 {{end}}
                             </div>
