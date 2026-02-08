@@ -1,7 +1,11 @@
 package handlers
 
 import (
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -14,6 +18,7 @@ import (
 type ShowHandler struct {
 	store        *models.ShowStore
 	episodeStore *models.EpisodeStore
+	dataDir      string
 }
 
 type seasonGroup struct {
@@ -22,8 +27,8 @@ type seasonGroup struct {
 	Episodes []models.Episode
 }
 
-func NewShowHandler(store *models.ShowStore, episodeStore *models.EpisodeStore) *ShowHandler {
-	return &ShowHandler{store: store, episodeStore: episodeStore}
+func NewShowHandler(store *models.ShowStore, episodeStore *models.EpisodeStore, dataDir string) *ShowHandler {
+	return &ShowHandler{store: store, episodeStore: episodeStore, dataDir: dataDir}
 }
 
 func (h *ShowHandler) Routes() chi.Router {
@@ -127,6 +132,12 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse multipart form (10 MB max for artwork)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "Form too large", http.StatusBadRequest)
+		return
+	}
+
 	name := strings.TrimSpace(r.FormValue("name"))
 	description := strings.TrimSpace(r.FormValue("description"))
 
@@ -140,7 +151,54 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.store.Update(show.ID, name, description); err != nil {
+	// Handle artwork upload
+	artwork := show.Artwork
+	file, header, err := r.FormFile("artwork")
+	if err == nil {
+		defer file.Close()
+
+		idStr := strconv.FormatInt(show.ID, 10)
+		uploadDir := filepath.Join(h.dataDir, "uploads", "shows", idStr)
+		if err := os.MkdirAll(uploadDir, 0755); err != nil {
+			http.Error(w, "Failed to create upload directory", http.StatusInternalServerError)
+			return
+		}
+
+		ext := filepath.Ext(header.Filename)
+		destPath := filepath.Join(uploadDir, "artwork"+ext)
+
+		// Remove old artwork if it exists and differs
+		if show.Artwork != "" {
+			oldPath := filepath.Join(h.dataDir, "uploads", show.Artwork)
+			if oldPath != destPath {
+				os.Remove(oldPath)
+			}
+		}
+
+		dest, err := os.Create(destPath)
+		if err != nil {
+			http.Error(w, "Failed to save file", http.StatusInternalServerError)
+			return
+		}
+		defer dest.Close()
+
+		if _, err := io.Copy(dest, file); err != nil {
+			http.Error(w, "Failed to write file", http.StatusInternalServerError)
+			return
+		}
+
+		artwork = fmt.Sprintf("shows/%s/artwork%s", idStr, ext)
+	}
+
+	// Handle artwork removal
+	if r.FormValue("remove_artwork") == "1" {
+		if show.Artwork != "" {
+			os.Remove(filepath.Join(h.dataDir, "uploads", show.Artwork))
+		}
+		artwork = ""
+	}
+
+	if err := h.store.Update(show.ID, name, description, artwork); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

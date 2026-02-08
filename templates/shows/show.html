@@ -20,6 +20,9 @@
     </div>
 
     <div class="rounded-lg bg-white p-6 shadow">
+        {{if .Show.Artwork}}
+        <img src="/uploads/{{.Show.Artwork}}" alt="" style="width:128px;height:128px" class="mb-4 rounded-lg object-cover">
+        {{end}}
         {{if .Show.Description}}
         <p class="text-gray-700 whitespace-pre-wrap">{{.Show.Description}}</p>
         {{else}}
