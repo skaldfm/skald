@@ -4,8 +4,8 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Shows</h1>
-            <p class="mt-1 text-sm text-gray-500">Your podcasts</p>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Shows</h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Your podcasts</p>
         </div>
         <a href="/shows/new" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
             New Show
@@ -15,27 +15,27 @@
     {{if .Shows}}
     <div class="flex flex-wrap gap-4">
         {{range .Shows}}
-        <a href="/shows/{{.ID}}" class="flex items-center rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow" style="gap:1.25rem">
+        <a href="/shows/{{.ID}}" class="flex items-center rounded-lg bg-white dark:bg-gray-800 p-6 shadow hover:shadow-md transition-shadow" style="gap:1.25rem">
             {{if .Artwork}}
             <img src="/uploads/{{.Artwork}}" alt="" style="width:64px;height:64px" class="flex-shrink-0 rounded-lg object-cover">
             {{else}}
-            <div class="flex flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400" style="width:64px;height:64px">
+            <div class="flex flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500" style="width:64px;height:64px">
                 <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
             </div>
             {{end}}
             <div class="min-w-0">
-                <h3 class="text-lg font-medium text-gray-900">{{.Name}}</h3>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">{{.Name}}</h3>
                 {{if .Description}}
-                <p class="mt-1 text-sm text-gray-500 line-clamp-2">{{.Description}}</p>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{{.Description}}</p>
                 {{end}}
             </div>
         </a>
         {{end}}
     </div>
     {{else}}
-    <div class="rounded-lg bg-white p-12 text-center shadow">
-        <p class="text-gray-500">No shows yet.</p>
-        <a href="/shows/new" class="mt-4 inline-block text-indigo-600 hover:text-indigo-700">Create your first show</a>
+    <div class="rounded-lg bg-white dark:bg-gray-800 p-12 text-center shadow">
+        <p class="text-gray-500 dark:text-gray-400">No shows yet.</p>
+        <a href="/shows/new" class="mt-4 inline-block text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">Create your first show</a>
     </div>
     {{end}}
 </div>
