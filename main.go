@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -44,6 +45,9 @@ func main() {
 	fileServer := http.FileServer(http.Dir("static"))
 	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
 
+	// Serve uploaded files
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir(filepath.Join(cfg.DataDir, "uploads")))))
+
 	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -65,7 +69,7 @@ func main() {
 	tagStore := models.NewTagStore(db)
 
 	// Shows
-	showHandler := handlers.NewShowHandler(showStore, episodeStore)
+	showHandler := handlers.NewShowHandler(showStore, episodeStore, cfg.DataDir)
 	r.Mount("/shows", showHandler.Routes())
 
 	// Episodes

@@ -69,9 +69,9 @@ func (s *ShowStore) Create(name, description string) (*Show, error) {
 	return s.Get(id)
 }
 
-func (s *ShowStore) Update(id int64, name, description string) error {
-	_, err := s.db.Exec(`UPDATE shows SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-		name, description, id)
+func (s *ShowStore) Update(id int64, name, description, artwork string) error {
+	_, err := s.db.Exec(`UPDATE shows SET name = ?, description = ?, artwork = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+		name, description, artwork, id)
 	if err != nil {
 		return fmt.Errorf("updating show %d: %w", id, err)
 	}
