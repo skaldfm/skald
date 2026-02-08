@@ -73,12 +73,13 @@ func main() {
 	r.Mount("/shows", showHandler.Routes())
 
 	// Episodes
-	episodeHandler := handlers.NewEpisodeHandler(episodeStore, showStore, assetStore, guestStore, tagStore)
+	episodeHandler := handlers.NewEpisodeHandler(episodeStore, showStore, assetStore, guestStore, tagStore, cfg.DataDir)
 	r.Mount("/episodes", episodeHandler.Routes())
 
 	// Assets (upload/download/delete routes)
 	assetHandler := handlers.NewAssetHandler(assetStore, cfg.DataDir)
-	r.Mount("/", assetHandler.Routes())
+	r.Post("/episodes/{episodeID}/assets", assetHandler.Upload)
+	r.Mount("/assets", assetHandler.Routes())
 
 	// Kanban board
 	kanbanHandler := handlers.NewKanbanHandler(episodeStore, showStore)

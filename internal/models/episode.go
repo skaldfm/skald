@@ -20,6 +20,7 @@ type Episode struct {
 	PublishDate   *time.Time
 	Script        string
 	ShowNotes     string
+	Artwork       string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
@@ -40,7 +41,7 @@ func NewEpisodeStore(db *sql.DB) *EpisodeStore {
 
 func (s *EpisodeStore) List(filter EpisodeFilter) ([]Episode, error) {
 	query := `SELECT e.id, e.show_id, s.name, e.title, e.episode_number, e.season_number,
-		e.description, e.status, e.publish_date, e.created_at, e.updated_at
+		e.description, e.status, e.publish_date, e.artwork, e.created_at, e.updated_at
 		FROM episodes e
 		JOIN shows s ON s.id = e.show_id
 		WHERE 1=1`
@@ -73,7 +74,7 @@ func (s *EpisodeStore) List(filter EpisodeFilter) ([]Episode, error) {
 		var ep Episode
 		if err := rows.Scan(&ep.ID, &ep.ShowID, &ep.ShowName, &ep.Title,
 			&ep.EpisodeNumber, &ep.SeasonNumber, &ep.Description,
-			&ep.Status, &ep.PublishDate, &ep.CreatedAt, &ep.UpdatedAt); err != nil {
+			&ep.Status, &ep.PublishDate, &ep.Artwork, &ep.CreatedAt, &ep.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scanning episode: %w", err)
 		}
 		episodes = append(episodes, ep)
@@ -84,13 +85,13 @@ func (s *EpisodeStore) List(filter EpisodeFilter) ([]Episode, error) {
 func (s *EpisodeStore) Get(id int64) (*Episode, error) {
 	var ep Episode
 	err := s.db.QueryRow(`SELECT e.id, e.show_id, s.name, e.title, e.episode_number, e.season_number,
-		e.description, e.status, e.publish_date, e.script, e.show_notes,
+		e.description, e.status, e.publish_date, e.script, e.show_notes, e.artwork,
 		e.created_at, e.updated_at
 		FROM episodes e
 		JOIN shows s ON s.id = e.show_id
 		WHERE e.id = ?`, id).Scan(
 		&ep.ID, &ep.ShowID, &ep.ShowName, &ep.Title, &ep.EpisodeNumber, &ep.SeasonNumber,
-		&ep.Description, &ep.Status, &ep.PublishDate, &ep.Script, &ep.ShowNotes,
+		&ep.Description, &ep.Status, &ep.PublishDate, &ep.Script, &ep.ShowNotes, &ep.Artwork,
 		&ep.CreatedAt, &ep.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -122,11 +123,11 @@ func (s *EpisodeStore) Update(ep *Episode) error {
 	_, err := s.db.Exec(`UPDATE episodes SET
 		show_id = ?, title = ?, episode_number = ?, season_number = ?,
 		description = ?, status = ?, publish_date = ?, script = ?, show_notes = ?,
-		updated_at = CURRENT_TIMESTAMP
+		artwork = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?`,
 		ep.ShowID, ep.Title, ep.EpisodeNumber, ep.SeasonNumber,
 		ep.Description, ep.Status, ep.PublishDate, ep.Script, ep.ShowNotes,
-		ep.ID)
+		ep.Artwork, ep.ID)
 	if err != nil {
 		return fmt.Errorf("updating episode %d: %w", ep.ID, err)
 	}
