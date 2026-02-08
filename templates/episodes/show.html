@@ -144,6 +144,16 @@
                         <dd class="mt-1">{{.Episode.PublishDate.Format "Jan 2, 2006"}}</dd>
                     </div>
                     {{end}}
+                    {{if .Tags}}
+                    <div>
+                        <dt class="text-gray-500">Tags</dt>
+                        <dd class="mt-1 flex flex-wrap gap-1">
+                            {{range .Tags}}
+                            <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">{{.Name}}</span>
+                            {{end}}
+                        </dd>
+                    </div>
+                    {{end}}
                     <div>
                         <dt class="text-gray-500">Created</dt>
                         <dd class="mt-1">{{.Episode.CreatedAt.Format "Jan 2, 2006"}}</dd>

@@ -15,10 +15,11 @@ type EpisodeHandler struct {
 	shows    *models.ShowStore
 	assets   *models.AssetStore
 	guests   *models.GuestStore
+	tags     *models.TagStore
 }
 
-func NewEpisodeHandler(episodes *models.EpisodeStore, shows *models.ShowStore, assets *models.AssetStore, guests *models.GuestStore) *EpisodeHandler {
-	return &EpisodeHandler{episodes: episodes, shows: shows, assets: assets, guests: guests}
+func NewEpisodeHandler(episodes *models.EpisodeStore, shows *models.ShowStore, assets *models.AssetStore, guests *models.GuestStore, tags *models.TagStore) *EpisodeHandler {
+	return &EpisodeHandler{episodes: episodes, shows: shows, assets: assets, guests: guests, tags: tags}
 }
 
 func (h *EpisodeHandler) Routes() chi.Router {
@@ -125,12 +126,14 @@ func (h *EpisodeHandler) Show(w http.ResponseWriter, r *http.Request) {
 
 	assets, _ := h.assets.ListForEpisode(ep.ID)
 	guests, _ := h.guests.GuestsForEpisode(ep.ID)
+	tags, _ := h.tags.TagsForEpisode(ep.ID)
 
 	data := map[string]any{
 		"Episode":  ep,
 		"Statuses": models.Statuses,
 		"Assets":   assets,
 		"Guests":   guests,
+		"Tags":     tags,
 	}
 	if err := views.Render(w, "episodes/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -149,10 +152,17 @@ func (h *EpisodeHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tags, _ := h.tags.TagsForEpisode(ep.ID)
+	var tagNames []string
+	for _, t := range tags {
+		tagNames = append(tagNames, t.Name)
+	}
+
 	data := map[string]any{
 		"Episode":  ep,
 		"Shows":    shows,
 		"Statuses": models.Statuses,
+		"Tags":     strings.Join(tagNames, ", "),
 	}
 	if err := views.Render(w, "episodes/edit.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -200,6 +210,18 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Update tags
+	tagsInput := strings.TrimSpace(r.FormValue("tags"))
+	var tagNames []string
+	if tagsInput != "" {
+		for _, t := range strings.Split(tagsInput, ",") {
+			if name := strings.TrimSpace(t); name != "" {
+				tagNames = append(tagNames, name)
+			}
+		}
+	}
+	h.tags.SetEpisodeTags(ep.ID, tagNames)
 
 	http.Redirect(w, r, "/episodes/"+strconv.FormatInt(ep.ID, 10), http.StatusSeeOther)
 }
