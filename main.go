@@ -82,6 +82,10 @@ func main() {
 	guestHandler := handlers.NewGuestHandler(guestStore)
 	r.Mount("/guests", guestHandler.Routes())
 
+	// Prompter
+	prompterHandler := handlers.NewPrompterHandler(episodeStore)
+	r.Get("/prompter/{id}", prompterHandler.Prompter)
+
 	log.Printf("PodForge starting on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
 		log.Fatalf("Server failed: %v", err)
