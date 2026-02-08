@@ -1,0 +1,92 @@
+{{define "title"}}Edit {{.Episode.Title}} — PodForge{{end}}
+
+{{define "content"}}
+<div class="mx-auto max-w-3xl">
+    <div class="flex items-center space-x-3">
+        <a href="/episodes/{{.Episode.ID}}" class="text-sm text-gray-500 hover:text-gray-700">&larr; Back</a>
+    </div>
+    <h1 class="mt-2 text-2xl font-bold text-gray-900">Edit Episode</h1>
+
+    {{if .Error}}
+    <div class="mt-4 rounded-md bg-red-50 p-4">
+        <p class="text-sm text-red-700">{{.Error}}</p>
+    </div>
+    {{end}}
+
+    <form method="POST" action="/episodes/{{.Episode.ID}}" class="mt-6 space-y-6">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div class="sm:col-span-2">
+                <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
+                <input type="text" name="title" id="title" value="{{.Episode.Title}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                       required autofocus>
+            </div>
+
+            <div>
+                <label for="show_id" class="block text-sm font-medium text-gray-700">Show</label>
+                <select name="show_id" id="show_id" required
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    {{range .Shows}}
+                    <option value="{{.ID}}" {{if eq .ID $.Episode.ShowID}}selected{{end}}>{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+
+            <div>
+                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                <select name="status" id="status"
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    {{range .Statuses}}
+                    <option value="{{.}}" {{if eq . $.Episode.Status}}selected{{end}}>{{statusLabel .}}</option>
+                    {{end}}
+                </select>
+            </div>
+
+            <div>
+                <label for="episode_number" class="block text-sm font-medium text-gray-700">Episode Number</label>
+                <input type="number" name="episode_number" id="episode_number" min="1"
+                       value="{{if .Episode.EpisodeNumber}}{{.Episode.EpisodeNumber}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label for="season_number" class="block text-sm font-medium text-gray-700">Season Number</label>
+                <input type="number" name="season_number" id="season_number" min="1"
+                       value="{{if .Episode.SeasonNumber}}{{.Episode.SeasonNumber}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            </div>
+        </div>
+
+        <div>
+            <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+            <textarea name="description" id="description" rows="3"
+                      class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">{{.Episode.Description}}</textarea>
+        </div>
+
+        <div>
+            <label for="script" class="block text-sm font-medium text-gray-700">Script</label>
+            <textarea name="script" id="script" rows="12"
+                      class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">{{.Episode.Script}}</textarea>
+        </div>
+
+        <div>
+            <label for="show_notes" class="block text-sm font-medium text-gray-700">Show Notes</label>
+            <textarea name="show_notes" id="show_notes" rows="6"
+                      class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">{{.Episode.ShowNotes}}</textarea>
+        </div>
+
+        <div class="flex items-center justify-between">
+            <form method="POST" action="/episodes/{{.Episode.ID}}/delete"
+                  onsubmit="return confirm('Delete this episode? This cannot be undone.')">
+                <button type="submit" class="text-sm text-red-600 hover:text-red-700">Delete episode</button>
+            </form>
+            <div class="flex items-center space-x-3">
+                <a href="/episodes/{{.Episode.ID}}" class="rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</a>
+                <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{{end}}

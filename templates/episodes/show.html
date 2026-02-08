@@ -1,0 +1,118 @@
+{{define "title"}}{{.Episode.Title}} — PodForge{{end}}
+
+{{define "content"}}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center space-x-3">
+                <a href="/episodes" class="text-sm text-gray-500 hover:text-gray-700">&larr; Episodes</a>
+                <span class="text-sm text-gray-300">|</span>
+                <a href="/shows/{{.Episode.ShowID}}" class="text-sm text-gray-500 hover:text-gray-700">{{.Episode.ShowName}}</a>
+            </div>
+            <h1 class="mt-2 text-2xl font-bold text-gray-900">
+                {{.Episode.Title}}
+                {{if .Episode.EpisodeNumber}}
+                <span class="ml-2 text-lg text-gray-400">
+                    {{if .Episode.SeasonNumber}}S{{.Episode.SeasonNumber}}{{end}}E{{.Episode.EpisodeNumber}}
+                </span>
+                {{end}}
+            </h1>
+        </div>
+        <div class="flex items-center space-x-3">
+            {{if .Episode.Script}}
+            <a href="/episodes/{{.Episode.ID}}/prompter" class="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50">
+                Prompter
+            </a>
+            {{end}}
+            <a href="/episodes/{{.Episode.ID}}/edit" class="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50">
+                Edit
+            </a>
+        </div>
+    </div>
+
+    <!-- Status pipeline -->
+    <div class="rounded-lg bg-white p-4 shadow">
+        <div class="flex items-center justify-between">
+            {{range .Statuses}}
+            <div class="flex flex-col items-center">
+                <form method="POST" action="/episodes/{{$.Episode.ID}}/status"
+                      hx-post="/episodes/{{$.Episode.ID}}/status"
+                      hx-target="#status-badge"
+                      hx-swap="innerHTML">
+                    <input type="hidden" name="status" value="{{.}}">
+                    <button type="submit"
+                            class="rounded-full px-3 py-1 text-xs font-medium transition-colors
+                            {{if eq . $.Episode.Status}}
+                                {{statusColor .}} ring-2 ring-offset-2 ring-indigo-500
+                            {{else}}
+                                bg-gray-100 text-gray-500 hover:bg-gray-200
+                            {{end}}">
+                        {{statusLabel .}}
+                    </button>
+                </form>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Details -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div class="lg:col-span-2 space-y-6">
+            {{if .Episode.Description}}
+            <div class="rounded-lg bg-white p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 mb-2">Description</h2>
+                <p class="text-gray-700 whitespace-pre-wrap">{{.Episode.Description}}</p>
+            </div>
+            {{end}}
+
+            {{if .Episode.Script}}
+            <div class="rounded-lg bg-white p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 mb-2">Script</h2>
+                <div class="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">{{.Episode.Script}}</div>
+            </div>
+            {{end}}
+
+            {{if .Episode.ShowNotes}}
+            <div class="rounded-lg bg-white p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 mb-2">Show Notes</h2>
+                <div class="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">{{.Episode.ShowNotes}}</div>
+            </div>
+            {{end}}
+        </div>
+
+        <div class="space-y-6">
+            <div class="rounded-lg bg-white p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 mb-3">Details</h2>
+                <dl class="space-y-3 text-sm">
+                    <div>
+                        <dt class="text-gray-500">Status</dt>
+                        <dd id="status-badge" class="mt-1">
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{statusColor .Episode.Status}}">
+                                {{statusLabel .Episode.Status}}
+                            </span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Show</dt>
+                        <dd class="mt-1"><a href="/shows/{{.Episode.ShowID}}" class="text-indigo-600 hover:text-indigo-700">{{.Episode.ShowName}}</a></dd>
+                    </div>
+                    {{if .Episode.PublishDate}}
+                    <div>
+                        <dt class="text-gray-500">Publish Date</dt>
+                        <dd class="mt-1">{{.Episode.PublishDate.Format "Jan 2, 2006"}}</dd>
+                    </div>
+                    {{end}}
+                    <div>
+                        <dt class="text-gray-500">Created</dt>
+                        <dd class="mt-1">{{.Episode.CreatedAt.Format "Jan 2, 2006"}}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Updated</dt>
+                        <dd class="mt-1">{{.Episode.UpdatedAt.Format "Jan 2, 2006"}}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

@@ -16,12 +16,12 @@ var (
 // FuncMap returns the shared template function map.
 func FuncMap() template.FuncMap {
 	return template.FuncMap{
-		"statusLabel": statusLabel,
-		"statusColor": statusColor,
+		"statusLabel": StatusLabel,
+		"statusColor": StatusColor,
 	}
 }
 
-func statusLabel(s string) string {
+func StatusLabel(s string) string {
 	labels := map[string]string{
 		"idea":      "Idea",
 		"research":  "Research",
@@ -36,7 +36,7 @@ func statusLabel(s string) string {
 	return s
 }
 
-func statusColor(s string) string {
+func StatusColor(s string) string {
 	colors := map[string]string{
 		"idea":      "bg-gray-100 text-gray-800",
 		"research":  "bg-blue-100 text-blue-800",
