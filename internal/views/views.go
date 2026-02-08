@@ -16,9 +16,10 @@ var (
 // FuncMap returns the shared template function map.
 func FuncMap() template.FuncMap {
 	return template.FuncMap{
-		"statusLabel": StatusLabel,
-		"statusColor": StatusColor,
-		"formatBytes": formatBytes,
+		"statusLabel":    StatusLabel,
+		"statusColor":    StatusColor,
+		"statusBarColor": StatusBarColor,
+		"formatBytes":    formatBytes,
 	}
 }
 
@@ -50,6 +51,21 @@ func StatusColor(s string) string {
 		return c
 	}
 	return "bg-gray-100 text-gray-800"
+}
+
+func StatusBarColor(s string) string {
+	colors := map[string]string{
+		"idea":      "bg-gray-300 dark:bg-gray-500",
+		"research":  "bg-blue-400 dark:bg-blue-500",
+		"scripted":  "bg-yellow-400 dark:bg-yellow-500",
+		"recorded":  "bg-purple-400 dark:bg-purple-500",
+		"edited":    "bg-orange-400 dark:bg-orange-500",
+		"published": "bg-green-400 dark:bg-green-500",
+	}
+	if c, ok := colors[s]; ok {
+		return c
+	}
+	return "bg-gray-300 dark:bg-gray-500"
 }
 
 func formatBytes(b int64) string {
