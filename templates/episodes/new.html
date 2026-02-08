@@ -11,22 +11,53 @@
     {{end}}
 
     <form method="POST" action="/episodes" class="mt-6 space-y-6">
-        <div>
-            <label for="show_id" class="block text-sm font-medium text-gray-700">Show</label>
-            <select name="show_id" id="show_id" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                <option value="">Select a show</option>
-                {{range .Shows}}
-                <option value="{{.ID}}" {{if eq (printf "%d" .ID) $.ShowID}}selected{{end}}>{{.Name}}</option>
-                {{end}}
-            </select>
-        </div>
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div class="sm:col-span-2">
+                <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
+                <input type="text" name="title" id="title" value="{{if .Title}}{{.Title}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                       required autofocus>
+            </div>
 
-        <div>
-            <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
-            <input type="text" name="title" id="title" value="{{if .Title}}{{.Title}}{{end}}"
-                   class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                   required autofocus>
+            <div>
+                <label for="show_id" class="block text-sm font-medium text-gray-700">Show</label>
+                <select name="show_id" id="show_id" required
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <option value="">Select a show</option>
+                    {{range .Shows}}
+                    <option value="{{.ID}}" {{if eq (printf "%d" .ID) $.ShowID}}selected{{end}}>{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+
+            <div>
+                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                <select name="status" id="status"
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    {{range .Statuses}}
+                    <option value="{{.}}" {{if eq . "idea"}}selected{{end}}>{{statusLabel .}}</option>
+                    {{end}}
+                </select>
+            </div>
+
+            <div>
+                <label for="episode_number" class="block text-sm font-medium text-gray-700">Episode Number</label>
+                <input type="number" name="episode_number" id="episode_number" min="1"
+                       class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label for="season_number" class="block text-sm font-medium text-gray-700">Season Number</label>
+                <input type="number" name="season_number" id="season_number" min="1"
+                       class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label for="publish_date" class="block text-sm font-medium text-gray-700">Publish Date</label>
+                <input type="text" name="publish_date" id="publish_date" placeholder="YYYY-MM-DD"
+                       onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"
+                       class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            </div>
         </div>
 
         <div>
@@ -36,13 +67,23 @@
         </div>
 
         <div>
-            <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
-            <select name="status" id="status"
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                {{range .Statuses}}
-                <option value="{{.}}" {{if eq . "idea"}}selected{{end}}>{{statusLabel .}}</option>
-                {{end}}
-            </select>
+            <label for="script" class="block text-sm font-medium text-gray-700">Script</label>
+            <textarea name="script" id="script" rows="12"
+                      class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"></textarea>
+        </div>
+
+        <div>
+            <label for="tags" class="block text-sm font-medium text-gray-700">Tags</label>
+            <input type="text" name="tags" id="tags"
+                   placeholder="Comma-separated tags"
+                   class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <p class="mt-1 text-xs text-gray-400">Separate tags with commas</p>
+        </div>
+
+        <div>
+            <label for="show_notes" class="block text-sm font-medium text-gray-700">Show Notes</label>
+            <textarea name="show_notes" id="show_notes" rows="6"
+                      class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"></textarea>
         </div>
 
         <div class="flex items-center justify-end space-x-3">

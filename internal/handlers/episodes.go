@@ -116,6 +116,40 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set additional fields that Create() doesn't handle
+	if epNum := r.FormValue("episode_number"); epNum != "" {
+		n, _ := strconv.Atoi(epNum)
+		ep.EpisodeNumber = &n
+	}
+	if seNum := r.FormValue("season_number"); seNum != "" {
+		n, _ := strconv.Atoi(seNum)
+		ep.SeasonNumber = &n
+	}
+	if pd := r.FormValue("publish_date"); pd != "" {
+		if t, err := time.Parse("2006-01-02", pd); err == nil {
+			ep.PublishDate = &t
+		}
+	}
+	ep.Script = r.FormValue("script")
+	ep.ShowNotes = r.FormValue("show_notes")
+
+	if err := h.episodes.Update(ep); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Save tags
+	tagsInput := strings.TrimSpace(r.FormValue("tags"))
+	var tagNames []string
+	if tagsInput != "" {
+		for _, t := range strings.Split(tagsInput, ",") {
+			if name := strings.TrimSpace(t); name != "" {
+				tagNames = append(tagNames, name)
+			}
+		}
+	}
+	_ = h.tags.SetEpisodeTags(ep.ID, tagNames)
+
 	http.Redirect(w, r, "/episodes/"+strconv.FormatInt(ep.ID, 10), http.StatusSeeOther)
 }
 
