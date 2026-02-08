@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mhermansson/skald/internal/models"
@@ -191,6 +192,13 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if seNum := r.FormValue("season_number"); seNum != "" {
 		n, _ := strconv.Atoi(seNum)
 		ep.SeasonNumber = &n
+	}
+	if pd := r.FormValue("publish_date"); pd != "" {
+		if t, err := time.Parse("2006-01-02", pd); err == nil {
+			ep.PublishDate = &t
+		}
+	} else {
+		ep.PublishDate = nil
 	}
 
 	if ep.Title == "" {
