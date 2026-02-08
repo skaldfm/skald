@@ -20,14 +20,50 @@
     </div>
 
     <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
-        {{if .Show.Artwork}}
-        <img src="/uploads/{{.Show.Artwork}}" alt="" style="width:128px;height:128px" class="mb-4 rounded-lg object-cover">
-        {{end}}
-        {{if .Show.Description}}
-        <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{.Show.Description}}</p>
-        {{else}}
-        <p class="text-gray-400 dark:text-gray-500 italic">No description</p>
-        {{end}}
+        <div class="flex items-start gap-6">
+            {{if .Show.Artwork}}
+            <img src="/uploads/{{.Show.Artwork}}" alt="" class="h-40 w-40 flex-shrink-0 rounded-lg object-cover shadow-md">
+            {{end}}
+            <div class="min-w-0 flex-1 space-y-4">
+                {{if .Show.Description}}
+                <blockquote class="border-l-4 border-indigo-400 dark:border-indigo-500 pl-4 text-gray-600 dark:text-gray-300 italic whitespace-pre-wrap">{{.Show.Description}}</blockquote>
+                {{else}}
+                <p class="text-gray-400 dark:text-gray-500 italic">No description</p>
+                {{end}}
+
+                <!-- Stats -->
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+                    <span>{{.TotalEpisodes}} episode{{if ne .TotalEpisodes 1}}s{{end}}</span>
+                    <span class="text-gray-300 dark:text-gray-600">&middot;</span>
+                    <span>{{.PublishedCount}} published</span>
+                    {{if .NextEpisode}}
+                    <span class="text-gray-300 dark:text-gray-600">&middot;</span>
+                    <span>Next: <a href="/episodes/{{.NextEpisode.ID}}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">{{.NextEpisode.PublishDate.Format "Jan 2, 2006"}}</a></span>
+                    {{end}}
+                    <span class="text-gray-300 dark:text-gray-600">&middot;</span>
+                    <span>Created {{.Show.CreatedAt.Format "Jan 2006"}}</span>
+                </div>
+
+                <!-- Pipeline bar -->
+                {{if .Segments}}
+                <div>
+                    <div class="flex h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                        {{range .Segments}}
+                        <div class="{{statusBarColor .Status}}" style="width:{{printf "%.1f" .Percent}}%" title="{{statusLabel .Status}}: {{.Count}}"></div>
+                        {{end}}
+                    </div>
+                    <div class="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                        {{range .Segments}}
+                        <span class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                            <span class="inline-block h-2 w-2 rounded-full {{statusBarColor .Status}}"></span>
+                            {{statusLabel .Status}} {{.Count}}
+                        </span>
+                        {{end}}
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
     </div>
 
     <!-- Episodes -->

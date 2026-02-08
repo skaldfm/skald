@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mhermansson/skald/internal/models"
@@ -102,10 +103,49 @@ func (h *ShowHandler) Show(w http.ResponseWriter, r *http.Request) {
 
 	groups := groupBySeason(episodes)
 
+	// Compute stats for the show header
+	statusCounts := make(map[string]int)
+	publishedCount := 0
+	var nextEpisode *models.Episode
+	now := time.Now()
+	for i, ep := range episodes {
+		statusCounts[ep.Status]++
+		if ep.Status == "published" {
+			publishedCount++
+		}
+		if ep.PublishDate != nil && ep.PublishDate.After(now) {
+			if nextEpisode == nil || ep.PublishDate.Before(*nextEpisode.PublishDate) {
+				nextEpisode = &episodes[i]
+			}
+		}
+	}
+
+	// Build ordered status segments for the pipeline bar
+	type statusSegment struct {
+		Status  string
+		Count   int
+		Percent float64
+	}
+	var segments []statusSegment
+	total := len(episodes)
+	for _, s := range models.Statuses {
+		if c := statusCounts[s]; c > 0 {
+			segments = append(segments, statusSegment{
+				Status:  s,
+				Count:   c,
+				Percent: float64(c) / float64(total) * 100,
+			})
+		}
+	}
+
 	data := map[string]any{
-		"Show":         show,
-		"SeasonGroups": groups,
-		"HasEpisodes":  len(episodes) > 0,
+		"Show":           show,
+		"SeasonGroups":   groups,
+		"HasEpisodes":    len(episodes) > 0,
+		"TotalEpisodes":  total,
+		"PublishedCount": publishedCount,
+		"NextEpisode":    nextEpisode,
+		"Segments":       segments,
 	}
 	if err := views.Render(w, "shows/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
