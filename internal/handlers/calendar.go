@@ -163,10 +163,9 @@ func (h *TimelineHandler) Routes() chi.Router {
 	return r
 }
 
-type TimelineMonth struct {
-	Year     int
-	Month    int
+type TimelineColumn struct {
 	Name     string
+	IsCurrent bool
 	Episodes []models.Episode
 }
 
@@ -175,6 +174,11 @@ func (h *TimelineHandler) Timeline(w http.ResponseWriter, r *http.Request) {
 	if showID := r.URL.Query().Get("show"); showID != "" {
 		id, _ := strconv.ParseInt(showID, 10, 64)
 		filter.ShowID = id
+	}
+
+	zoom := r.URL.Query().Get("zoom")
+	if zoom != "week" {
+		zoom = "month"
 	}
 
 	episodes, err := h.episodes.List(filter)
@@ -189,61 +193,117 @@ func (h *TimelineHandler) Timeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Date range: 3 months back to 3 months ahead
 	now := time.Now()
-	start := time.Date(now.Year(), now.Month()-3, 1, 0, 0, 0, 0, time.Local)
-	end := time.Date(now.Year(), now.Month()+4, 0, 0, 0, 0, 0, time.Local)
-
-	// Group scheduled episodes by year-month
-	type monthKey struct {
-		year  int
-		month int
-	}
-	grouped := make(map[monthKey][]models.Episode)
+	var columns []TimelineColumn
 	var unscheduled []models.Episode
+	todayIdx := -1
 
-	for _, ep := range episodes {
-		if ep.PublishDate == nil {
-			unscheduled = append(unscheduled, ep)
-			continue
+	if zoom == "week" {
+		// 8 weeks back, 8 weeks ahead (17 weeks total)
+		// Find Monday of the current week
+		todayWeekday := int(now.Weekday())
+		if todayWeekday == 0 {
+			todayWeekday = 7
 		}
-		if ep.PublishDate.Before(start) || ep.PublishDate.After(end) {
-			continue
+		thisMonday := now.AddDate(0, 0, -(todayWeekday - 1))
+		thisMonday = time.Date(thisMonday.Year(), thisMonday.Month(), thisMonday.Day(), 0, 0, 0, 0, time.Local)
+
+		start := thisMonday.AddDate(0, 0, -8*7)
+		end := thisMonday.AddDate(0, 0, 9*7) // 8 weeks ahead + end of that week
+
+		// Group episodes by week (Monday)
+		type weekKey struct {
+			year int
+			month int
+			day  int
 		}
-		k := monthKey{ep.PublishDate.Year(), int(ep.PublishDate.Month())}
-		grouped[k] = append(grouped[k], ep)
-	}
+		grouped := make(map[weekKey][]models.Episode)
+		for _, ep := range episodes {
+			if ep.PublishDate == nil {
+				unscheduled = append(unscheduled, ep)
+				continue
+			}
+			if ep.PublishDate.Before(start) || !ep.PublishDate.Before(end) {
+				continue
+			}
+			// Find the Monday of this episode's week
+			epWeekday := int(ep.PublishDate.Weekday())
+			if epWeekday == 0 {
+				epWeekday = 7
+			}
+			monday := ep.PublishDate.AddDate(0, 0, -(epWeekday - 1))
+			k := weekKey{monday.Year(), int(monday.Month()), monday.Day()}
+			grouped[k] = append(grouped[k], ep)
+		}
 
-	// Build ordered month columns
-	var months []TimelineMonth
-	cur := start
-	for !cur.After(end) {
-		k := monthKey{cur.Year(), int(cur.Month())}
-		months = append(months, TimelineMonth{
-			Year:     cur.Year(),
-			Month:    int(cur.Month()),
-			Name:     cur.Month().String()[:3] + " " + strconv.Itoa(cur.Year()),
-			Episodes: grouped[k],
-		})
-		cur = time.Date(cur.Year(), cur.Month()+1, 1, 0, 0, 0, 0, time.Local)
-	}
+		// Build week columns
+		cur := start
+		for cur.Before(end) {
+			sunday := cur.AddDate(0, 0, 6)
+			var name string
+			if cur.Month() == sunday.Month() {
+				name = cur.Format("Jan 2") + "–" + strconv.Itoa(sunday.Day())
+			} else {
+				name = cur.Format("Jan 2") + "–" + sunday.Format("Jan 2")
+			}
 
-	// Find which month column is "now" for the today marker
-	todayMonthIdx := -1
-	for i, m := range months {
-		if m.Year == now.Year() && m.Month == int(now.Month()) {
-			todayMonthIdx = i
-			break
+			k := weekKey{cur.Year(), int(cur.Month()), cur.Day()}
+			isCurrent := cur.Equal(thisMonday)
+			columns = append(columns, TimelineColumn{
+				Name:      name,
+				IsCurrent: isCurrent,
+				Episodes:  grouped[k],
+			})
+			if isCurrent {
+				todayIdx = len(columns) - 1
+			}
+			cur = cur.AddDate(0, 0, 7)
+		}
+	} else {
+		// Month view: 3 months back to 3 months ahead
+		start := time.Date(now.Year(), now.Month()-3, 1, 0, 0, 0, 0, time.Local)
+		end := time.Date(now.Year(), now.Month()+4, 0, 0, 0, 0, 0, time.Local)
+
+		type monthKey struct {
+			year  int
+			month int
+		}
+		grouped := make(map[monthKey][]models.Episode)
+		for _, ep := range episodes {
+			if ep.PublishDate == nil {
+				unscheduled = append(unscheduled, ep)
+				continue
+			}
+			if ep.PublishDate.Before(start) || ep.PublishDate.After(end) {
+				continue
+			}
+			k := monthKey{ep.PublishDate.Year(), int(ep.PublishDate.Month())}
+			grouped[k] = append(grouped[k], ep)
+		}
+
+		cur := start
+		for !cur.After(end) {
+			k := monthKey{cur.Year(), int(cur.Month())}
+			isCurrent := cur.Year() == now.Year() && cur.Month() == now.Month()
+			columns = append(columns, TimelineColumn{
+				Name:      cur.Month().String()[:3] + " " + strconv.Itoa(cur.Year()),
+				IsCurrent: isCurrent,
+				Episodes:  grouped[k],
+			})
+			if isCurrent {
+				todayIdx = len(columns) - 1
+			}
+			cur = time.Date(cur.Year(), cur.Month()+1, 1, 0, 0, 0, 0, time.Local)
 		}
 	}
 
 	data := map[string]any{
-		"Months":        months,
-		"Shows":         shows,
-		"Filter":        filter,
-		"Unscheduled":   unscheduled,
-		"TodayMonthIdx": todayMonthIdx,
-		"TodayDay":      now.Day(),
+		"Columns":     columns,
+		"Shows":       shows,
+		"Filter":      filter,
+		"Unscheduled": unscheduled,
+		"TodayIdx":    todayIdx,
+		"Zoom":        zoom,
 	}
 
 	if err := views.Render(w, "episodes/timeline.html", data); err != nil {

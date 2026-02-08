@@ -9,6 +9,7 @@
         </div>
         <div class="flex items-center space-x-3">
             <form method="GET" action="/timeline">
+                <input type="hidden" name="zoom" value="{{.Zoom}}">
                 <select name="show" onchange="this.form.submit()"
                         class="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:bg-gray-700 dark:text-gray-100">
                     <option value="">All Shows</option>
@@ -17,6 +18,13 @@
                     {{end}}
                 </select>
             </form>
+            <!-- Zoom toggle -->
+            <div class="inline-flex rounded-md shadow-sm">
+                <a href="/timeline?zoom=month{{if .Filter.ShowID}}&show={{.Filter.ShowID}}{{end}}"
+                   class="rounded-l-md px-3 py-2 text-sm font-medium {{if eq .Zoom "month"}}bg-indigo-600 text-white{{else}}bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700{{end}}">Month</a>
+                <a href="/timeline?zoom=week{{if .Filter.ShowID}}&show={{.Filter.ShowID}}{{end}}"
+                   class="rounded-r-md px-3 py-2 text-sm font-medium {{if eq .Zoom "week"}}bg-indigo-600 text-white{{else}}bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700{{end}}">Week</a>
+            </div>
             <a href="/episodes" class="rounded-md bg-white dark:bg-gray-800 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">List</a>
             <a href="/kanban{{if .Filter.ShowID}}?show={{.Filter.ShowID}}{{end}}" class="rounded-md bg-white dark:bg-gray-800 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">Kanban</a>
             <a href="/calendar{{if .Filter.ShowID}}?show={{.Filter.ShowID}}{{end}}" class="rounded-md bg-white dark:bg-gray-800 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">Calendar</a>
@@ -26,25 +34,23 @@
     <!-- Horizontal timeline -->
     <div class="overflow-x-auto pb-4" id="timeline-scroll">
         <div class="inline-flex gap-0 min-w-full">
-            {{range $i, $m := .Months}}
-            <div class="w-48 flex-shrink-0 {{if eq $i $.TodayMonthIdx}}relative{{end}}">
-                <!-- Month header -->
-                <div class="sticky top-0 border-b-2 {{if eq $i $.TodayMonthIdx}}border-indigo-500{{else}}border-gray-300 dark:border-gray-600{{end}} pb-2 mb-3 px-2">
-                    <span class="text-sm font-semibold {{if eq $i $.TodayMonthIdx}}text-indigo-600 dark:text-indigo-400{{else}}text-gray-700 dark:text-gray-300{{end}}">
-                        {{$m.Name}}
+            {{range $i, $col := .Columns}}
+            <div class="{{if eq $.Zoom "week"}}w-44{{else}}w-48{{end}} flex-shrink-0">
+                <!-- Column header -->
+                <div class="sticky top-0 border-b-2 {{if $col.IsCurrent}}border-indigo-500{{else}}border-gray-300 dark:border-gray-600{{end}} pb-2 mb-3 px-2">
+                    <span class="text-sm font-semibold {{if $col.IsCurrent}}text-indigo-600 dark:text-indigo-400{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                        {{$col.Name}}
                     </span>
-                    {{if $m.Episodes}}
-                    <span class="ml-1 text-xs text-gray-400 dark:text-gray-500">{{len $m.Episodes}}</span>
+                    {{if $col.Episodes}}
+                    <span class="ml-1 text-xs text-gray-400 dark:text-gray-500">{{len $col.Episodes}}</span>
                     {{end}}
                 </div>
 
-                <!-- Episodes in this month -->
+                <!-- Episodes in this column -->
                 <div class="space-y-2 px-1">
-                    {{range $m.Episodes}}
+                    {{range $col.Episodes}}
                     <a href="/episodes/{{.ID}}" class="block rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2.5 hover:shadow-sm transition-shadow">
-                        <div class="flex items-start justify-between gap-1">
-                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{.Title}}</p>
-                        </div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{.Title}}</p>
                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{.ShowName}}</p>
                         <div class="mt-1.5 flex items-center justify-between">
                             <span class="inline-block rounded px-1.5 py-0.5 text-xs {{statusColor .Status}}">{{statusLabel .Status}}</span>
@@ -53,7 +59,7 @@
                     </a>
                     {{end}}
 
-                    {{if not $m.Episodes}}
+                    {{if not $col.Episodes}}
                     <p class="px-2 py-4 text-xs text-gray-400 dark:text-gray-500 italic">No episodes</p>
                     {{end}}
                 </div>
@@ -82,14 +88,17 @@
 </div>
 
 <script>
-// Scroll to current month on load
+// Scroll to current column on load
 document.addEventListener('DOMContentLoaded', function() {
-    const idx = {{.TodayMonthIdx}};
+    const idx = {{.TodayIdx}};
     if (idx >= 0) {
         const container = document.getElementById('timeline-scroll');
-        const colWidth = 192; // w-48 = 12rem = 192px
-        // Center the current month
-        container.scrollLeft = Math.max(0, (idx * colWidth) - (container.clientWidth / 2) + (colWidth / 2));
+        const cols = container.querySelectorAll('.flex-shrink-0');
+        if (cols[idx]) {
+            const colLeft = cols[idx].offsetLeft;
+            const colWidth = cols[idx].offsetWidth;
+            container.scrollLeft = Math.max(0, colLeft - (container.clientWidth / 2) + (colWidth / 2));
+        }
     }
 });
 </script>
