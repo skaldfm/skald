@@ -1,0 +1,96 @@
+{{define "title"}}Timeline — Skald{{end}}
+
+{{define "content"}}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Timeline</h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Episode schedule over time</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <form method="GET" action="/timeline">
+                <select name="show" onchange="this.form.submit()"
+                        class="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:bg-gray-700 dark:text-gray-100">
+                    <option value="">All Shows</option>
+                    {{range .Shows}}
+                    <option value="{{.ID}}" {{if eq .ID $.Filter.ShowID}}selected{{end}}>{{.Name}}</option>
+                    {{end}}
+                </select>
+            </form>
+            <a href="/episodes" class="rounded-md bg-white dark:bg-gray-800 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">List</a>
+            <a href="/kanban{{if .Filter.ShowID}}?show={{.Filter.ShowID}}{{end}}" class="rounded-md bg-white dark:bg-gray-800 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">Kanban</a>
+            <a href="/calendar{{if .Filter.ShowID}}?show={{.Filter.ShowID}}{{end}}" class="rounded-md bg-white dark:bg-gray-800 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">Calendar</a>
+        </div>
+    </div>
+
+    <!-- Horizontal timeline -->
+    <div class="overflow-x-auto pb-4" id="timeline-scroll">
+        <div class="inline-flex gap-0 min-w-full">
+            {{range $i, $m := .Months}}
+            <div class="w-48 flex-shrink-0 {{if eq $i $.TodayMonthIdx}}relative{{end}}">
+                <!-- Month header -->
+                <div class="sticky top-0 border-b-2 {{if eq $i $.TodayMonthIdx}}border-indigo-500{{else}}border-gray-300 dark:border-gray-600{{end}} pb-2 mb-3 px-2">
+                    <span class="text-sm font-semibold {{if eq $i $.TodayMonthIdx}}text-indigo-600 dark:text-indigo-400{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                        {{$m.Name}}
+                    </span>
+                    {{if $m.Episodes}}
+                    <span class="ml-1 text-xs text-gray-400 dark:text-gray-500">{{len $m.Episodes}}</span>
+                    {{end}}
+                </div>
+
+                <!-- Episodes in this month -->
+                <div class="space-y-2 px-1">
+                    {{range $m.Episodes}}
+                    <a href="/episodes/{{.ID}}" class="block rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2.5 hover:shadow-sm transition-shadow">
+                        <div class="flex items-start justify-between gap-1">
+                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{.Title}}</p>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{.ShowName}}</p>
+                        <div class="mt-1.5 flex items-center justify-between">
+                            <span class="inline-block rounded px-1.5 py-0.5 text-xs {{statusColor .Status}}">{{statusLabel .Status}}</span>
+                            <span class="text-xs text-gray-400 dark:text-gray-500">{{.PublishDate.Format "Jan 2"}}</span>
+                        </div>
+                    </a>
+                    {{end}}
+
+                    {{if not $m.Episodes}}
+                    <p class="px-2 py-4 text-xs text-gray-400 dark:text-gray-500 italic">No episodes</p>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Unscheduled episodes -->
+    {{if .Unscheduled}}
+    <div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Unscheduled</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {{range .Unscheduled}}
+            <a href="/episodes/{{.ID}}" class="flex items-center space-x-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 hover:shadow-sm transition-shadow">
+                <span class="inline-block rounded px-2 py-0.5 text-xs {{statusColor .Status}}">{{statusLabel .Status}}</span>
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{.Title}}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{.ShowName}}</p>
+                </div>
+            </a>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+</div>
+
+<script>
+// Scroll to current month on load
+document.addEventListener('DOMContentLoaded', function() {
+    const idx = {{.TodayMonthIdx}};
+    if (idx >= 0) {
+        const container = document.getElementById('timeline-scroll');
+        const colWidth = 192; // w-48 = 12rem = 192px
+        // Center the current month
+        container.scrollLeft = Math.max(0, (idx * colWidth) - (container.clientWidth / 2) + (colWidth / 2));
+    }
+});
+</script>
+{{end}}
