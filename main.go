@@ -69,6 +69,11 @@ func main() {
 	kanbanHandler := handlers.NewKanbanHandler(episodeStore, showStore)
 	r.Mount("/kanban", kanbanHandler.Routes())
 
+	// Guests
+	guestStore := models.NewGuestStore(db)
+	guestHandler := handlers.NewGuestHandler(guestStore)
+	r.Mount("/guests", guestHandler.Routes())
+
 	log.Printf("PodForge starting on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
 		log.Fatalf("Server failed: %v", err)
