@@ -1,8 +1,11 @@
-.PHONY: build run dev clean tailwind tailwind-watch
+VERSION ?= dev
+LDFLAGS := -s -w -X main.version=$(VERSION)
+
+.PHONY: build run dev clean tailwind tailwind-watch lint test
 
 # Build the binary
 build:
-	go build -o skald .
+	go build -ldflags="$(LDFLAGS)" -o skald .
 
 # Run the server
 run: build
@@ -26,10 +29,18 @@ clean:
 	rm -f skald
 	rm -rf data/
 
+# Run linter
+lint:
+	golangci-lint run
+
+# Run tests
+test:
+	go test ./...
+
 # Cross-compile for all platforms
 dist:
-	GOOS=linux GOARCH=amd64 go build -o dist/skald-linux-amd64 .
-	GOOS=linux GOARCH=arm64 go build -o dist/skald-linux-arm64 .
-	GOOS=darwin GOARCH=amd64 go build -o dist/skald-darwin-amd64 .
-	GOOS=darwin GOARCH=arm64 go build -o dist/skald-darwin-arm64 .
-	GOOS=windows GOARCH=amd64 go build -o dist/skald-windows-amd64.exe .
+	GOOS=linux   GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o dist/skald-linux-amd64 .
+	GOOS=linux   GOARCH=arm64 go build -ldflags="$(LDFLAGS)" -o dist/skald-linux-arm64 .
+	GOOS=darwin  GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o dist/skald-darwin-amd64 .
+	GOOS=darwin  GOARCH=arm64 go build -ldflags="$(LDFLAGS)" -o dist/skald-darwin-arm64 .
+	GOOS=windows GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o dist/skald-windows-amd64.exe .
