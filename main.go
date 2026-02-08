@@ -6,11 +6,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/mhermansson/podforge/internal/config"
-	"github.com/mhermansson/podforge/internal/database"
-	"github.com/mhermansson/podforge/internal/handlers"
-	"github.com/mhermansson/podforge/internal/models"
-	"github.com/mhermansson/podforge/internal/views"
+	"github.com/mhermansson/skald/internal/config"
+	"github.com/mhermansson/skald/internal/database"
+	"github.com/mhermansson/skald/internal/handlers"
+	"github.com/mhermansson/skald/internal/models"
+	"github.com/mhermansson/skald/internal/views"
 )
 
 func main() {
@@ -86,7 +86,7 @@ func main() {
 	prompterHandler := handlers.NewPrompterHandler(episodeStore)
 	r.Get("/prompter/{id}", prompterHandler.Prompter)
 
-	log.Printf("PodForge starting on :%s", cfg.Port)
+	log.Printf("Skald starting on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}

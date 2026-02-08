@@ -2,7 +2,7 @@
 /vendor/
 
 # Build output
-/podforge
+/skald
 /bin/
 /dist/
 

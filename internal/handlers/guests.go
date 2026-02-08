@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mhermansson/podforge/internal/models"
-	"github.com/mhermansson/podforge/internal/views"
+	"github.com/mhermansson/skald/internal/models"
+	"github.com/mhermansson/skald/internal/views"
 )
 
 type GuestHandler struct {

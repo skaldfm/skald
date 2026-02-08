@@ -1,10 +1,10 @@
-# PodForge
+# Skald
 
 A self-hosted podcast management tool for indie podcasters who want control over their workflow and data.
 
 ## What Is This?
 
-Most podcast tools are cloud-only, subscription-heavy, and ignore the production workflow. PodForge covers the full lifecycle — from episode planning and scripting to a built-in prompter for recording — all running on your own infrastructure.
+Most podcast tools are cloud-only, subscription-heavy, and ignore the production workflow. Skald covers the full lifecycle — from episode planning and scripting to a built-in prompter for recording — all running on your own infrastructure.
 
 ## Features (Planned MVP)
 

@@ -1,4 +1,4 @@
-module github.com/mhermansson/podforge
+module github.com/mhermansson/skald
 
 go 1.23
 

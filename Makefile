@@ -2,11 +2,11 @@
 
 # Build the binary
 build:
-	go build -o podforge .
+	go build -o skald .
 
 # Run the server
 run: build
-	./podforge
+	./skald
 
 # Development mode: run with live reload (requires air)
 dev:
@@ -23,13 +23,13 @@ tailwind-watch:
 
 # Clean build artifacts
 clean:
-	rm -f podforge
+	rm -f skald
 	rm -rf data/
 
 # Cross-compile for all platforms
 dist:
-	GOOS=linux GOARCH=amd64 go build -o dist/podforge-linux-amd64 .
-	GOOS=linux GOARCH=arm64 go build -o dist/podforge-linux-arm64 .
-	GOOS=darwin GOARCH=amd64 go build -o dist/podforge-darwin-amd64 .
-	GOOS=darwin GOARCH=arm64 go build -o dist/podforge-darwin-arm64 .
-	GOOS=windows GOARCH=amd64 go build -o dist/podforge-windows-amd64.exe .
+	GOOS=linux GOARCH=amd64 go build -o dist/skald-linux-amd64 .
+	GOOS=linux GOARCH=arm64 go build -o dist/skald-linux-arm64 .
+	GOOS=darwin GOARCH=amd64 go build -o dist/skald-darwin-amd64 .
+	GOOS=darwin GOARCH=arm64 go build -o dist/skald-darwin-arm64 .
+	GOOS=windows GOARCH=amd64 go build -o dist/skald-windows-amd64.exe .

@@ -1,13 +1,13 @@
 services:
-  podforge:
+  skald:
     build: .
     ports:
-      - "8080:8080"
+      - "7707:7707"
     volumes:
-      - podforge-data:/app/data
+      - skald-data:/app/data
     environment:
-      - PODFORGE_PORT=8080
+      - SKALD_PORT=7707
     restart: unless-stopped
 
 volumes:
-  podforge-data:
+  skald-data:

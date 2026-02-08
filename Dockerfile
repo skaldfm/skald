@@ -12,7 +12,7 @@ RUN go mod download
 COPY . .
 
 # Build static binary
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o podforge .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o skald .
 
 # Runtime stage
 FROM alpine:3.20
@@ -22,7 +22,7 @@ RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 
 # Copy binary and assets
-COPY --from=builder /build/podforge .
+COPY --from=builder /build/skald .
 COPY --from=builder /build/templates ./templates
 COPY --from=builder /build/migrations ./migrations
 COPY --from=builder /build/static ./static
@@ -30,9 +30,9 @@ COPY --from=builder /build/static ./static
 # Data volume
 VOLUME /app/data
 
-ENV PODFORGE_PORT=8080
-ENV PODFORGE_DATA_DIR=/app/data
+ENV SKALD_PORT=7707
+ENV SKALD_DATA_DIR=/app/data
 
-EXPOSE 8080
+EXPOSE 7707
 
-ENTRYPOINT ["./podforge"]
+ENTRYPOINT ["./skald"]
