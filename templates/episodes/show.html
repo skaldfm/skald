@@ -13,7 +13,7 @@
                 {{.Episode.Title}}
                 {{if .Episode.EpisodeNumber}}
                 <span class="ml-2 text-lg text-gray-400 dark:text-gray-500">
-                    {{if .Episode.SeasonNumber}}S{{.Episode.SeasonNumber}}{{end}}E{{.Episode.EpisodeNumber}}
+                    {{episodeCode .Episode.SeasonNumber .Episode.EpisodeNumber}}
                 </span>
                 {{end}}
             </h1>

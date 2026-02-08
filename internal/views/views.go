@@ -20,6 +20,7 @@ func FuncMap() template.FuncMap {
 		"statusColor":    StatusColor,
 		"statusBarColor": StatusBarColor,
 		"formatBytes":    formatBytes,
+		"episodeCode":    EpisodeCode,
 	}
 }
 
@@ -66,6 +67,16 @@ func StatusBarColor(s string) string {
 		return c
 	}
 	return "bg-gray-300 dark:bg-gray-500"
+}
+
+func EpisodeCode(season, episode *int) string {
+	if episode == nil {
+		return ""
+	}
+	if season != nil {
+		return fmt.Sprintf("S%02dE%02d", *season, *episode)
+	}
+	return fmt.Sprintf("E%02d", *episode)
 }
 
 func formatBytes(b int64) string {

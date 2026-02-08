@@ -151,6 +151,27 @@ func (s *EpisodeStore) Delete(id int64) error {
 	return nil
 }
 
+// EpisodeNumberExists checks if an episode number already exists for a show+season,
+// excluding the given episode ID (pass 0 for new episodes).
+func (s *EpisodeStore) EpisodeNumberExists(showID int64, season, episode *int, excludeID int64) (bool, error) {
+	if episode == nil {
+		return false, nil
+	}
+	query := `SELECT COUNT(*) FROM episodes WHERE show_id = ? AND episode_number = ? AND id != ?`
+	args := []any{showID, *episode, excludeID}
+	if season != nil {
+		query += " AND season_number = ?"
+		args = append(args, *season)
+	} else {
+		query += " AND season_number IS NULL"
+	}
+	var count int
+	if err := s.db.QueryRow(query, args...).Scan(&count); err != nil {
+		return false, fmt.Errorf("checking episode number: %w", err)
+	}
+	return count > 0, nil
+}
+
 // CountByStatus returns a map of status -> count, optionally filtered by show.
 func (s *EpisodeStore) CountByStatus(showID int64) (map[string]int, error) {
 	query := `SELECT status, COUNT(*) FROM episodes`
