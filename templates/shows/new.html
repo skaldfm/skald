@@ -2,30 +2,30 @@
 
 {{define "content"}}
 <div class="mx-auto max-w-2xl">
-    <h1 class="text-2xl font-bold text-gray-900">New Show</h1>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">New Show</h1>
 
     {{if .Error}}
-    <div class="mt-4 rounded-md bg-red-50 p-4">
-        <p class="text-sm text-red-700">{{.Error}}</p>
+    <div class="mt-4 rounded-md bg-red-50 dark:bg-red-900/20 p-4">
+        <p class="text-sm text-red-700 dark:text-red-400">{{.Error}}</p>
     </div>
     {{end}}
 
     <form method="POST" action="/shows" class="mt-6 space-y-6">
         <div>
-            <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
             <input type="text" name="name" id="name" value="{{if .Name}}{{.Name}}{{end}}"
-                   class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                   class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100"
                    required autofocus>
         </div>
 
         <div>
-            <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
             <textarea name="description" id="description" rows="4"
-                      class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">{{if .Description}}{{.Description}}{{end}}</textarea>
+                      class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">{{if .Description}}{{.Description}}{{end}}</textarea>
         </div>
 
         <div class="flex items-center justify-end space-x-3">
-            <a href="/shows" class="rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</a>
+            <a href="/shows" class="rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</a>
             <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
                 Create Show
             </button>

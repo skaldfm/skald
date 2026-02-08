@@ -5,14 +5,14 @@
     <div class="flex items-center justify-between">
         <div>
             <div class="flex items-center space-x-3">
-                <a href="/episodes" class="text-sm text-gray-500 hover:text-gray-700">&larr; Episodes</a>
-                <span class="text-sm text-gray-300">|</span>
-                <a href="/shows/{{.Episode.ShowID}}" class="text-sm text-gray-500 hover:text-gray-700">{{.Episode.ShowName}}</a>
+                <a href="/episodes" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">&larr; Episodes</a>
+                <span class="text-sm text-gray-300 dark:text-gray-600">|</span>
+                <a href="/shows/{{.Episode.ShowID}}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">{{.Episode.ShowName}}</a>
             </div>
-            <h1 class="mt-2 text-2xl font-bold text-gray-900">
+            <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {{.Episode.Title}}
                 {{if .Episode.EpisodeNumber}}
-                <span class="ml-2 text-lg text-gray-400">
+                <span class="ml-2 text-lg text-gray-400 dark:text-gray-500">
                     {{if .Episode.SeasonNumber}}S{{.Episode.SeasonNumber}}{{end}}E{{.Episode.EpisodeNumber}}
                 </span>
                 {{end}}
@@ -20,18 +20,18 @@
         </div>
         <div class="flex items-center space-x-3">
             {{if .Episode.Script}}
-            <a href="/prompter/{{.Episode.ID}}" class="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50">
+            <a href="/prompter/{{.Episode.ID}}" class="rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
                 Prompter
             </a>
             {{end}}
-            <a href="/episodes/{{.Episode.ID}}/edit" class="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50">
+            <a href="/episodes/{{.Episode.ID}}/edit" class="rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
                 Edit
             </a>
         </div>
     </div>
 
     <!-- Status pipeline -->
-    <div class="rounded-lg bg-white p-4 shadow">
+    <div class="rounded-lg bg-white dark:bg-gray-800 p-4 shadow">
         <div class="flex items-center justify-between">
             {{range .Statuses}}
             <div class="flex flex-col items-center">
@@ -45,7 +45,7 @@
                             {{if eq . $.Episode.Status}}
                                 {{statusColor .}} ring-2 ring-offset-2 ring-indigo-500
                             {{else}}
-                                bg-gray-100 text-gray-500 hover:bg-gray-200
+                                bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600
                             {{end}}">
                         {{statusLabel .}}
                     </button>
@@ -59,43 +59,43 @@
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2 space-y-6">
             {{if .Episode.Description}}
-            <div class="rounded-lg bg-white p-6 shadow">
-                <h2 class="text-sm font-medium text-gray-500 mb-2">Description</h2>
-                <p class="text-gray-700 whitespace-pre-wrap">{{.Episode.Description}}</p>
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</h2>
+                <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{.Episode.Description}}</p>
             </div>
             {{end}}
 
             {{if .Episode.Script}}
-            <div class="rounded-lg bg-white p-6 shadow">
-                <h2 class="text-sm font-medium text-gray-500 mb-2">Script</h2>
-                <div class="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">{{.Episode.Script}}</div>
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Script</h2>
+                <div class="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{.Episode.Script}}</div>
             </div>
             {{end}}
 
             {{if .Episode.ShowNotes}}
-            <div class="rounded-lg bg-white p-6 shadow">
-                <h2 class="text-sm font-medium text-gray-500 mb-2">Show Notes</h2>
-                <div class="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">{{.Episode.ShowNotes}}</div>
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Show Notes</h2>
+                <div class="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{.Episode.ShowNotes}}</div>
             </div>
             {{end}}
 
             <!-- Assets -->
-            <div class="rounded-lg bg-white p-6 shadow">
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
                 <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-sm font-medium text-gray-500">Assets</h2>
+                    <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400">Assets</h2>
                 </div>
 
                 {{if .Assets}}
-                <ul class="divide-y divide-gray-200 mb-4">
+                <ul class="divide-y divide-gray-200 dark:divide-gray-700 mb-4">
                     {{range .Assets}}
                     <li class="flex items-center justify-between py-3">
                         <div>
-                            <a href="/assets/{{.ID}}/download" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">{{.Filename}}</a>
-                            <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600">{{.AssetType}}</span>
-                            <span class="ml-1 text-xs text-gray-400">{{formatBytes .Filesize}}</span>
+                            <a href="/assets/{{.ID}}/download" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.Filename}}</a>
+                            <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">{{.AssetType}}</span>
+                            <span class="ml-1 text-xs text-gray-400 dark:text-gray-500">{{formatBytes .Filesize}}</span>
                         </div>
                         <form method="POST" action="/assets/{{.ID}}/delete" onsubmit="return confirm('Delete this file?')">
-                            <button type="submit" class="text-xs text-red-500 hover:text-red-700">Delete</button>
+                            <button type="submit" class="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-400">Delete</button>
                         </form>
                     </li>
                     {{end}}
@@ -106,9 +106,9 @@
                       class="flex items-end gap-3">
                     <div class="flex-1">
                         <input type="file" name="file" required
-                               class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100">
+                               class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-50 dark:file:bg-indigo-900/30 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-700 dark:file:text-indigo-400 hover:file:bg-indigo-100">
                     </div>
-                    <select name="asset_type" class="rounded-md border border-gray-300 px-3 py-2 text-sm">
+                    <select name="asset_type" class="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-100">
                         <option value="other">Other</option>
                         <option value="script">Script</option>
                         <option value="audio">Audio</option>
@@ -123,11 +123,11 @@
         </div>
 
         <div class="space-y-6">
-            <div class="rounded-lg bg-white p-6 shadow">
-                <h2 class="text-sm font-medium text-gray-500 mb-3">Details</h2>
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Details</h2>
                 <dl class="space-y-3 text-sm">
                     <div>
-                        <dt class="text-gray-500">Status</dt>
+                        <dt class="text-gray-500 dark:text-gray-400">Status</dt>
                         <dd id="status-badge" class="mt-1">
                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{statusColor .Episode.Status}}">
                                 {{statusLabel .Episode.Status}}
@@ -135,31 +135,31 @@
                         </dd>
                     </div>
                     <div>
-                        <dt class="text-gray-500">Show</dt>
-                        <dd class="mt-1"><a href="/shows/{{.Episode.ShowID}}" class="text-indigo-600 hover:text-indigo-700">{{.Episode.ShowName}}</a></dd>
+                        <dt class="text-gray-500 dark:text-gray-400">Show</dt>
+                        <dd class="mt-1"><a href="/shows/{{.Episode.ShowID}}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.Episode.ShowName}}</a></dd>
                     </div>
                     {{if .Episode.PublishDate}}
                     <div>
-                        <dt class="text-gray-500">Publish Date</dt>
+                        <dt class="text-gray-500 dark:text-gray-400">Publish Date</dt>
                         <dd class="mt-1">{{.Episode.PublishDate.Format "Jan 2, 2006"}}</dd>
                     </div>
                     {{end}}
                     {{if .Tags}}
                     <div>
-                        <dt class="text-gray-500">Tags</dt>
+                        <dt class="text-gray-500 dark:text-gray-400">Tags</dt>
                         <dd class="mt-1 flex flex-wrap gap-1">
                             {{range .Tags}}
-                            <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">{{.Name}}</span>
+                            <span class="inline-flex items-center rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-400">{{.Name}}</span>
                             {{end}}
                         </dd>
                     </div>
                     {{end}}
                     <div>
-                        <dt class="text-gray-500">Created</dt>
+                        <dt class="text-gray-500 dark:text-gray-400">Created</dt>
                         <dd class="mt-1">{{.Episode.CreatedAt.Format "Jan 2, 2006"}}</dd>
                     </div>
                     <div>
-                        <dt class="text-gray-500">Updated</dt>
+                        <dt class="text-gray-500 dark:text-gray-400">Updated</dt>
                         <dd class="mt-1">{{.Episode.UpdatedAt.Format "Jan 2, 2006"}}</dd>
                     </div>
                 </dl>

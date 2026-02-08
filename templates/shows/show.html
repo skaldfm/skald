@@ -5,54 +5,54 @@
     <div class="flex items-center justify-between">
         <div>
             <div class="flex items-center space-x-3">
-                <a href="/shows" class="text-sm text-gray-500 hover:text-gray-700">&larr; Shows</a>
+                <a href="/shows" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">&larr; Shows</a>
             </div>
-            <h1 class="mt-2 text-2xl font-bold text-gray-900">{{.Show.Name}}</h1>
+            <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">{{.Show.Name}}</h1>
         </div>
         <div class="flex items-center space-x-3">
-            <a href="/shows/{{.Show.ID}}/edit" class="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50">
+            <a href="/shows/{{.Show.ID}}/edit" class="rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
                 Edit
             </a>
-            <a href="/episodes/new?show={{.Show.ID}}" class="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50">
+            <a href="/episodes/new?show={{.Show.ID}}" class="rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
                 New Episode
             </a>
         </div>
     </div>
 
-    <div class="rounded-lg bg-white p-6 shadow">
+    <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
         {{if .Show.Artwork}}
         <img src="/uploads/{{.Show.Artwork}}" alt="" style="width:128px;height:128px" class="mb-4 rounded-lg object-cover">
         {{end}}
         {{if .Show.Description}}
-        <p class="text-gray-700 whitespace-pre-wrap">{{.Show.Description}}</p>
+        <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{.Show.Description}}</p>
         {{else}}
-        <p class="text-gray-400 italic">No description</p>
+        <p class="text-gray-400 dark:text-gray-500 italic">No description</p>
         {{end}}
     </div>
 
     <!-- Episodes -->
     {{if .HasEpisodes}}
     {{range .SeasonGroups}}
-    <div class="overflow-hidden rounded-lg bg-white shadow">
+    <div class="overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow">
         {{if .Label}}
-        <h2 class="px-6 pt-5 pb-3 text-xl font-bold text-gray-900">{{.Label}}</h2>
+        <h2 class="px-6 pt-5 pb-3 text-xl font-bold text-gray-900 dark:text-gray-100">{{.Label}}</h2>
         {{end}}
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Title</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-                    <th class="hidden px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 md:table-cell">Published</th>
-                    <th class="hidden px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 md:table-cell">Updated</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Title</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Status</th>
+                    <th class="hidden px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400 md:table-cell">Published</th>
+                    <th class="hidden px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400 md:table-cell">Updated</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 {{range .Episodes}}
-                <tr class="hover:bg-gray-50">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td class="px-6 py-4">
-                        <a href="/episodes/{{.ID}}" class="font-medium text-gray-900 hover:text-indigo-600">{{.Title}}</a>
+                        <a href="/episodes/{{.ID}}" class="font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400">{{.Title}}</a>
                         {{if .EpisodeNumber}}
-                        <span class="ml-2 text-xs text-gray-400">
+                        <span class="ml-2 text-xs text-gray-400 dark:text-gray-500">
                             {{if .SeasonNumber}}S{{.SeasonNumber}}{{end}}E{{.EpisodeNumber}}
                         </span>
                         {{end}}
@@ -62,10 +62,10 @@
                             {{statusLabel .Status}}
                         </span>
                     </td>
-                    <td class="hidden px-6 py-4 text-sm text-gray-500 md:table-cell">
+                    <td class="hidden px-6 py-4 text-sm text-gray-500 dark:text-gray-400 md:table-cell">
                         {{if .PublishDate}}{{.PublishDate.Format "Jan 2, 2006"}}{{else}}—{{end}}
                     </td>
-                    <td class="hidden px-6 py-4 text-sm text-gray-500 md:table-cell">
+                    <td class="hidden px-6 py-4 text-sm text-gray-500 dark:text-gray-400 md:table-cell">
                         {{.UpdatedAt.Format "Jan 2, 2006"}}
                     </td>
                 </tr>
@@ -75,9 +75,9 @@
     </div>
     {{end}}
     {{else}}
-    <div class="rounded-lg bg-white p-8 text-center shadow">
-        <p class="text-gray-500">No episodes yet.</p>
-        <a href="/episodes/new?show={{.Show.ID}}" class="mt-2 inline-block text-sm text-indigo-600 hover:text-indigo-700">Create the first episode</a>
+    <div class="rounded-lg bg-white dark:bg-gray-800 p-8 text-center shadow">
+        <p class="text-gray-500 dark:text-gray-400">No episodes yet.</p>
+        <a href="/episodes/new?show={{.Show.ID}}" class="mt-2 inline-block text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">Create the first episode</a>
     </div>
     {{end}}
 </div>
