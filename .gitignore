@@ -1,0 +1,35 @@
+# Dependencies
+/vendor/
+
+# Build output
+/podforge
+/bin/
+/dist/
+
+# Data directory (SQLite DB + uploads)
+/data/
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Test
+/coverage/
+*.out
+
+# Docker
+docker-compose.override.yml
+
+# Temporary
+/tmp/
