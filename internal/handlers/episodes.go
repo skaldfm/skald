@@ -105,7 +105,7 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"Statuses":    models.Statuses,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		views.Render(w, "episodes/new.html", data)
+		_ = views.Render(w, "episodes/new.html", data)
 		return
 	}
 
@@ -202,7 +202,7 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			"Error":    "Title is required",
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		views.Render(w, "episodes/edit.html", data)
+		_ = views.Render(w, "episodes/edit.html", data)
 		return
 	}
 
@@ -221,7 +221,7 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	h.tags.SetEpisodeTags(ep.ID, tagNames)
+	_ = h.tags.SetEpisodeTags(ep.ID, tagNames)
 
 	http.Redirect(w, r, "/episodes/"+strconv.FormatInt(ep.ID, 10), http.StatusSeeOther)
 }
@@ -241,7 +241,7 @@ func (h *EpisodeHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	// If HTMX request, return just the updated status badge
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ` +
+		_, _ = w.Write([]byte(`<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ` +
 			views.StatusColor(status) + `">` + views.StatusLabel(status) + `</span>`))
 		return
 	}

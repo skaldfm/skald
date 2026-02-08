@@ -82,7 +82,7 @@ func (s *TagStore) SetEpisodeTags(episodeID int64, tagNames []string) error {
 
 	// Clear existing tags
 	if _, err := tx.Exec(`DELETE FROM episode_tags WHERE episode_id = ?`, episodeID); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return fmt.Errorf("clearing tags: %w", err)
 	}
 
@@ -98,7 +98,7 @@ func (s *TagStore) SetEpisodeTags(episodeID int64, tagNames []string) error {
 		if err != nil {
 			result, err := tx.Exec(`INSERT INTO tags (name) VALUES (?)`, name)
 			if err != nil {
-				tx.Rollback()
+				_ = tx.Rollback()
 				return fmt.Errorf("creating tag %q: %w", name, err)
 			}
 			tagID, _ = result.LastInsertId()
@@ -106,7 +106,7 @@ func (s *TagStore) SetEpisodeTags(episodeID int64, tagNames []string) error {
 
 		// Link to episode
 		if _, err := tx.Exec(`INSERT OR IGNORE INTO episode_tags (episode_id, tag_id) VALUES (?, ?)`, episodeID, tagID); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("linking tag %q: %w", name, err)
 		}
 	}

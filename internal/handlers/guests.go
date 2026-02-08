@@ -64,7 +64,7 @@ func (h *GuestHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"Website": website,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		views.Render(w, "guests/new.html", data)
+		_ = views.Render(w, "guests/new.html", data)
 		return
 	}
 
@@ -127,7 +127,7 @@ func (h *GuestHandler) Update(w http.ResponseWriter, r *http.Request) {
 			"Error": "Name is required",
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		views.Render(w, "guests/edit.html", data)
+		_ = views.Render(w, "guests/edit.html", data)
 		return
 	}
 
