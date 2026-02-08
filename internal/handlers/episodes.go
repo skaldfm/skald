@@ -92,6 +92,12 @@ func (h *EpisodeHandler) New(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
+	// Parse multipart form (10 MB max for artwork)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "Form too large", http.StatusBadRequest)
+		return
+	}
+
 	title := strings.TrimSpace(r.FormValue("title"))
 	description := strings.TrimSpace(r.FormValue("description"))
 	status := r.FormValue("status")
@@ -137,6 +143,36 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	ep.Script = r.FormValue("script")
 	ep.ShowNotes = r.FormValue("show_notes")
+
+	// Handle artwork upload
+	file, header, artErr := r.FormFile("artwork")
+	if artErr == nil {
+		defer file.Close()
+
+		idStr := strconv.FormatInt(ep.ID, 10)
+		uploadDir := filepath.Join(h.dataDir, "uploads", "episodes", idStr)
+		if err := os.MkdirAll(uploadDir, 0755); err != nil {
+			http.Error(w, "Failed to create upload directory", http.StatusInternalServerError)
+			return
+		}
+
+		ext := filepath.Ext(header.Filename)
+		destPath := filepath.Join(uploadDir, "artwork"+ext)
+
+		dest, err := os.Create(destPath)
+		if err != nil {
+			http.Error(w, "Failed to save file", http.StatusInternalServerError)
+			return
+		}
+		defer dest.Close()
+
+		if _, err := io.Copy(dest, file); err != nil {
+			http.Error(w, "Failed to write file", http.StatusInternalServerError)
+			return
+		}
+
+		ep.Artwork = fmt.Sprintf("episodes/%s/artwork%s", idStr, ext)
+	}
 
 	if err := h.episodes.Update(ep); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

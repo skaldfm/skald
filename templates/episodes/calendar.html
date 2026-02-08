@@ -53,7 +53,7 @@
         {{range .Weeks}}
         <div class="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
             {{range .}}
-            <div class="min-h-[100px] border-r border-gray-200 dark:border-gray-700 last:border-r-0 p-1 {{if not .InMonth}}bg-gray-50 dark:bg-gray-850{{end}}">
+            <div class="min-h-[100px] border-r border-gray-200 dark:border-gray-700 last:border-r-0 p-1 {{if not .InMonth}}bg-gray-100 dark:bg-gray-900/50{{end}}">
                 {{if .InMonth}}
                 <div class="mb-1">
                     <span class="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs {{if .IsToday}}bg-indigo-600 text-white font-bold{{else}}text-gray-700 dark:text-gray-300{{end}}">
