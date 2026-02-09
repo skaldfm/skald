@@ -192,6 +192,25 @@ func (s *GuestStore) GuestsForEpisode(episodeID int64) ([]EpisodeGuest, error) {
 	return links, rows.Err()
 }
 
+// GuestIDsForEpisode returns the IDs of guests linked to an episode.
+func (s *GuestStore) GuestIDsForEpisode(episodeID int64) ([]int64, error) {
+	rows, err := s.db.Query(`SELECT guest_id FROM episode_guests WHERE episode_id = ?`, episodeID)
+	if err != nil {
+		return nil, fmt.Errorf("listing guest IDs for episode %d: %w", episodeID, err)
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scanning guest ID: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 // LinkGuest links a guest to an episode with a role.
 func (s *GuestStore) LinkGuest(episodeID, guestID int64, role string) error {
 	if role == "" {
