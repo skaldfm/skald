@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/mhermansson/skald/internal/backup"
 	"github.com/mhermansson/skald/internal/config"
 	"github.com/mhermansson/skald/internal/database"
 	"github.com/mhermansson/skald/internal/handlers"
@@ -25,6 +26,17 @@ func main() {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 	defer db.Close()
+
+	// Set up backup manager
+	backupMgr := backup.NewManager(db, cfg.DataDir, cfg.BackupRetain)
+
+	// Pre-migration backup (skip if no migrations table yet = fresh DB)
+	var hasMigrations int
+	if err := db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='schema_migrations'").Scan(&hasMigrations); err == nil && hasMigrations > 0 {
+		if _, err := backupMgr.Create("pre-migration"); err != nil {
+			log.Printf("Warning: pre-migration backup failed: %v", err)
+		}
+	}
 
 	// Run migrations
 	if err := database.Migrate(db, "migrations"); err != nil {
@@ -95,6 +107,13 @@ func main() {
 	// Prompter
 	prompterHandler := handlers.NewPrompterHandler(episodeStore)
 	r.Get("/prompter/{id}", prompterHandler.Prompter)
+
+	// Admin
+	adminHandler := handlers.NewAdminHandler(backupMgr)
+	r.Mount("/admin", adminHandler.Routes())
+
+	// Start scheduled backups
+	backupMgr.StartSchedule(cfg.BackupInterval)
 
 	log.Printf("Skald %s starting on :%s", version, cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
