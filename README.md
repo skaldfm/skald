@@ -36,17 +36,32 @@ Single Go binary, SQLite database, no external dependencies. Deploy with Docker 
 
 ### Script Prompter
 Built-in teleprompter for recording sessions:
-- Adjustable scroll speed (0.5–10 px/frame)
+- Adjustable scroll speed (1–20, quadratic curve for fine control at low speeds)
 - Font size control (16–72px)
 - Fullscreen and mirror mode (for reflected prompter setups)
-- Auto-hiding controls during playback
-- Progress indicator
+- Markdown rendering — **bold** and _underline_ in scripts
+- Font color presets (white, yellow, green, cyan)
+- Background color presets (black, dark blue, dark green, dark gray)
+- Center text toggle
+- Controls at top of screen for tablet ergonomics
+- All preferences saved to localStorage
 - Keyboard shortcuts (Space, arrows, +/-, F, M)
 - Tablet-friendly — works well in portrait and landscape
 
 ### Guests
-- Guest profiles with name, email, bio, and website
+- Guest profiles with name, email, bio, website, company, podcast
+- Photo upload with avatar display
+- Social links — Twitter/X, Instagram, LinkedIn, Mastodon
 - Link guests to episodes with roles
+- Guest list shows avatar thumbnails and which shows each guest has appeared on
+- Searchable tag-picker for linking guests to episodes
+
+### Sponsorships
+- Sponsor deal tracking with ad copy, CPM, total cost, average listens
+- Drop date and payment due date
+- Order document upload
+- Link sponsors to episodes via searchable tag-picker
+- Financial overview on sponsor detail pages
 
 ### Assets
 - File attachments per episode (scripts, audio, artwork, notes)
@@ -54,14 +69,15 @@ Built-in teleprompter for recording sessions:
 
 ### Backups
 - **Automatic pre-migration backups** — safety net before any schema changes
-- **Scheduled backups** — configurable interval (default daily), automatic retention/pruning
+- **Scheduled backups** — configurable interval (default daily), automatic retention/pruning (default 14)
 - **Manual backups** — create and download from the admin page
 - Uses SQLite `VACUUM INTO` for consistent snapshots safe with WAL mode
 
 ## Tech Stack
 
 - **Backend:** Go with [chi](https://github.com/go-chi/chi) router
-- **Frontend:** Go `html/template` + [HTMX](https://htmx.org/) + vanilla JS
+- **Frontend:** Go `html/template` + [HTMX](https://htmx.org/) + vanilla JS (tag-picker component)
+- **Markdown:** [Goldmark](https://github.com/yuin/goldmark) for script/show notes rendering
 - **CSS:** [Tailwind CSS](https://tailwindcss.com/) v4 with full dark mode support
 - **Database:** SQLite (WAL mode) via [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite) (pure Go, no CGO)
 - **Deployment:** Single Docker container
@@ -92,7 +108,7 @@ go build -o skald .
 | `SKALD_DB_TYPE` | `sqlite` | Database type |
 | `SKALD_DB_URL` | `{DataDir}/skald.db` | Database connection string |
 | `SKALD_BACKUP_INTERVAL` | `24h` | Scheduled backup frequency (Go duration) |
-| `SKALD_BACKUP_RETAIN` | `7` | Number of backups to keep |
+| `SKALD_BACKUP_RETAIN` | `14` | Number of backups to keep |
 
 ## Screenshots
 
