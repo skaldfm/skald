@@ -104,7 +104,7 @@ func main() {
 	r.Mount("/timeline", timelineHandler.Routes())
 
 	// Guests
-	guestHandler := handlers.NewGuestHandler(guestStore)
+	guestHandler := handlers.NewGuestHandler(guestStore, cfg.DataDir)
 	r.Mount("/guests", guestHandler.Routes())
 
 	// Sponsorships

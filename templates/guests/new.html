@@ -10,31 +10,80 @@
     </div>
     {{end}}
 
-    <form method="POST" action="/guests" class="mt-6 space-y-6">
-        <div>
-            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
-            <input type="text" name="name" id="name" value="{{if .Name}}{{.Name}}{{end}}"
-                   class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100"
-                   required autofocus>
+    <form method="POST" action="/guests" enctype="multipart/form-data" class="mt-6 space-y-6">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div class="sm:col-span-2">
+                <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+                <input type="text" name="name" id="name" value="{{if .Guest}}{{.Guest.Name}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100"
+                       required autofocus>
+            </div>
+
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                <input type="email" name="email" id="email" value="{{if .Guest}}{{.Guest.Email}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+            </div>
+
+            <div>
+                <label for="website" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Website</label>
+                <input type="url" name="website" id="website" value="{{if .Guest}}{{.Guest.Website}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+            </div>
+
+            <div>
+                <label for="company" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Company</label>
+                <input type="text" name="company" id="company" value="{{if .Guest}}{{.Guest.Company}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+            </div>
+
+            <div>
+                <label for="podcast" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Podcast</label>
+                <input type="text" name="podcast" id="podcast" value="{{if .Guest}}{{.Guest.Podcast}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+            </div>
         </div>
 
         <div>
-            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-            <input type="email" name="email" id="email" value="{{if .Email}}{{.Email}}{{end}}"
-                   class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+            <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">Photo</span>
+            <div class="mt-2 flex items-center gap-3">
+                <label for="image" class="cursor-pointer rounded-md bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50">Choose file</label>
+                <span class="text-sm text-gray-500 dark:text-gray-400">No file chosen</span>
+                <input type="file" name="image" id="image" accept="image/*" class="sr-only" onchange="this.previousElementSibling.textContent = this.files[0]?.name || 'No file chosen'">
+            </div>
         </div>
 
         <div>
             <label for="bio" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
             <textarea name="bio" id="bio" rows="3"
-                      class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">{{if .Bio}}{{.Bio}}{{end}}</textarea>
+                      class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">{{if .Guest}}{{.Guest.Bio}}{{end}}</textarea>
         </div>
 
-        <div>
-            <label for="website" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Website</label>
-            <input type="url" name="website" id="website" value="{{if .Website}}{{.Website}}{{end}}"
-                   class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
-        </div>
+        <fieldset>
+            <legend class="block text-sm font-medium text-gray-700 dark:text-gray-300">Socials</legend>
+            <div class="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="twitter" class="block text-xs text-gray-500 dark:text-gray-400">Twitter / X</label>
+                    <input type="text" name="twitter" id="twitter" value="{{if .Guest}}{{.Guest.Twitter}}{{end}}" placeholder="@handle"
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+                </div>
+                <div>
+                    <label for="instagram" class="block text-xs text-gray-500 dark:text-gray-400">Instagram</label>
+                    <input type="text" name="instagram" id="instagram" value="{{if .Guest}}{{.Guest.Instagram}}{{end}}" placeholder="@handle"
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+                </div>
+                <div>
+                    <label for="linkedin" class="block text-xs text-gray-500 dark:text-gray-400">LinkedIn</label>
+                    <input type="text" name="linkedin" id="linkedin" value="{{if .Guest}}{{.Guest.LinkedIn}}{{end}}" placeholder="URL or username"
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+                </div>
+                <div>
+                    <label for="mastodon" class="block text-xs text-gray-500 dark:text-gray-400">Mastodon</label>
+                    <input type="text" name="mastodon" id="mastodon" value="{{if .Guest}}{{.Guest.Mastodon}}{{end}}" placeholder="@user@instance"
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+                </div>
+            </div>
+        </fieldset>
 
         <div class="flex items-center justify-end space-x-3">
             <a href="/guests" class="rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</a>

@@ -5,7 +5,12 @@
     <div class="flex items-center justify-between">
         <div>
             <a href="/guests" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">&larr; Guests</a>
-            <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">{{.Guest.Name}}</h1>
+            <div class="mt-2 flex items-center space-x-4">
+                {{if .Guest.Image}}
+                <img src="/uploads/{{.Guest.Image}}" alt="{{.Guest.Name}}" class="h-16 w-16 rounded-full object-cover">
+                {{end}}
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{.Guest.Name}}</h1>
+            </div>
         </div>
         <a href="/guests/{{.Guest.ID}}/edit" class="rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
             Edit
@@ -13,17 +18,19 @@
     </div>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div class="lg:col-span-2">
-            {{if .Guest.Bio}}
+        <div class="lg:col-span-2 space-y-6">
             <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
                 <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Bio</h2>
+                {{if .Guest.Bio}}
                 <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{.Guest.Bio}}</p>
+                {{else}}
+                <p class="text-sm text-gray-400 dark:text-gray-500 italic">No bio yet.</p>
+                {{end}}
             </div>
-            {{end}}
 
-            {{if .Episodes}}
-            <div class="mt-6 rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
                 <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Episodes</h2>
+                {{if .Episodes}}
                 <ul class="divide-y divide-gray-200 dark:divide-gray-700">
                     {{range .Episodes}}
                     <li class="py-3">
@@ -32,28 +39,90 @@
                     </li>
                     {{end}}
                 </ul>
+                {{else}}
+                <p class="text-sm text-gray-400 dark:text-gray-500 italic">No episodes yet.</p>
+                {{end}}
             </div>
-            {{end}}
         </div>
 
-        <div>
+        <div class="space-y-6">
             <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
-                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Contact</h2>
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Details</h2>
                 <dl class="space-y-3 text-sm">
-                    {{if .Guest.Email}}
                     <div>
                         <dt class="text-gray-500 dark:text-gray-400">Email</dt>
-                        <dd class="mt-1"><a href="mailto:{{.Guest.Email}}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.Guest.Email}}</a></dd>
+                        <dd class="mt-1">
+                            {{if .Guest.Email}}
+                            <a href="mailto:{{.Guest.Email}}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.Guest.Email}}</a>
+                            {{else}}
+                            <span class="text-gray-400 dark:text-gray-500 italic">Not set</span>
+                            {{end}}
+                        </dd>
                     </div>
-                    {{end}}
-                    {{if .Guest.Website}}
                     <div>
                         <dt class="text-gray-500 dark:text-gray-400">Website</dt>
-                        <dd class="mt-1"><a href="{{.Guest.Website}}" target="_blank" rel="noopener" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.Guest.Website}}</a></dd>
+                        <dd class="mt-1">
+                            {{if .Guest.Website}}
+                            <a href="{{.Guest.Website}}" target="_blank" rel="noopener" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.Guest.Website}}</a>
+                            {{else}}
+                            <span class="text-gray-400 dark:text-gray-500 italic">Not set</span>
+                            {{end}}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Company</dt>
+                        <dd class="mt-1">
+                            {{if .Guest.Company}}
+                            {{.Guest.Company}}
+                            {{else}}
+                            <span class="text-gray-400 dark:text-gray-500 italic">Not set</span>
+                            {{end}}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Podcast</dt>
+                        <dd class="mt-1">
+                            {{if .Guest.Podcast}}
+                            {{.Guest.Podcast}}
+                            {{else}}
+                            <span class="text-gray-400 dark:text-gray-500 italic">Not set</span>
+                            {{end}}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
+            {{if or .Guest.Twitter .Guest.Instagram .Guest.LinkedIn .Guest.Mastodon}}
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Socials</h2>
+                <dl class="space-y-3 text-sm">
+                    {{if .Guest.Twitter}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Twitter / X</dt>
+                        <dd class="mt-1">{{.Guest.Twitter}}</dd>
+                    </div>
+                    {{end}}
+                    {{if .Guest.Instagram}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Instagram</dt>
+                        <dd class="mt-1">{{.Guest.Instagram}}</dd>
+                    </div>
+                    {{end}}
+                    {{if .Guest.LinkedIn}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">LinkedIn</dt>
+                        <dd class="mt-1">{{.Guest.LinkedIn}}</dd>
+                    </div>
+                    {{end}}
+                    {{if .Guest.Mastodon}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Mastodon</dt>
+                        <dd class="mt-1">{{.Guest.Mastodon}}</dd>
                     </div>
                     {{end}}
                 </dl>
             </div>
+            {{end}}
         </div>
     </div>
 </div>
