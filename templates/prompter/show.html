@@ -15,7 +15,7 @@
                 <div class="flex items-center gap-2">
                     <label class="text-xs text-gray-400">Speed</label>
                     <button onclick="adjustSpeed(-1)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">-</button>
-                    <span id="speed-display" class="w-8 text-center text-sm">3</span>
+                    <span id="speed-display" class="w-8 text-center text-sm">5</span>
                     <button onclick="adjustSpeed(1)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">+</button>
                 </div>
 
@@ -135,7 +135,7 @@
     var progressEl = document.getElementById('progress');
     var controls = document.getElementById('prompter-controls');
 
-    var speed = 3;
+    var speed = 5;
     var fontSize = 32;
     var playing = false;
     var centered = false;
@@ -143,6 +143,12 @@
     var hideTimer = null;
     var scrollAccumulator = 0;
     var lastFrameTime = 0;
+
+    // Speed mapping: 1-20 → pixels per second
+    // 1=5, 5=15, 10=35, 15=65, 20=100
+    function speedToPx(s) {
+        return 2 + s * s * 0.25;
+    }
 
     // Restore saved preferences
     var savedFontColor = localStorage.getItem('prompter-font-color');
@@ -168,7 +174,7 @@
         fontDisplay.textContent = fontSize;
     }
     if (savedSpeed) {
-        speed = parseInt(savedSpeed, 10);
+        speed = Math.max(1, Math.min(20, parseInt(savedSpeed, 10) || 1));
         speedDisplay.textContent = speed;
     }
 
@@ -194,7 +200,7 @@
         var delta = (timestamp - lastFrameTime) / 1000;
         lastFrameTime = timestamp;
 
-        var pxPerSecond = speed * 15;
+        var pxPerSecond = speedToPx(speed);
         scrollAccumulator += pxPerSecond * delta;
 
         if (scrollAccumulator >= 1) {

@@ -66,9 +66,15 @@
             {{end}}
 
             {{if .Episode.Script}}
-            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
-                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Script</h2>
-                <div class="prose prose-sm max-w-none dark:prose-invert">{{renderMarkdown .Episode.Script}}</div>
+            <div class="rounded-lg bg-white dark:bg-gray-800 shadow">
+                <button onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-180')"
+                        class="flex w-full items-center justify-between p-6 text-left">
+                    <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400">Script</h2>
+                    <svg class="h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div class="px-6 pb-6">
+                    <div class="prose prose-sm max-w-none dark:prose-invert">{{renderMarkdown .Episode.Script}}</div>
+                </div>
             </div>
             {{end}}
 
@@ -155,6 +161,19 @@
                     <div>
                         <dt class="text-gray-500 dark:text-gray-400">Publish Date</dt>
                         <dd class="mt-1">{{.Episode.PublishDate.Format "Jan 2, 2006"}}</dd>
+                    </div>
+                    {{end}}
+                    {{if .Guests}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Guests</dt>
+                        <dd class="mt-1 space-y-1">
+                            {{range .Guests}}
+                            <div>
+                                <a href="/guests/{{.GuestID}}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.GuestName}}</a>
+                                <span class="ml-1 text-xs text-gray-400 dark:text-gray-500">{{.Role}}</span>
+                            </div>
+                            {{end}}
+                        </dd>
                     </div>
                     {{end}}
                     {{if .Tags}}
