@@ -23,7 +23,7 @@ func Load() *Config {
 		DBType:         envOr("SKALD_DB_TYPE", "sqlite"),
 		DBURL:          os.Getenv("SKALD_DB_URL"),
 		BackupInterval: parseDuration(envOr("SKALD_BACKUP_INTERVAL", "24h")),
-		BackupRetain:   parseInt(envOr("SKALD_BACKUP_RETAIN", "7")),
+		BackupRetain:   parseInt(envOr("SKALD_BACKUP_RETAIN", "14")),
 	}
 
 	// For SQLite, default DB path is inside data dir
@@ -52,7 +52,7 @@ func parseDuration(s string) time.Duration {
 func parseInt(s string) int {
 	n, err := strconv.Atoi(s)
 	if err != nil {
-		return 7
+		return 14
 	}
 	return n
 }

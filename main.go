@@ -36,6 +36,7 @@ func main() {
 		if _, err := backupMgr.Create("pre-migration"); err != nil {
 			log.Printf("Warning: pre-migration backup failed: %v", err)
 		}
+		_ = backupMgr.Prune()
 	}
 
 	// Run migrations
