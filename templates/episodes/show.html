@@ -58,14 +58,15 @@
     <!-- Details -->
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2 space-y-6">
-            {{if .Episode.Description}}
             <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
                 <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</h2>
+                {{if .Episode.Description}}
                 <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{.Episode.Description}}</p>
+                {{else}}
+                <p class="text-sm text-gray-400 dark:text-gray-500 italic">No description yet.</p>
+                {{end}}
             </div>
-            {{end}}
 
-            {{if .Episode.Script}}
             <div class="rounded-lg bg-white dark:bg-gray-800 shadow">
                 <button onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-180')"
                         class="flex w-full items-center justify-between p-6 text-left">
@@ -73,17 +74,28 @@
                     <svg class="h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
                 <div class="px-6 pb-6">
+                    {{if .Episode.Script}}
                     <div class="prose prose-sm max-w-none dark:prose-invert">{{renderMarkdown .Episode.Script}}</div>
+                    {{else}}
+                    <p class="text-sm text-gray-400 dark:text-gray-500 italic">No script yet.</p>
+                    {{end}}
                 </div>
             </div>
-            {{end}}
 
-            {{if .Episode.ShowNotes}}
-            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
-                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Show Notes</h2>
-                <div class="prose prose-sm max-w-none dark:prose-invert">{{renderMarkdown .Episode.ShowNotes}}</div>
+            <div class="rounded-lg bg-white dark:bg-gray-800 shadow">
+                <button onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-180')"
+                        class="flex w-full items-center justify-between p-6 text-left">
+                    <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400">Show Notes</h2>
+                    <svg class="h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div class="px-6 pb-6 hidden">
+                    {{if .Episode.ShowNotes}}
+                    <div class="prose prose-sm max-w-none dark:prose-invert">{{renderMarkdown .Episode.ShowNotes}}</div>
+                    {{else}}
+                    <p class="text-sm text-gray-400 dark:text-gray-500 italic">No show notes yet.</p>
+                    {{end}}
+                </div>
             </div>
-            {{end}}
 
             <!-- Assets -->
             <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
@@ -128,9 +140,9 @@
                 </form>
             </div>
 
-            {{if .Sponsorships}}
             <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
                 <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Sponsors</h2>
+                {{if .Sponsorships}}
                 <ul class="divide-y divide-gray-200 dark:divide-gray-700">
                     {{range .Sponsorships}}
                     <li class="py-3">
@@ -138,8 +150,10 @@
                     </li>
                     {{end}}
                 </ul>
+                {{else}}
+                <p class="text-sm text-gray-400 dark:text-gray-500 italic">No sponsors linked.</p>
+                {{end}}
             </div>
-            {{end}}
         </div>
 
         <div class="space-y-6">
@@ -158,35 +172,43 @@
                         <dt class="text-gray-500 dark:text-gray-400">Show</dt>
                         <dd class="mt-1"><a href="/shows/{{.Episode.ShowID}}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.Episode.ShowName}}</a></dd>
                     </div>
-                    {{if .Episode.PublishDate}}
                     <div>
                         <dt class="text-gray-500 dark:text-gray-400">Publish Date</dt>
-                        <dd class="mt-1">{{.Episode.PublishDate.Format "Jan 2, 2006"}}</dd>
+                        <dd class="mt-1">
+                            {{if .Episode.PublishDate}}
+                            {{.Episode.PublishDate.Format "Jan 2, 2006"}}
+                            {{else}}
+                            <span class="text-gray-400 dark:text-gray-500 italic">Not set</span>
+                            {{end}}
+                        </dd>
                     </div>
-                    {{end}}
-                    {{if .Guests}}
                     <div>
                         <dt class="text-gray-500 dark:text-gray-400">Guests</dt>
                         <dd class="mt-1 space-y-1">
+                            {{if .Guests}}
                             {{range .Guests}}
                             <div>
                                 <a href="/guests/{{.GuestID}}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.GuestName}}</a>
                                 <span class="ml-1 text-xs text-gray-400 dark:text-gray-500">{{.Role}}</span>
                             </div>
                             {{end}}
-                        </dd>
-                    </div>
-                    {{end}}
-                    {{if .Tags}}
-                    <div>
-                        <dt class="text-gray-500 dark:text-gray-400">Tags</dt>
-                        <dd class="mt-1 flex flex-wrap gap-1">
-                            {{range .Tags}}
-                            <span class="inline-flex items-center rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-400">{{.Name}}</span>
+                            {{else}}
+                            <span class="text-gray-400 dark:text-gray-500 italic">None</span>
                             {{end}}
                         </dd>
                     </div>
-                    {{end}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Tags</dt>
+                        <dd class="mt-1 flex flex-wrap gap-1">
+                            {{if .Tags}}
+                            {{range .Tags}}
+                            <span class="inline-flex items-center rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-400">{{.Name}}</span>
+                            {{end}}
+                            {{else}}
+                            <span class="text-gray-400 dark:text-gray-500 italic">None</span>
+                            {{end}}
+                        </dd>
+                    </div>
                     <div>
                         <dt class="text-gray-500 dark:text-gray-400">Created</dt>
                         <dd class="mt-1">{{.Episode.CreatedAt.Format "Jan 2, 2006"}}</dd>
@@ -197,12 +219,14 @@
                     </div>
                 </dl>
             </div>
-            {{if .Episode.Artwork}}
             <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
                 <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Artwork</h2>
+                {{if .Episode.Artwork}}
                 <img src="/uploads/{{.Episode.Artwork}}" alt="Episode artwork" class="w-full rounded-lg object-cover">
+                {{else}}
+                <p class="text-sm text-gray-400 dark:text-gray-500 italic">No artwork uploaded.</p>
+                {{end}}
             </div>
-            {{end}}
         </div>
     </div>
 </div>
