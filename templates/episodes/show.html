@@ -140,20 +140,6 @@
                 </form>
             </div>
 
-            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
-                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Sponsors</h2>
-                {{if .Sponsorships}}
-                <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-                    {{range .Sponsorships}}
-                    <li class="py-3">
-                        <a href="/sponsorships/{{.SponsorshipID}}" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.SponsorshipName}}</a>
-                    </li>
-                    {{end}}
-                </ul>
-                {{else}}
-                <p class="text-sm text-gray-400 dark:text-gray-500 italic">No sponsors linked.</p>
-                {{end}}
-            </div>
         </div>
 
         <div class="space-y-6">
@@ -190,6 +176,20 @@
                             <div>
                                 <a href="/guests/{{.GuestID}}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.GuestName}}</a>
                                 <span class="ml-1 text-xs text-gray-400 dark:text-gray-500">{{.Role}}</span>
+                            </div>
+                            {{end}}
+                            {{else}}
+                            <span class="text-gray-400 dark:text-gray-500 italic">None</span>
+                            {{end}}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Sponsors</dt>
+                        <dd class="mt-1 space-y-1">
+                            {{if .Sponsorships}}
+                            {{range .Sponsorships}}
+                            <div>
+                                <a href="/sponsorships/{{.SponsorshipID}}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.SponsorshipName}}</a>
                             </div>
                             {{end}}
                             {{else}}
