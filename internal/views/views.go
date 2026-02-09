@@ -1,11 +1,14 @@
 package views
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"io"
 	"path/filepath"
 	"sync"
+
+	"github.com/yuin/goldmark"
 )
 
 var (
@@ -21,6 +24,9 @@ func FuncMap() template.FuncMap {
 		"statusBarColor": StatusBarColor,
 		"formatBytes":    formatBytes,
 		"episodeCode":    EpisodeCode,
+		"renderMarkdown": renderMarkdown,
+		"formatCurrency": formatCurrency,
+		"contains":       containsInt64,
 	}
 }
 
@@ -92,6 +98,30 @@ func formatBytes(b int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
+func renderMarkdown(s string) template.HTML {
+	var buf bytes.Buffer
+	if err := goldmark.Convert([]byte(s), &buf); err != nil {
+		return template.HTML(template.HTMLEscapeString(s))
+	}
+	return template.HTML(buf.String())
+}
+
+func formatCurrency(f *float64) string {
+	if f == nil {
+		return ""
+	}
+	return fmt.Sprintf("$%.2f", *f)
+}
+
+func containsInt64(slice []int64, val int64) bool {
+	for _, v := range slice {
+		if v == val {
+			return true
+		}
+	}
+	return false
+}
+
 // Load parses all templates from the templates directory.
 func Load(templatesDir string) error {
 	mu.Lock()
@@ -102,7 +132,7 @@ func Load(templatesDir string) error {
 	components, _ := filepath.Glob(filepath.Join(templatesDir, "components", "*.html"))
 
 	// Parse each page template with the layout and components
-	pageDirs := []string{"shows", "episodes", "guests", "prompter", "admin"}
+	pageDirs := []string{"shows", "episodes", "guests", "sponsorships", "prompter", "admin"}
 	for _, dir := range pageDirs {
 		pages, _ := filepath.Glob(filepath.Join(templatesDir, dir, "*.html"))
 		for _, page := range pages {

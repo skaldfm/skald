@@ -1,0 +1,39 @@
+{{define "title"}}Sponsors — Skald{{end}}
+
+{{define "content"}}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Sponsors</h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage sponsorship deals</p>
+        </div>
+        <a href="/sponsorships/new" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+            New Sponsorship
+        </a>
+    </div>
+
+    {{if .Sponsorships}}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {{range .Sponsorships}}
+        <a href="/sponsorships/{{.ID}}" class="block rounded-lg bg-white dark:bg-gray-800 p-6 shadow hover:shadow-md transition-shadow">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">{{.Name}}</h3>
+            {{if .TotalCost}}
+            <p class="mt-1 text-sm font-medium text-green-600 dark:text-green-400">{{formatCurrency .TotalCost}}</p>
+            {{end}}
+            {{if .DropDate}}
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Drop: {{.DropDate.Format "Jan 2, 2006"}}</p>
+            {{end}}
+            {{if .Description}}
+            <p class="mt-2 text-sm text-gray-400 dark:text-gray-500 line-clamp-2">{{.Description}}</p>
+            {{end}}
+        </a>
+        {{end}}
+    </div>
+    {{else}}
+    <div class="rounded-lg bg-white dark:bg-gray-800 p-12 text-center shadow">
+        <p class="text-gray-500 dark:text-gray-400">No sponsorships yet.</p>
+        <a href="/sponsorships/new" class="mt-4 inline-block text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">Add your first sponsorship</a>
+    </div>
+    {{end}}
+</div>
+{{end}}

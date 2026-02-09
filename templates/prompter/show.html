@@ -2,21 +2,21 @@
 
 {{define "content"}}
 <div id="prompter-container" class="relative">
-    <!-- Controls bar -->
-    <div id="prompter-controls" class="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-90 text-white px-4 py-3 transition-opacity">
+    <!-- Controls bar (top) -->
+    <div id="prompter-controls" class="fixed top-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-90 text-white px-4 py-3 transition-opacity">
         <div class="mx-auto max-w-4xl flex items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <a href="/episodes/{{.Episode.ID}}" class="text-sm text-gray-300 hover:text-white">&larr; Back</a>
                 <span class="text-sm text-gray-400">{{.Episode.Title}}</span>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-4 flex-wrap">
                 <!-- Speed control -->
                 <div class="flex items-center gap-2">
                     <label class="text-xs text-gray-400">Speed</label>
-                    <button onclick="adjustSpeed(-0.5)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">-</button>
-                    <span id="speed-display" class="w-8 text-center text-sm">2</span>
-                    <button onclick="adjustSpeed(0.5)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">+</button>
+                    <button onclick="adjustSpeed(-1)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">-</button>
+                    <span id="speed-display" class="w-8 text-center text-sm">3</span>
+                    <button onclick="adjustSpeed(1)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">+</button>
                 </div>
 
                 <!-- Font size -->
@@ -26,6 +26,30 @@
                     <span id="font-display" class="w-8 text-center text-sm">32</span>
                     <button onclick="adjustFont(4)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">A+</button>
                 </div>
+
+                <!-- Font color -->
+                <div class="flex items-center gap-1">
+                    <label class="text-xs text-gray-400">Color</label>
+                    <button onclick="setFontColor('#ffffff')" class="h-6 w-6 rounded border border-gray-600" style="background:#ffffff" title="White"></button>
+                    <button onclick="setFontColor('#fde047')" class="h-6 w-6 rounded border border-gray-600" style="background:#fde047" title="Yellow"></button>
+                    <button onclick="setFontColor('#4ade80')" class="h-6 w-6 rounded border border-gray-600" style="background:#4ade80" title="Green"></button>
+                    <button onclick="setFontColor('#22d3ee')" class="h-6 w-6 rounded border border-gray-600" style="background:#22d3ee" title="Cyan"></button>
+                </div>
+
+                <!-- Background color -->
+                <div class="flex items-center gap-1">
+                    <label class="text-xs text-gray-400">BG</label>
+                    <button onclick="setBgColor('#000000')" class="h-6 w-6 rounded border border-gray-600" style="background:#000000" title="Black"></button>
+                    <button onclick="setBgColor('#1e1b4b')" class="h-6 w-6 rounded border border-gray-600" style="background:#1e1b4b" title="Dark Blue"></button>
+                    <button onclick="setBgColor('#052e16')" class="h-6 w-6 rounded border border-gray-600" style="background:#052e16" title="Dark Green"></button>
+                    <button onclick="setBgColor('#1f2937')" class="h-6 w-6 rounded border border-gray-600" style="background:#1f2937" title="Dark Gray"></button>
+                </div>
+
+                <!-- Center toggle -->
+                <button id="center-btn" onclick="toggleCenter()"
+                        class="rounded bg-gray-700 px-3 py-1 text-xs hover:bg-gray-600" title="Toggle center alignment">
+                    Center
+                </button>
 
                 <!-- Play/Pause -->
                 <button id="play-btn" onclick="togglePlay()"
@@ -55,12 +79,12 @@
     </div>
 
     <!-- Script content -->
-    <div id="prompter-scroll" class="bg-black min-h-screen px-8 py-16 pb-24">
+    <div id="prompter-scroll" class="min-h-screen px-8 py-16 pt-24" style="background: #000000">
         <!-- Top padding so text starts below viewport center -->
         <div style="height: 50vh"></div>
 
-        <div id="prompter-text" class="mx-auto max-w-3xl text-white leading-relaxed whitespace-pre-wrap"
-             style="font-size: 32px; line-height: 1.6">{{.Episode.Script}}</div>
+        <div id="prompter-text" class="mx-auto max-w-3xl leading-relaxed prompter-content"
+             style="font-size: 32px; line-height: 1.6; color: #ffffff">{{renderMarkdown .Episode.Script}}</div>
 
         <!-- Bottom padding so text can scroll past center -->
         <div style="height: 50vh"></div>
@@ -74,7 +98,7 @@
     /* Hide nav in prompter */
     nav { display: none !important; }
     main { padding: 0 !important; max-width: none !important; }
-    body { background: black !important; }
+    body { background: #000000 !important; }
 
     #prompter-scroll {
         overflow-y: auto;
@@ -93,23 +117,60 @@
     /* Auto-hide controls */
     #prompter-controls.hidden-controls { opacity: 0; }
     #prompter-controls:hover { opacity: 1 !important; }
+
+    /* Prompter markdown: emphasis renders as underline */
+    .prompter-content em { text-decoration: underline; font-style: normal; }
+    .prompter-content strong { font-weight: bold; }
+    .prompter-content p { margin-bottom: 1em; }
 </style>
 
 <script>
 (function() {
-    const scrollEl = document.getElementById('prompter-scroll');
-    const textEl = document.getElementById('prompter-text');
-    const playBtn = document.getElementById('play-btn');
-    const speedDisplay = document.getElementById('speed-display');
-    const fontDisplay = document.getElementById('font-display');
-    const progressEl = document.getElementById('progress');
-    const controls = document.getElementById('prompter-controls');
+    var scrollEl = document.getElementById('prompter-scroll');
+    var textEl = document.getElementById('prompter-text');
+    var playBtn = document.getElementById('play-btn');
+    var centerBtn = document.getElementById('center-btn');
+    var speedDisplay = document.getElementById('speed-display');
+    var fontDisplay = document.getElementById('font-display');
+    var progressEl = document.getElementById('progress');
+    var controls = document.getElementById('prompter-controls');
 
-    let speed = 2;       // pixels per frame at 60fps
-    let fontSize = 32;
-    let playing = false;
-    let animFrame = null;
-    let hideTimer = null;
+    var speed = 3;
+    var fontSize = 32;
+    var playing = false;
+    var centered = false;
+    var animFrame = null;
+    var hideTimer = null;
+    var scrollAccumulator = 0;
+    var lastFrameTime = 0;
+
+    // Restore saved preferences
+    var savedFontColor = localStorage.getItem('prompter-font-color');
+    var savedBgColor = localStorage.getItem('prompter-bg-color');
+    var savedCenter = localStorage.getItem('prompter-center');
+    var savedFontSize = localStorage.getItem('prompter-font-size');
+    var savedSpeed = localStorage.getItem('prompter-speed');
+
+    if (savedFontColor) textEl.style.color = savedFontColor;
+    if (savedBgColor) {
+        scrollEl.style.background = savedBgColor;
+        document.body.style.background = savedBgColor;
+    }
+    if (savedCenter === 'true') {
+        centered = true;
+        textEl.style.textAlign = 'center';
+        centerBtn.classList.add('bg-indigo-600');
+        centerBtn.classList.remove('bg-gray-700');
+    }
+    if (savedFontSize) {
+        fontSize = parseInt(savedFontSize, 10);
+        textEl.style.fontSize = fontSize + 'px';
+        fontDisplay.textContent = fontSize;
+    }
+    if (savedSpeed) {
+        speed = parseInt(savedSpeed, 10);
+        speedDisplay.textContent = speed;
+    }
 
     window.togglePlay = function() {
         playing = !playing;
@@ -118,7 +179,9 @@
         playBtn.classList.toggle('bg-red-600', playing);
 
         if (playing) {
-            scroll();
+            lastFrameTime = 0;
+            scrollAccumulator = 0;
+            animFrame = requestAnimationFrame(scroll);
             hideControlsAfterDelay();
         } else {
             cancelAnimationFrame(animFrame);
@@ -126,12 +189,22 @@
         }
     };
 
-    function scroll() {
-        scrollEl.scrollTop += speed;
-        updateProgress();
-        animFrame = requestAnimationFrame(scroll);
+    function scroll(timestamp) {
+        if (!lastFrameTime) lastFrameTime = timestamp;
+        var delta = (timestamp - lastFrameTime) / 1000;
+        lastFrameTime = timestamp;
 
-        // Stop at end
+        var pxPerSecond = speed * 15;
+        scrollAccumulator += pxPerSecond * delta;
+
+        if (scrollAccumulator >= 1) {
+            var pixels = Math.floor(scrollAccumulator);
+            scrollEl.scrollTop += pixels;
+            scrollAccumulator -= pixels;
+        }
+
+        updateProgress();
+
         if (scrollEl.scrollTop >= scrollEl.scrollHeight - scrollEl.clientHeight) {
             playing = false;
             playBtn.textContent = 'Play';
@@ -139,24 +212,49 @@
             playBtn.classList.remove('bg-red-600');
             cancelAnimationFrame(animFrame);
             showControls();
+            lastFrameTime = 0;
+            return;
         }
+
+        animFrame = requestAnimationFrame(scroll);
     }
 
     function updateProgress() {
-        const max = scrollEl.scrollHeight - scrollEl.clientHeight;
-        const pct = max > 0 ? Math.round((scrollEl.scrollTop / max) * 100) : 0;
+        var max = scrollEl.scrollHeight - scrollEl.clientHeight;
+        var pct = max > 0 ? Math.round((scrollEl.scrollTop / max) * 100) : 0;
         progressEl.textContent = pct + '%';
     }
 
     window.adjustSpeed = function(delta) {
-        speed = Math.max(0.5, Math.min(10, speed + delta));
+        speed = Math.max(1, Math.min(20, speed + delta));
         speedDisplay.textContent = speed;
+        localStorage.setItem('prompter-speed', speed);
     };
 
     window.adjustFont = function(delta) {
         fontSize = Math.max(16, Math.min(72, fontSize + delta));
         textEl.style.fontSize = fontSize + 'px';
         fontDisplay.textContent = fontSize;
+        localStorage.setItem('prompter-font-size', fontSize);
+    };
+
+    window.setFontColor = function(color) {
+        textEl.style.color = color;
+        localStorage.setItem('prompter-font-color', color);
+    };
+
+    window.setBgColor = function(color) {
+        scrollEl.style.background = color;
+        document.body.style.background = color;
+        localStorage.setItem('prompter-bg-color', color);
+    };
+
+    window.toggleCenter = function() {
+        centered = !centered;
+        textEl.style.textAlign = centered ? 'center' : 'left';
+        centerBtn.classList.toggle('bg-indigo-600', centered);
+        centerBtn.classList.toggle('bg-gray-700', !centered);
+        localStorage.setItem('prompter-center', centered);
     };
 
     window.toggleFullscreen = function() {
@@ -195,11 +293,11 @@
                 break;
             case 'ArrowUp':
                 e.preventDefault();
-                adjustSpeed(0.5);
+                adjustSpeed(1);
                 break;
             case 'ArrowDown':
                 e.preventDefault();
-                adjustSpeed(-0.5);
+                adjustSpeed(-1);
                 break;
             case '+':
             case '=':
@@ -213,6 +311,9 @@
                 break;
             case 'm':
                 toggleMirror();
+                break;
+            case 'c':
+                toggleCenter();
                 break;
             case 'Escape':
                 if (playing) togglePlay();
