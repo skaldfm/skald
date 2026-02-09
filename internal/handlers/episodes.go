@@ -15,6 +15,11 @@ import (
 	"github.com/mhermansson/skald/internal/views"
 )
 
+type pickerItem struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
 type EpisodeHandler struct {
 	episodes     *models.EpisodeStore
 	shows        *models.ShowStore
@@ -255,34 +260,7 @@ func (h *EpisodeHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shows, err := h.shows.List()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	tags, _ := h.tags.TagsForEpisode(ep.ID)
-	var tagNames []string
-	for _, t := range tags {
-		tagNames = append(tagNames, t.Name)
-	}
-
-	allSponsorships, _ := h.sponsorships.List()
-	linkedSponsorshipIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
-
-	allGuests, _ := h.guests.List()
-	linkedGuestIDs, _ := h.guests.GuestIDsForEpisode(ep.ID)
-
-	data := map[string]any{
-		"Episode":              ep,
-		"Shows":                shows,
-		"Statuses":             models.Statuses,
-		"Tags":                 strings.Join(tagNames, ", "),
-		"AllSponsorships":      allSponsorships,
-		"LinkedSponsorshipIDs": linkedSponsorshipIDs,
-		"AllGuests":            allGuests,
-		"LinkedGuestIDs":       linkedGuestIDs,
-	}
+	data := h.editData(ep, "")
 	if err := views.Render(w, "episodes/edit.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -337,28 +315,8 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if exists {
-			shows, _ := h.shows.List()
-			tags, _ := h.tags.TagsForEpisode(ep.ID)
-			var tagNames []string
-			for _, t := range tags {
-				tagNames = append(tagNames, t.Name)
-			}
-			allSp, _ := h.sponsorships.List()
-			linkedSpIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
-			allG, _ := h.guests.List()
-			linkedGIDs, _ := h.guests.GuestIDsForEpisode(ep.ID)
 			code := views.EpisodeCode(ep.SeasonNumber, ep.EpisodeNumber)
-			data := map[string]any{
-				"Episode":              ep,
-				"Shows":                shows,
-				"Statuses":             models.Statuses,
-				"Tags":                 strings.Join(tagNames, ", "),
-				"AllSponsorships":      allSp,
-				"LinkedSponsorshipIDs": linkedSpIDs,
-				"AllGuests":            allG,
-				"LinkedGuestIDs":       linkedGIDs,
-				"Error":                fmt.Sprintf("%s already exists in this show", code),
-			}
+			data := h.editData(ep, fmt.Sprintf("%s already exists in this show", code))
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			_ = views.Render(w, "episodes/edit.html", data)
 			return
@@ -412,21 +370,7 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ep.Title == "" {
-		shows, _ := h.shows.List()
-		allSp, _ := h.sponsorships.List()
-		linkedSpIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
-		allG, _ := h.guests.List()
-		linkedGIDs, _ := h.guests.GuestIDsForEpisode(ep.ID)
-		data := map[string]any{
-			"Episode":              ep,
-			"Shows":                shows,
-			"Statuses":             models.Statuses,
-			"AllSponsorships":      allSp,
-			"LinkedSponsorshipIDs": linkedSpIDs,
-			"AllGuests":            allG,
-			"LinkedGuestIDs":       linkedGIDs,
-			"Error":                "Title is required",
-		}
+		data := h.editData(ep, "Title is required")
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = views.Render(w, "episodes/edit.html", data)
 		return
@@ -538,6 +482,43 @@ func (h *EpisodeHandler) DeleteConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/episodes", http.StatusSeeOther)
+}
+
+func (h *EpisodeHandler) editData(ep *models.Episode, errMsg string) map[string]any {
+	shows, _ := h.shows.List()
+	tags, _ := h.tags.TagsForEpisode(ep.ID)
+	var tagNames []string
+	for _, t := range tags {
+		tagNames = append(tagNames, t.Name)
+	}
+	allSp, _ := h.sponsorships.List()
+	linkedSpIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
+	allG, _ := h.guests.List()
+	linkedGIDs, _ := h.guests.GuestIDsForEpisode(ep.ID)
+
+	guestItems := make([]pickerItem, len(allG))
+	for i, g := range allG {
+		guestItems[i] = pickerItem{ID: g.ID, Name: g.Name}
+	}
+	sponsorItems := make([]pickerItem, len(allSp))
+	for i, s := range allSp {
+		sponsorItems[i] = pickerItem{ID: s.ID, Name: s.Name}
+	}
+
+	data := map[string]any{
+		"Episode":              ep,
+		"Shows":                shows,
+		"Statuses":             models.Statuses,
+		"Tags":                 strings.Join(tagNames, ", "),
+		"GuestItems":           guestItems,
+		"LinkedGuestIDs":       linkedGIDs,
+		"SponsorItems":         sponsorItems,
+		"LinkedSponsorshipIDs": linkedSpIDs,
+	}
+	if errMsg != "" {
+		data["Error"] = errMsg
+	}
+	return data
 }
 
 func (h *EpisodeHandler) getEpisode(w http.ResponseWriter, r *http.Request) (*models.Episode, error) {
