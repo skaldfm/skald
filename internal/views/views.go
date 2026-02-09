@@ -102,7 +102,7 @@ func Load(templatesDir string) error {
 	components, _ := filepath.Glob(filepath.Join(templatesDir, "components", "*.html"))
 
 	// Parse each page template with the layout and components
-	pageDirs := []string{"shows", "episodes", "guests", "prompter"}
+	pageDirs := []string{"shows", "episodes", "guests", "prompter", "admin"}
 	for _, dir := range pageDirs {
 		pages, _ := filepath.Glob(filepath.Join(templatesDir, dir, "*.html"))
 		for _, page := range pages {

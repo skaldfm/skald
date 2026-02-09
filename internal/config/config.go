@@ -3,21 +3,27 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
 )
 
 type Config struct {
-	Port    string
-	DataDir string
-	DBType  string
-	DBURL   string
+	Port           string
+	DataDir        string
+	DBType         string
+	DBURL          string
+	BackupInterval time.Duration
+	BackupRetain   int
 }
 
 func Load() *Config {
 	cfg := &Config{
-		Port:    envOr("SKALD_PORT", "7707"),
-		DataDir: envOr("SKALD_DATA_DIR", "./data"),
-		DBType:  envOr("SKALD_DB_TYPE", "sqlite"),
-		DBURL:   os.Getenv("SKALD_DB_URL"),
+		Port:           envOr("SKALD_PORT", "7707"),
+		DataDir:        envOr("SKALD_DATA_DIR", "./data"),
+		DBType:         envOr("SKALD_DB_TYPE", "sqlite"),
+		DBURL:          os.Getenv("SKALD_DB_URL"),
+		BackupInterval: parseDuration(envOr("SKALD_BACKUP_INTERVAL", "24h")),
+		BackupRetain:   parseInt(envOr("SKALD_BACKUP_RETAIN", "7")),
 	}
 
 	// For SQLite, default DB path is inside data dir
@@ -33,4 +39,20 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func parseDuration(s string) time.Duration {
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return 24 * time.Hour
+	}
+	return d
+}
+
+func parseInt(s string) int {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return 7
+	}
+	return n
 }
