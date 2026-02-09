@@ -270,6 +270,9 @@ func (h *EpisodeHandler) Edit(w http.ResponseWriter, r *http.Request) {
 	allSponsorships, _ := h.sponsorships.List()
 	linkedSponsorshipIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
 
+	allGuests, _ := h.guests.List()
+	linkedGuestIDs, _ := h.guests.GuestIDsForEpisode(ep.ID)
+
 	data := map[string]any{
 		"Episode":              ep,
 		"Shows":                shows,
@@ -277,6 +280,8 @@ func (h *EpisodeHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		"Tags":                 strings.Join(tagNames, ", "),
 		"AllSponsorships":      allSponsorships,
 		"LinkedSponsorshipIDs": linkedSponsorshipIDs,
+		"AllGuests":            allGuests,
+		"LinkedGuestIDs":       linkedGuestIDs,
 	}
 	if err := views.Render(w, "episodes/edit.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -340,6 +345,8 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			}
 			allSp, _ := h.sponsorships.List()
 			linkedSpIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
+			allG, _ := h.guests.List()
+			linkedGIDs, _ := h.guests.GuestIDsForEpisode(ep.ID)
 			code := views.EpisodeCode(ep.SeasonNumber, ep.EpisodeNumber)
 			data := map[string]any{
 				"Episode":              ep,
@@ -348,6 +355,8 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 				"Tags":                 strings.Join(tagNames, ", "),
 				"AllSponsorships":      allSp,
 				"LinkedSponsorshipIDs": linkedSpIDs,
+				"AllGuests":            allG,
+				"LinkedGuestIDs":       linkedGIDs,
 				"Error":                fmt.Sprintf("%s already exists in this show", code),
 			}
 			w.WriteHeader(http.StatusUnprocessableEntity)
@@ -406,12 +415,16 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		shows, _ := h.shows.List()
 		allSp, _ := h.sponsorships.List()
 		linkedSpIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
+		allG, _ := h.guests.List()
+		linkedGIDs, _ := h.guests.GuestIDsForEpisode(ep.ID)
 		data := map[string]any{
 			"Episode":              ep,
 			"Shows":                shows,
 			"Statuses":             models.Statuses,
 			"AllSponsorships":      allSp,
 			"LinkedSponsorshipIDs": linkedSpIDs,
+			"AllGuests":            allG,
+			"LinkedGuestIDs":       linkedGIDs,
 			"Error":                "Title is required",
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -460,6 +473,30 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	for _, id := range currentIDs {
 		if !selectedMap[id] {
 			_ = h.sponsorships.UnlinkEpisode(id, ep.ID)
+		}
+	}
+
+	// Update guest links
+	selectedGuests := r.Form["guest_ids"]
+	selectedGuestMap := make(map[int64]bool)
+	for _, s := range selectedGuests {
+		if id, err := strconv.ParseInt(s, 10, 64); err == nil {
+			selectedGuestMap[id] = true
+		}
+	}
+	currentGuestIDs, _ := h.guests.GuestIDsForEpisode(ep.ID)
+	currentGuestMap := make(map[int64]bool)
+	for _, id := range currentGuestIDs {
+		currentGuestMap[id] = true
+	}
+	for id := range selectedGuestMap {
+		if !currentGuestMap[id] {
+			_ = h.guests.LinkGuest(ep.ID, id, "guest")
+		}
+	}
+	for _, id := range currentGuestIDs {
+		if !selectedGuestMap[id] {
+			_ = h.guests.UnlinkGuest(ep.ID, id)
 		}
 	}
 
