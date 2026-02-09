@@ -68,14 +68,14 @@
             {{if .Episode.Script}}
             <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
                 <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Script</h2>
-                <div class="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{.Episode.Script}}</div>
+                <div class="prose prose-sm max-w-none dark:prose-invert">{{renderMarkdown .Episode.Script}}</div>
             </div>
             {{end}}
 
             {{if .Episode.ShowNotes}}
             <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
                 <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Show Notes</h2>
-                <div class="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{.Episode.ShowNotes}}</div>
+                <div class="prose prose-sm max-w-none dark:prose-invert">{{renderMarkdown .Episode.ShowNotes}}</div>
             </div>
             {{end}}
 
@@ -120,6 +120,19 @@
                     </button>
                 </form>
             </div>
+
+            {{if .Sponsorships}}
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Sponsors</h2>
+                <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {{range .Sponsorships}}
+                    <li class="py-3">
+                        <a href="/sponsorships/{{.SponsorshipID}}" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.SponsorshipName}}</a>
+                    </li>
+                    {{end}}
+                </ul>
+            </div>
+            {{end}}
         </div>
 
         <div class="space-y-6">

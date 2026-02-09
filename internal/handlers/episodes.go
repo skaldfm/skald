@@ -16,16 +16,17 @@ import (
 )
 
 type EpisodeHandler struct {
-	episodes *models.EpisodeStore
-	shows    *models.ShowStore
-	assets   *models.AssetStore
-	guests   *models.GuestStore
-	tags     *models.TagStore
-	dataDir  string
+	episodes     *models.EpisodeStore
+	shows        *models.ShowStore
+	assets       *models.AssetStore
+	guests       *models.GuestStore
+	tags         *models.TagStore
+	sponsorships *models.SponsorshipStore
+	dataDir      string
 }
 
-func NewEpisodeHandler(episodes *models.EpisodeStore, shows *models.ShowStore, assets *models.AssetStore, guests *models.GuestStore, tags *models.TagStore, dataDir string) *EpisodeHandler {
-	return &EpisodeHandler{episodes: episodes, shows: shows, assets: assets, guests: guests, tags: tags, dataDir: dataDir}
+func NewEpisodeHandler(episodes *models.EpisodeStore, shows *models.ShowStore, assets *models.AssetStore, guests *models.GuestStore, tags *models.TagStore, sponsorships *models.SponsorshipStore, dataDir string) *EpisodeHandler {
+	return &EpisodeHandler{episodes: episodes, shows: shows, assets: assets, guests: guests, tags: tags, sponsorships: sponsorships, dataDir: dataDir}
 }
 
 func (h *EpisodeHandler) Routes() chi.Router {
@@ -233,13 +234,15 @@ func (h *EpisodeHandler) Show(w http.ResponseWriter, r *http.Request) {
 	assets, _ := h.assets.ListForEpisode(ep.ID)
 	guests, _ := h.guests.GuestsForEpisode(ep.ID)
 	tags, _ := h.tags.TagsForEpisode(ep.ID)
+	sponsorships, _ := h.sponsorships.SponsorshipsForEpisode(ep.ID)
 
 	data := map[string]any{
-		"Episode":  ep,
-		"Statuses": models.Statuses,
-		"Assets":   assets,
-		"Guests":   guests,
-		"Tags":     tags,
+		"Episode":      ep,
+		"Statuses":     models.Statuses,
+		"Assets":       assets,
+		"Guests":       guests,
+		"Tags":         tags,
+		"Sponsorships": sponsorships,
 	}
 	if err := views.Render(w, "episodes/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -264,11 +267,16 @@ func (h *EpisodeHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		tagNames = append(tagNames, t.Name)
 	}
 
+	allSponsorships, _ := h.sponsorships.List()
+	linkedSponsorshipIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
+
 	data := map[string]any{
-		"Episode":  ep,
-		"Shows":    shows,
-		"Statuses": models.Statuses,
-		"Tags":     strings.Join(tagNames, ", "),
+		"Episode":              ep,
+		"Shows":                shows,
+		"Statuses":             models.Statuses,
+		"Tags":                 strings.Join(tagNames, ", "),
+		"AllSponsorships":      allSponsorships,
+		"LinkedSponsorshipIDs": linkedSponsorshipIDs,
 	}
 	if err := views.Render(w, "episodes/edit.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -330,13 +338,17 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			for _, t := range tags {
 				tagNames = append(tagNames, t.Name)
 			}
+			allSp, _ := h.sponsorships.List()
+			linkedSpIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
 			code := views.EpisodeCode(ep.SeasonNumber, ep.EpisodeNumber)
 			data := map[string]any{
-				"Episode":  ep,
-				"Shows":    shows,
-				"Statuses": models.Statuses,
-				"Tags":     strings.Join(tagNames, ", "),
-				"Error":    fmt.Sprintf("%s already exists in this show", code),
+				"Episode":              ep,
+				"Shows":                shows,
+				"Statuses":             models.Statuses,
+				"Tags":                 strings.Join(tagNames, ", "),
+				"AllSponsorships":      allSp,
+				"LinkedSponsorshipIDs": linkedSpIDs,
+				"Error":                fmt.Sprintf("%s already exists in this show", code),
 			}
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			_ = views.Render(w, "episodes/edit.html", data)
@@ -392,11 +404,15 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	if ep.Title == "" {
 		shows, _ := h.shows.List()
+		allSp, _ := h.sponsorships.List()
+		linkedSpIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
 		data := map[string]any{
-			"Episode":  ep,
-			"Shows":    shows,
-			"Statuses": models.Statuses,
-			"Error":    "Title is required",
+			"Episode":              ep,
+			"Shows":                shows,
+			"Statuses":             models.Statuses,
+			"AllSponsorships":      allSp,
+			"LinkedSponsorshipIDs": linkedSpIDs,
+			"Error":                "Title is required",
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = views.Render(w, "episodes/edit.html", data)
@@ -419,6 +435,33 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	_ = h.tags.SetEpisodeTags(ep.ID, tagNames)
+
+	// Update sponsorship links
+	selectedSponsorships := r.Form["sponsorship_ids"]
+	selectedMap := make(map[int64]bool)
+	for _, s := range selectedSponsorships {
+		if id, err := strconv.ParseInt(s, 10, 64); err == nil {
+			selectedMap[id] = true
+		}
+	}
+	// Get current links and diff
+	currentIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
+	currentMap := make(map[int64]bool)
+	for _, id := range currentIDs {
+		currentMap[id] = true
+	}
+	// Add new links
+	for id := range selectedMap {
+		if !currentMap[id] {
+			_ = h.sponsorships.LinkEpisode(id, ep.ID)
+		}
+	}
+	// Remove old links
+	for _, id := range currentIDs {
+		if !selectedMap[id] {
+			_ = h.sponsorships.UnlinkEpisode(id, ep.ID)
+		}
+	}
 
 	http.Redirect(w, r, "/episodes/"+strconv.FormatInt(ep.ID, 10), http.StatusSeeOther)
 }

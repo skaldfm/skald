@@ -1,0 +1,98 @@
+{{define "title"}}Edit {{.Sponsorship.Name}} — Skald{{end}}
+
+{{define "content"}}
+<div class="mx-auto max-w-2xl">
+    <a href="/sponsorships/{{.Sponsorship.ID}}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">&larr; Back</a>
+    <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">Edit Sponsorship</h1>
+
+    {{if .Error}}
+    <div class="mt-4 rounded-md bg-red-50 dark:bg-red-900/20 p-4">
+        <p class="text-sm text-red-700 dark:text-red-400">{{.Error}}</p>
+    </div>
+    {{end}}
+
+    <form method="POST" action="/sponsorships/{{.Sponsorship.ID}}" enctype="multipart/form-data" class="mt-6 space-y-6">
+        <div>
+            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Sponsor Name</label>
+            <input type="text" name="name" id="name" value="{{.Sponsorship.Name}}"
+                   class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100"
+                   required autofocus>
+        </div>
+
+        <div>
+            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+            <textarea name="description" id="description" rows="2"
+                      class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">{{.Sponsorship.Description}}</textarea>
+        </div>
+
+        <div>
+            <label for="script" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ad Read Script</label>
+            <textarea name="script" id="script" rows="6"
+                      class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">{{.Sponsorship.Script}}</textarea>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <div>
+                <label for="cpm" class="block text-sm font-medium text-gray-700 dark:text-gray-300">CPM ($)</label>
+                <input type="number" name="cpm" id="cpm" step="0.01" min="0"
+                       value="{{with .Sponsorship.CPM}}{{printf "%.2f" .}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+            </div>
+            <div>
+                <label for="average_listens" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Avg Listens</label>
+                <input type="number" name="average_listens" id="average_listens" min="0"
+                       value="{{with .Sponsorship.AverageListens}}{{.}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+            </div>
+            <div>
+                <label for="total_cost" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Total Cost ($)</label>
+                <input type="number" name="total_cost" id="total_cost" step="0.01" min="0"
+                       value="{{with .Sponsorship.TotalCost}}{{printf "%.2f" .}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+                <label for="drop_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Drop Date</label>
+                <input type="date" name="drop_date" id="drop_date"
+                       value="{{if .Sponsorship.DropDate}}{{.Sponsorship.DropDate.Format "2006-01-02"}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+            </div>
+            <div>
+                <label for="payment_due_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Payment Due</label>
+                <input type="date" name="payment_due_date" id="payment_due_date"
+                       value="{{if .Sponsorship.PaymentDueDate}}{{.Sponsorship.PaymentDueDate.Format "2006-01-02"}}{{end}}"
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+            </div>
+        </div>
+
+        <div>
+            <label for="order_file" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Order Document</label>
+            {{if .Sponsorship.OrderFile}}
+            <div class="mt-2 flex items-center space-x-4">
+                <a href="/uploads/{{.Sponsorship.OrderFile}}" target="_blank" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">Current file</a>
+                <label class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                    <input type="checkbox" name="remove_order_file" value="1" class="rounded border-gray-300 dark:border-gray-600">
+                    <span>Remove file</span>
+                </label>
+            </div>
+            {{end}}
+            <input type="file" name="order_file" id="order_file"
+                   class="mt-2 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-50 dark:file:bg-indigo-900/30 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700 dark:file:text-indigo-400 hover:file:bg-indigo-100">
+        </div>
+
+        <div class="flex items-center justify-between">
+            <button type="submit" form="delete-form" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-400">Delete sponsorship</button>
+            <div class="flex items-center space-x-3">
+                <a href="/sponsorships/{{.Sponsorship.ID}}" class="rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</a>
+                <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </form>
+    <form id="delete-form" method="POST" action="/sponsorships/{{.Sponsorship.ID}}/delete"
+          onsubmit="return confirm('Delete this sponsorship?')"></form>
+</div>
+{{end}}

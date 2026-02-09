@@ -34,6 +34,11 @@ docker-compose.override.yml
 # Tailwind standalone CLI binary
 tailwindcss
 
+# Node (Tailwind plugins)
+node_modules/
+package.json
+package-lock.json
+
 # Tailwind output
 static/css/style.css
 

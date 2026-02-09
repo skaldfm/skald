@@ -1,0 +1,96 @@
+{{define "title"}}{{.Sponsorship.Name}} — Skald{{end}}
+
+{{define "content"}}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <a href="/sponsorships" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">&larr; Sponsors</a>
+            <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">{{.Sponsorship.Name}}</h1>
+        </div>
+        <a href="/sponsorships/{{.Sponsorship.ID}}/edit" class="rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
+            Edit
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div class="lg:col-span-2 space-y-6">
+            {{if .Sponsorship.Description}}
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</h2>
+                <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{.Sponsorship.Description}}</p>
+            </div>
+            {{end}}
+
+            {{if .Sponsorship.Script}}
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Ad Read Script</h2>
+                <div class="prose prose-sm max-w-none dark:prose-invert">{{renderMarkdown .Sponsorship.Script}}</div>
+            </div>
+            {{end}}
+
+            {{if .Episodes}}
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Linked Episodes</h2>
+                <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {{range .Episodes}}
+                    <li class="py-3">
+                        <a href="/episodes/{{.EpisodeID}}" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.EpisodeTitle}}</a>
+                    </li>
+                    {{end}}
+                </ul>
+            </div>
+            {{end}}
+        </div>
+
+        <div>
+            <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+                <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Deal Details</h2>
+                <dl class="space-y-3 text-sm">
+                    {{if .Sponsorship.CPM}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">CPM</dt>
+                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{formatCurrency .Sponsorship.CPM}}</dd>
+                    </div>
+                    {{end}}
+                    {{if .Sponsorship.AverageListens}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Avg Listens</dt>
+                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{.Sponsorship.AverageListens}}</dd>
+                    </div>
+                    {{end}}
+                    {{if .Sponsorship.TotalCost}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Total Cost</dt>
+                        <dd class="mt-1 text-lg font-medium text-green-600 dark:text-green-400">{{formatCurrency .Sponsorship.TotalCost}}</dd>
+                    </div>
+                    {{end}}
+                    {{if .Sponsorship.DropDate}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Drop Date</dt>
+                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{.Sponsorship.DropDate.Format "Jan 2, 2006"}}</dd>
+                    </div>
+                    {{end}}
+                    {{if .Sponsorship.PaymentDueDate}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Payment Due</dt>
+                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{.Sponsorship.PaymentDueDate.Format "Jan 2, 2006"}}</dd>
+                    </div>
+                    {{end}}
+                    {{if .Sponsorship.OrderFile}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Order Document</dt>
+                        <dd class="mt-1">
+                            <a href="/uploads/{{.Sponsorship.OrderFile}}" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">Download</a>
+                        </dd>
+                    </div>
+                    {{end}}
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Created</dt>
+                        <dd class="mt-1 text-gray-900 dark:text-gray-100">{{.Sponsorship.CreatedAt.Format "Jan 2, 2006"}}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

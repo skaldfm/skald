@@ -73,6 +73,7 @@ func main() {
 	assetStore := models.NewAssetStore(db)
 	guestStore := models.NewGuestStore(db)
 	tagStore := models.NewTagStore(db)
+	sponsorshipStore := models.NewSponsorshipStore(db)
 
 	// Home / Dashboard
 	dashboardHandler := handlers.NewDashboardHandler(episodeStore, showStore, guestStore)
@@ -83,7 +84,7 @@ func main() {
 	r.Mount("/shows", showHandler.Routes())
 
 	// Episodes
-	episodeHandler := handlers.NewEpisodeHandler(episodeStore, showStore, assetStore, guestStore, tagStore, cfg.DataDir)
+	episodeHandler := handlers.NewEpisodeHandler(episodeStore, showStore, assetStore, guestStore, tagStore, sponsorshipStore, cfg.DataDir)
 	r.Mount("/episodes", episodeHandler.Routes())
 
 	// Assets (upload/download/delete routes)
@@ -104,6 +105,10 @@ func main() {
 	// Guests
 	guestHandler := handlers.NewGuestHandler(guestStore)
 	r.Mount("/guests", guestHandler.Routes())
+
+	// Sponsorships
+	sponsorshipHandler := handlers.NewSponsorshipHandler(sponsorshipStore, episodeStore, cfg.DataDir)
+	r.Mount("/sponsorships", sponsorshipHandler.Routes())
 
 	// Prompter
 	prompterHandler := handlers.NewPrompterHandler(episodeStore)
