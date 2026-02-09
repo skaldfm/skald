@@ -102,37 +102,19 @@
             <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Separate tags with commas</p>
         </div>
 
-        {{if .AllGuests}}
         <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Guests</label>
-            <div class="mt-2 space-y-2">
-                {{range .AllGuests}}
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" name="guest_ids" value="{{.ID}}"
-                           {{if contains $.LinkedGuestIDs .ID}}checked{{end}}
-                           class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{.Name}}</span>
-                </label>
-                {{end}}
-            </div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Guests</label>
+            <div class="tag-picker" data-name="guest_ids"
+                 data-items='{{toJSON .GuestItems}}'
+                 data-selected='{{toJSON .LinkedGuestIDs}}'></div>
         </div>
-        {{end}}
 
-        {{if .AllSponsorships}}
         <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Sponsors</label>
-            <div class="mt-2 space-y-2">
-                {{range .AllSponsorships}}
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" name="sponsorship_ids" value="{{.ID}}"
-                           {{if contains $.LinkedSponsorshipIDs .ID}}checked{{end}}
-                           class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{.Name}}</span>
-                </label>
-                {{end}}
-            </div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sponsors</label>
+            <div class="tag-picker" data-name="sponsorship_ids"
+                 data-items='{{toJSON .SponsorItems}}'
+                 data-selected='{{toJSON .LinkedSponsorshipIDs}}'></div>
         </div>
-        {{end}}
 
         <div>
             <label for="show_notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Show Notes</label>

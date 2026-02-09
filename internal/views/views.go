@@ -2,6 +2,7 @@ package views
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -28,6 +29,7 @@ func FuncMap() template.FuncMap {
 		"formatCurrency": formatCurrency,
 		"formatFloat":    formatFloat,
 		"contains":       containsInt64,
+		"toJSON":          toJSON,
 	}
 }
 
@@ -119,6 +121,14 @@ func formatFloat(f *float64) string {
 		return ""
 	}
 	return fmt.Sprintf("%.2f", *f)
+}
+
+func toJSON(v any) template.HTMLAttr {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return ""
+	}
+	return template.HTMLAttr(b)
 }
 
 func containsInt64(slice []int64, val int64) bool {
