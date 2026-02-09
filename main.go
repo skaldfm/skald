@@ -50,6 +50,7 @@ func main() {
 
 	// Set up router
 	r := chi.NewRouter()
+	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
