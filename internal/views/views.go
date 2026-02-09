@@ -26,6 +26,7 @@ func FuncMap() template.FuncMap {
 		"episodeCode":    EpisodeCode,
 		"renderMarkdown": renderMarkdown,
 		"formatCurrency": formatCurrency,
+		"formatFloat":    formatFloat,
 		"contains":       containsInt64,
 	}
 }
@@ -111,6 +112,13 @@ func formatCurrency(f *float64) string {
 		return ""
 	}
 	return fmt.Sprintf("$%.2f", *f)
+}
+
+func formatFloat(f *float64) string {
+	if f == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", *f)
 }
 
 func containsInt64(slice []int64, val int64) bool {
