@@ -78,8 +78,11 @@
                 </label>
             </div>
             {{end}}
-            <input type="file" name="order_file" id="order_file"
-                   class="mt-2 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-50 dark:file:bg-indigo-900/30 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700 dark:file:text-indigo-400 hover:file:bg-indigo-100">
+            <div class="mt-2 flex items-center gap-3">
+                <label for="order_file" class="cursor-pointer rounded-md bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50">Choose file</label>
+                <span class="text-sm text-gray-500 dark:text-gray-400">No file chosen</span>
+                <input type="file" name="order_file" id="order_file" class="sr-only" onchange="this.previousElementSibling.textContent = this.files[0]?.name || 'No file chosen'">
+            </div>
         </div>
 
         <div class="flex items-center justify-between">
