@@ -109,10 +109,11 @@
                 {{end}}
 
                 <form method="POST" action="/episodes/{{.Episode.ID}}/assets" enctype="multipart/form-data"
-                      class="flex items-end gap-3">
-                    <div class="flex-1">
-                        <input type="file" name="file" required
-                               class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-50 dark:file:bg-indigo-900/30 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-700 dark:file:text-indigo-400 hover:file:bg-indigo-100">
+                      class="flex items-center gap-3">
+                    <div class="flex items-center gap-3">
+                        <label for="asset-file" class="cursor-pointer rounded-md bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50">Choose file</label>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">No file chosen</span>
+                        <input type="file" name="file" id="asset-file" required class="sr-only" onchange="this.previousElementSibling.textContent = this.files[0]?.name || 'No file chosen'">
                     </div>
                     <select name="asset_type" class="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-100">
                         <option value="other">Other</option>
