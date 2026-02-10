@@ -131,6 +131,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, _ = h.guests.Create(&models.Guest{
+		Name:  displayName,
+		Email: email,
+	})
+
 	if err := h.session.RenewToken(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

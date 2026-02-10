@@ -16,10 +16,11 @@ import (
 type AdminHandler struct {
 	backups *backup.Manager
 	users   *models.UserStore
+	guests  *models.GuestStore
 }
 
-func NewAdminHandler(backups *backup.Manager, users *models.UserStore) *AdminHandler {
-	return &AdminHandler{backups: backups, users: users}
+func NewAdminHandler(backups *backup.Manager, users *models.UserStore, guests *models.GuestStore) *AdminHandler {
+	return &AdminHandler{backups: backups, users: users, guests: guests}
 }
 
 func (h *AdminHandler) Routes() chi.Router {
@@ -119,6 +120,11 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	_, _ = h.guests.Create(&models.Guest{
+		Name:  displayName,
+		Email: email,
+	})
 
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }

@@ -155,7 +155,7 @@ func main() {
 		// Admin (requires admin role)
 		r.Group(func(r chi.Router) {
 			r.Use(auth.RequireAdmin)
-			adminHandler := handlers.NewAdminHandler(backupMgr, userStore)
+			adminHandler := handlers.NewAdminHandler(backupMgr, userStore, guestStore)
 			r.Mount("/admin", adminHandler.Routes())
 		})
 	})
