@@ -1,8 +1,8 @@
-{{define "title"}}New Guest — Skald{{end}}
+{{define "title"}}New Person — Skald{{end}}
 
 {{define "content"}}
 <div class="mx-auto max-w-2xl">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">New Guest</h1>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">New Person</h1>
 
     {{if .Error}}
     <div class="mt-4 rounded-md bg-red-50 dark:bg-red-900/20 p-4">
@@ -17,6 +17,15 @@
                 <input type="text" name="name" id="name" value="{{if .Guest}}{{.Guest.Name}}{{end}}"
                        class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100"
                        required autofocus>
+            </div>
+
+            <div class="sm:col-span-2">
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" name="is_host" value="1" {{if and .Guest .Guest.IsHost}}checked{{end}}
+                           class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Host</span>
+                </label>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Check if this person is a podcast host (appears in host pickers)</p>
             </div>
 
             <div>
@@ -88,7 +97,7 @@
         <div class="flex items-center justify-end space-x-3">
             <a href="/guests" class="rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</a>
             <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                Add Guest
+                Add Person
             </button>
         </div>
     </form>

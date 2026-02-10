@@ -1,14 +1,14 @@
-{{define "title"}}Guests — Skald{{end}}
+{{define "title"}}People — Skald{{end}}
 
 {{define "content"}}
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Guests</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage guest contacts</p>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">People</h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage hosts and guest contacts</p>
         </div>
         <a href="/guests/new" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-            New Guest
+            New Person
         </a>
     </div>
 
@@ -43,8 +43,8 @@
     </div>
     {{else}}
     <div class="rounded-lg bg-white dark:bg-gray-800 p-12 text-center shadow">
-        <p class="text-gray-500 dark:text-gray-400">No guests yet.</p>
-        <a href="/guests/new" class="mt-4 inline-block text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">Add your first guest</a>
+        <p class="text-gray-500 dark:text-gray-400">No people yet.</p>
+        <a href="/guests/new" class="mt-4 inline-block text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">Add your first person</a>
     </div>
     {{end}}
 </div>
