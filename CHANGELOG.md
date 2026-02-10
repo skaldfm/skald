@@ -7,7 +7,7 @@ All notable changes to Skald will be documented in this file.
 ### Added
 - **Role-based access control** — three roles: admin (full access), editor (edit assigned shows), viewer (read-only assigned shows); show-scoped permissions via `user_shows` join table
 - **Show assignment admin** — admin page at `/admin/users/{id}/shows` to assign shows to editors/viewers via tag-picker
-- **Authentication** — single-user auth with bcrypt passwords and server-side sessions (SQLite-backed), first-run setup wizard, login/logout
+- **Authentication** — multi-user auth with bcrypt passwords and server-side sessions (SQLite-backed), first-run setup wizard, login/logout
 - **User roles** — first user gets `admin` role; admin-only route gating with `RequireAdmin` middleware
 - **Profile settings** — logged-in users can update name, email, and password at `/profile`
 - **User management** — admin page at `/admin/users` to list users, create users, set role (admin/editor/viewer), and delete accounts (with self-protection guards)
@@ -24,14 +24,18 @@ All notable changes to Skald will be documented in this file.
 - **Searchable tag-picker** — reusable component for linking guests, hosts, and sponsors to episodes/shows
 - **People section** — renamed "Guests" to "People" throughout the UI to better reflect that hosts live there too
 - **Host flag** — `is_host` boolean on people; host pickers (show edit, episode edit) now only show people flagged as hosts
+- **`.env` file support** — optional `.env` file via godotenv for configuration
 
 ### Changed
 - Prompter: quadratic speed curve for finer control at low speeds, font color/background presets, center text toggle, top-positioned controls for tablet ergonomics, localStorage persistence for all preferences
 
 ### Fixed
 - Kanban drag-and-drop was silently failing — missing CSRF token in the fetch POST
-- `.env` file was not loaded — added godotenv for optional `.env` support
 - Episode number uniqueness enforcement (per show+season)
+
+## [0.1.0] - 2026-02-08
+
+Initial working version.
 
 ### Infrastructure
 - Project scaffolding: Go module, directory structure, Makefile
@@ -45,8 +49,12 @@ All notable changes to Skald will be documented in this file.
 - Template system with layout/component/page composition
 - Base HTML layout with Tailwind CSS and HTMX
 - Responsive navigation bar (desktop + mobile)
-- Home dashboard page
-- **Shows** — full CRUD (list, create, view, edit, delete)
+- Dark mode with toggle, localStorage persistence, system preference detection
+- Docker multi-stage build and docker-compose.yml
+- GitHub Actions CI (lint + build)
+
+### Features
+- **Shows** — full CRUD (list, create, view, edit, delete) with artwork upload
 - **Episodes** — full CRUD with status pipeline
   - Filterable list view by show, status, and search text
   - Status pipeline UI with clickable status buttons
@@ -68,11 +76,10 @@ All notable changes to Skald will be documented in this file.
   - Auto-created on first use
   - Displayed as badges on episode detail page
 - **Script prompter** (teleprompter)
-  - Auto-scrolling with adjustable speed (0.5-10 px/frame)
-  - Play/pause, font size control (16-72px)
+  - Auto-scrolling with adjustable speed (0.5–10 px/frame)
+  - Play/pause, font size control (16–72px)
   - Fullscreen mode, mirror mode (for reflected setups)
   - Center-line reading guide
   - Auto-hiding controls during playback
   - Keyboard shortcuts (space, arrows, f, m)
   - Touch-friendly for tablet use
-- **Docker** — multi-stage Dockerfile and docker-compose.yml
