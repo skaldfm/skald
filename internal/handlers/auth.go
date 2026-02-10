@@ -13,11 +13,12 @@ import (
 
 type AuthHandler struct {
 	users   *models.UserStore
+	guests  *models.GuestStore
 	session *scs.SessionManager
 }
 
-func NewAuthHandler(users *models.UserStore, session *scs.SessionManager) *AuthHandler {
-	return &AuthHandler{users: users, session: session}
+func NewAuthHandler(users *models.UserStore, guests *models.GuestStore, session *scs.SessionManager) *AuthHandler {
+	return &AuthHandler{users: users, guests: guests, session: session}
 }
 
 func (h *AuthHandler) Routes() chi.Router {
@@ -195,6 +196,13 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Create a corresponding Person entry as host
+	_, _ = h.guests.Create(&models.Guest{
+		Name:   displayName,
+		Email:  email,
+		IsHost: true,
+	})
 
 	// Log the new user in
 	if err := h.session.RenewToken(r.Context()); err != nil {
