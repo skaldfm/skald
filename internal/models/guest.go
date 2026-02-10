@@ -308,7 +308,7 @@ func (s *GuestStore) SetShowHosts(showID int64, guestIDs []int64) error {
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.Exec(`DELETE FROM show_hosts WHERE show_id = ?`, showID); err != nil {
 		return fmt.Errorf("clearing show hosts: %w", err)
