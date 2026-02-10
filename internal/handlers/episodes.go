@@ -43,6 +43,7 @@ func (h *EpisodeHandler) Routes() chi.Router {
 	r.Get("/{id}", h.Show)
 	r.Get("/{id}/edit", h.Edit)
 	r.Post("/{id}", h.Update)
+	r.Get("/next-number", h.NextNumber)
 	r.Post("/{id}/status", h.UpdateStatus)
 	r.Post("/{id}/delete", h.DeleteConfirm)
 	return r
@@ -551,6 +552,53 @@ func (h *EpisodeHandler) DeleteConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/episodes", http.StatusSeeOther)
+}
+
+func (h *EpisodeHandler) NextNumber(w http.ResponseWriter, r *http.Request) {
+	showIDStr := r.URL.Query().Get("show_id")
+	showID, _ := strconv.ParseInt(showIDStr, 10, 64)
+	if showID == 0 {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	var season *int
+	if s := r.URL.Query().Get("season_number"); s != "" {
+		n, _ := strconv.Atoi(s)
+		season = &n
+	}
+
+	taken, err := h.episodes.TakenEpisodeNumbers(showID, season)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Find next available number
+	next := 1
+	takenSet := make(map[int]bool, len(taken))
+	for _, n := range taken {
+		takenSet[n] = true
+	}
+	for takenSet[next] {
+		next++
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	if len(taken) > 0 {
+		fmt.Fprintf(w, `<span class="text-xs text-gray-500 dark:text-gray-400">Next available: %d (taken: %s)</span>`,
+			next, formatIntSlice(taken))
+	} else {
+		fmt.Fprintf(w, `<span class="text-xs text-gray-500 dark:text-gray-400">Next available: %d</span>`, next)
+	}
+}
+
+func formatIntSlice(nums []int) string {
+	parts := make([]string, len(nums))
+	for i, n := range nums {
+		parts[i] = strconv.Itoa(n)
+	}
+	return strings.Join(parts, ", ")
 }
 
 func (h *EpisodeHandler) editData(r *http.Request, ep *models.Episode, errMsg string) map[string]any {

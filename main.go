@@ -35,7 +35,7 @@ func main() {
 	defer db.Close()
 
 	// Set up backup manager
-	backupMgr := backup.NewManager(db, cfg.DataDir, cfg.BackupRetain)
+	backupMgr := backup.NewManager(db, cfg.DataDir, cfg.DBURL, cfg.BackupRetain)
 
 	// Pre-migration backup (skip if no migrations table yet = fresh DB)
 	var hasMigrations int
@@ -178,7 +178,7 @@ func main() {
 		// Admin (requires admin role)
 		r.Group(func(r chi.Router) {
 			r.Use(auth.RequireAdmin)
-			adminHandler := handlers.NewAdminHandler(backupMgr, userStore, guestStore, showStore, settingsStore, cfg.DataDir)
+			adminHandler := handlers.NewAdminHandler(backupMgr, db, userStore, guestStore, showStore, settingsStore, cfg.DataDir)
 			r.Mount("/admin", adminHandler.Routes())
 		})
 	})

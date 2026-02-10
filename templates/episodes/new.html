@@ -23,6 +23,7 @@
             <div>
                 <label for="show_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Show</label>
                 <select name="show_id" id="show_id" required
+                        hx-get="/episodes/next-number" hx-target="#episode-number-hint" hx-include="#season_number"
                         class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
                     <option value="">Select a show</option>
                     {{range .Shows}}
@@ -45,11 +46,13 @@
                 <label for="episode_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Episode Number</label>
                 <input type="number" name="episode_number" id="episode_number" min="1"
                        class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
+                <div id="episode-number-hint" class="mt-1"></div>
             </div>
 
             <div>
                 <label for="season_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Season Number</label>
                 <input type="number" name="season_number" id="season_number" min="1"
+                       hx-get="/episodes/next-number" hx-target="#episode-number-hint" hx-include="#show_id"
                        class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">
             </div>
 

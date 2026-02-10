@@ -184,6 +184,36 @@ func (s *EpisodeStore) EpisodeNumberExists(showID int64, season, episode *int, e
 	return count > 0, nil
 }
 
+// TakenEpisodeNumbers returns sorted list of taken episode numbers for a show,
+// optionally scoped to a season.
+func (s *EpisodeStore) TakenEpisodeNumbers(showID int64, season *int) ([]int, error) {
+	query := `SELECT episode_number FROM episodes WHERE show_id = ? AND episode_number IS NOT NULL`
+	args := []any{showID}
+	if season != nil {
+		query += " AND season_number = ?"
+		args = append(args, *season)
+	} else {
+		query += " AND season_number IS NULL"
+	}
+	query += " ORDER BY episode_number"
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("listing taken episode numbers: %w", err)
+	}
+	defer rows.Close()
+
+	var numbers []int
+	for rows.Next() {
+		var n int
+		if err := rows.Scan(&n); err != nil {
+			return nil, fmt.Errorf("scanning episode number: %w", err)
+		}
+		numbers = append(numbers, n)
+	}
+	return numbers, rows.Err()
+}
+
 // CountByStatus returns a map of status -> count, optionally filtered by show.
 func (s *EpisodeStore) CountByStatus(showID int64) (map[string]int, error) {
 	query := `SELECT status, COUNT(*) FROM episodes`
