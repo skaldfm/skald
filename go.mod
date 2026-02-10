@@ -1,4 +1,4 @@
-module github.com/mhermansson/skald
+module github.com/skaldfm/skald
 
 go 1.24.0
 

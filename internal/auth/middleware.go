@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/alexedwards/scs/v2"
-	"github.com/mhermansson/skald/internal/models"
+	"github.com/skaldfm/skald/internal/models"
 )
 
 // LoadUser is middleware that loads the current user from the session into the

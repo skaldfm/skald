@@ -102,6 +102,7 @@ Built-in teleprompter for recording sessions:
 ### Docker (recommended)
 
 ```sh
+docker pull skaldfm/skald:latest
 docker compose up -d
 ```
 

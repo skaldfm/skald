@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 
-	"github.com/mhermansson/skald/internal/models"
+	"github.com/skaldfm/skald/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
 

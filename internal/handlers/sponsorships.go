@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mhermansson/skald/internal/auth"
-	"github.com/mhermansson/skald/internal/models"
-	"github.com/mhermansson/skald/internal/views"
+	"github.com/skaldfm/skald/internal/auth"
+	"github.com/skaldfm/skald/internal/models"
+	"github.com/skaldfm/skald/internal/views"
 )
 
 type SponsorshipHandler struct {

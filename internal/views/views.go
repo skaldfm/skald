@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/justinas/nosurf"
-	"github.com/mhermansson/skald/internal/auth"
+	"github.com/skaldfm/skald/internal/auth"
 	"github.com/yuin/goldmark"
 )
 
