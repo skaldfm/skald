@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -14,14 +17,16 @@ import (
 )
 
 type AdminHandler struct {
-	backups *backup.Manager
-	users   *models.UserStore
-	guests  *models.GuestStore
-	shows   *models.ShowStore
+	backups  *backup.Manager
+	users    *models.UserStore
+	guests   *models.GuestStore
+	shows    *models.ShowStore
+	settings *models.SiteSettingsStore
+	dataDir  string
 }
 
-func NewAdminHandler(backups *backup.Manager, users *models.UserStore, guests *models.GuestStore, shows *models.ShowStore) *AdminHandler {
-	return &AdminHandler{backups: backups, users: users, guests: guests, shows: shows}
+func NewAdminHandler(backups *backup.Manager, users *models.UserStore, guests *models.GuestStore, shows *models.ShowStore, settings *models.SiteSettingsStore, dataDir string) *AdminHandler {
+	return &AdminHandler{backups: backups, users: users, guests: guests, shows: shows, settings: settings, dataDir: dataDir}
 }
 
 func (h *AdminHandler) Routes() chi.Router {
@@ -36,6 +41,9 @@ func (h *AdminHandler) Routes() chi.Router {
 	r.Get("/users/{id}/shows", h.UserShowsForm)
 	r.Post("/users/{id}/shows", h.UserShowsSave)
 	r.Post("/users/{id}/delete", h.DeleteUser)
+	r.Get("/settings", h.Settings)
+	r.Post("/settings", h.UpdateSettings)
+	r.Post("/settings/remove", h.RemoveLogo)
 	return r
 }
 
@@ -264,4 +272,96 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
+}
+
+func (h *AdminHandler) Settings(w http.ResponseWriter, r *http.Request) {
+	ss, err := h.settings.Get()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]any{
+		"ActiveTab":     "settings",
+		"HasCustomLogo": ss.LogoPath != "",
+	}
+	if err := views.Render(w, r, "admin/settings.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *AdminHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "File too large", http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("logo")
+	if err != nil {
+		http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	if ext != ".png" && ext != ".jpg" && ext != ".jpeg" && ext != ".gif" && ext != ".svg" && ext != ".webp" {
+		http.Error(w, "Unsupported image format", http.StatusBadRequest)
+		return
+	}
+
+	// Remove old logo file if present
+	ss, _ := h.settings.Get()
+	if ss != nil && ss.LogoPath != "" {
+		oldFile := filepath.Join(h.dataDir, "uploads", ss.LogoPath)
+		_ = os.Remove(oldFile)
+	}
+
+	uploadDir := filepath.Join(h.dataDir, "uploads", "site")
+	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	filename := "logo" + ext
+	destPath := filepath.Join(uploadDir, filename)
+
+	dst, err := os.Create(destPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	relativePath := fmt.Sprintf("site/%s", filename)
+	if err := h.settings.Update(relativePath); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
+}
+
+func (h *AdminHandler) RemoveLogo(w http.ResponseWriter, r *http.Request) {
+	ss, err := h.settings.Get()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if ss.LogoPath != "" {
+		oldFile := filepath.Join(h.dataDir, "uploads", ss.LogoPath)
+		_ = os.Remove(oldFile)
+	}
+
+	if err := h.settings.Update(""); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
 }
