@@ -33,8 +33,13 @@
                     <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{{.Name}}</td>
                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{formatBytes .Size}}</td>
                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{.CreatedAt.Format "Jan 2, 2006 15:04"}}</td>
-                    <td class="px-6 py-4 text-right">
+                    <td class="px-6 py-4 text-right space-x-3">
                         <a href="/admin/backups/{{.Name}}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">Download</a>
+                        <form method="POST" action="/admin/backups/restore" class="inline" onsubmit="return confirm('This will replace the current database and restart the application. A safety backup will be created first.\n\nContinue?')">
+                            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                            <input type="hidden" name="name" value="{{.Name}}">
+                            <button type="submit" class="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300">Restore</button>
+                        </form>
                     </td>
                 </tr>
                 {{end}}

@@ -1,13 +1,16 @@
 package handlers
 
 import (
+	"database/sql"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/skaldfm/skald/internal/auth"
@@ -18,6 +21,7 @@ import (
 
 type AdminHandler struct {
 	backups  *backup.Manager
+	db       *sql.DB
 	users    *models.UserStore
 	guests   *models.GuestStore
 	shows    *models.ShowStore
@@ -25,8 +29,8 @@ type AdminHandler struct {
 	dataDir  string
 }
 
-func NewAdminHandler(backups *backup.Manager, users *models.UserStore, guests *models.GuestStore, shows *models.ShowStore, settings *models.SiteSettingsStore, dataDir string) *AdminHandler {
-	return &AdminHandler{backups: backups, users: users, guests: guests, shows: shows, settings: settings, dataDir: dataDir}
+func NewAdminHandler(backups *backup.Manager, db *sql.DB, users *models.UserStore, guests *models.GuestStore, shows *models.ShowStore, settings *models.SiteSettingsStore, dataDir string) *AdminHandler {
+	return &AdminHandler{backups: backups, db: db, users: users, guests: guests, shows: shows, settings: settings, dataDir: dataDir}
 }
 
 func (h *AdminHandler) Routes() chi.Router {
@@ -35,6 +39,7 @@ func (h *AdminHandler) Routes() chi.Router {
 	r.Get("/backups", h.Backups)
 	r.Post("/backups", h.CreateBackup)
 	r.Get("/backups/{name}", h.DownloadBackup)
+	r.Post("/backups/restore", h.RestoreBackup)
 	r.Get("/users", h.Users)
 	r.Post("/users", h.CreateUser)
 	r.Post("/users/{id}/role", h.SetRole)
@@ -80,6 +85,37 @@ func (h *AdminHandler) DownloadBackup(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Disposition", "attachment; filename="+name)
 	http.ServeFile(w, r, path)
+}
+
+func (h *AdminHandler) RestoreBackup(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	if name == "" {
+		http.Error(w, "Backup name is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.backups.Restore(name); err != nil {
+		log.Printf("Restore failed: %v", err)
+		http.Error(w, "Restore failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	_, _ = w.Write([]byte(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Restoring...</title></head>
+<body class="bg-gray-900 text-gray-100 flex items-center justify-center min-h-screen">
+<div class="text-center"><h1 class="text-2xl font-bold mb-4">Database Restored</h1>
+<p class="text-gray-400">Application is restarting. Please wait...</p>
+<script>setTimeout(function(){ window.location.href = '/admin/backups'; }, 3000);</script>
+</div></body></html>`))
+
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
+	}
+
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		os.Exit(0)
+	}()
 }
 
 func (h *AdminHandler) Users(w http.ResponseWriter, r *http.Request) {

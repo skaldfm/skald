@@ -3,6 +3,7 @@ package backup
 import (
 	"database/sql"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -22,17 +23,19 @@ type Info struct {
 type Manager struct {
 	db        *sql.DB
 	backupDir string
+	dbPath    string
 	retain    int
 }
 
 // NewManager creates a backup manager. retain is how many backups to keep (default 7).
-func NewManager(db *sql.DB, dataDir string, retain int) *Manager {
+func NewManager(db *sql.DB, dataDir, dbPath string, retain int) *Manager {
 	if retain <= 0 {
 		retain = 7
 	}
 	return &Manager{
 		db:        db,
 		backupDir: filepath.Join(dataDir, "backups"),
+		dbPath:    dbPath,
 		retain:    retain,
 	}
 }
@@ -115,6 +118,93 @@ func (m *Manager) Prune() error {
 	}
 
 	return nil
+}
+
+// Restore replaces the live database with a backup file.
+// It validates the backup, creates a safety backup, closes the DB, and atomically
+// replaces the DB file. The caller should exit the process after this returns.
+func (m *Manager) Restore(name string) error {
+	// Sanitize filename
+	name = filepath.Base(name)
+	if !strings.HasSuffix(name, ".db") {
+		return fmt.Errorf("invalid backup filename")
+	}
+
+	backupPath := filepath.Join(m.backupDir, name)
+	if _, err := os.Stat(backupPath); err != nil {
+		return fmt.Errorf("backup file not found: %w", err)
+	}
+
+	// Validate the backup is a valid SQLite database
+	if err := validateSQLite(backupPath); err != nil {
+		return fmt.Errorf("backup validation failed: %w", err)
+	}
+
+	// Create a safety backup before doing anything destructive
+	safetyName, err := m.Create("pre-restore")
+	if err != nil {
+		return fmt.Errorf("creating safety backup: %w", err)
+	}
+	log.Printf("Safety backup created: %s", safetyName)
+
+	// Close the live database connection
+	if err := m.db.Close(); err != nil {
+		return fmt.Errorf("closing database: %w", err)
+	}
+
+	// Remove WAL files to prevent stale WAL from corrupting the restored DB
+	os.Remove(m.dbPath + "-wal")
+	os.Remove(m.dbPath + "-shm")
+
+	// Atomic replace: copy to temp file, then rename over the live DB
+	tmpPath := m.dbPath + ".restoring"
+	if err := copyFile(backupPath, tmpPath); err != nil {
+		return fmt.Errorf("copying backup: %w", err)
+	}
+
+	if err := os.Rename(tmpPath, m.dbPath); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("replacing database: %w", err)
+	}
+
+	log.Printf("Database restored from %s", name)
+	return nil
+}
+
+func validateSQLite(path string) error {
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		return fmt.Errorf("opening file: %w", err)
+	}
+	defer db.Close()
+
+	var result string
+	if err := db.QueryRow("PRAGMA integrity_check").Scan(&result); err != nil {
+		return fmt.Errorf("integrity check: %w", err)
+	}
+	if result != "ok" {
+		return fmt.Errorf("integrity check failed: %s", result)
+	}
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, in); err != nil {
+		return err
+	}
+	return out.Close()
 }
 
 // StartSchedule runs backups on a fixed interval in a background goroutine.
