@@ -108,6 +108,9 @@ func main() {
 	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
 	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir(filepath.Join(cfg.DataDir, "uploads")))))
 
+	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/robots.txt")
+	})
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
