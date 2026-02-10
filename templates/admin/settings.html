@@ -1,0 +1,37 @@
+{{define "title"}}Settings — Admin — Skald{{end}}
+{{define "content"}}
+{{template "admin-nav" .}}
+<div class="space-y-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Site-wide configuration</p>
+    </div>
+
+    <div class="max-w-xl">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Site Logo</h2>
+
+        <div class="mb-6">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Current logo:</p>
+            <img src="{{.LogoPath}}" alt="Current logo" class="h-16 w-16 rounded-full object-cover bg-gray-100 dark:bg-gray-700">
+        </div>
+
+        <form method="POST" action="/admin/settings" enctype="multipart/form-data" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <div>
+                <label for="logo" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Upload new logo</label>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">Square image recommended, at least 128x128px for best results. Displayed as a circle.</p>
+                <input type="file" id="logo" name="logo" accept="image/*"
+                    class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-900 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-800">
+            </div>
+            <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">Upload Logo</button>
+        </form>
+
+        {{if .HasCustomLogo}}
+        <form method="POST" action="/admin/settings/remove" class="mt-4">
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <button type="submit" class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500">Remove Custom Logo</button>
+        </form>
+        {{end}}
+    </div>
+</div>
+{{end}}

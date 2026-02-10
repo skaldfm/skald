@@ -16,9 +16,15 @@ import (
 )
 
 var (
-	templates map[string]*template.Template
-	mu        sync.RWMutex
+	templates    map[string]*template.Template
+	mu           sync.RWMutex
+	logoPathFunc func() string
 )
+
+// SetLogoPathFunc sets the function used to resolve the current site logo path.
+func SetLogoPathFunc(fn func() string) {
+	logoPathFunc = fn
+}
 
 // FuncMap returns the shared template function map.
 func FuncMap() template.FuncMap {
@@ -211,6 +217,16 @@ func injectContext(r *http.Request, data any) map[string]any {
 		m["CSRFToken"] = nosurf.Token(r)
 		m["CurrentUser"] = auth.UserFromContext(r.Context())
 	}
+
+	// Inject logo path
+	logoPath := "/static/images/logo.png"
+	if logoPathFunc != nil {
+		if p := logoPathFunc(); p != "" {
+			logoPath = "/uploads/" + p
+		}
+	}
+	m["LogoPath"] = logoPath
+
 	return m
 }
 

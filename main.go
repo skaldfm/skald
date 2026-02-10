@@ -84,6 +84,16 @@ func main() {
 	tagStore := models.NewTagStore(db)
 	sponsorshipStore := models.NewSponsorshipStore(db)
 	userStore := models.NewUserStore(db)
+	settingsStore := models.NewSiteSettingsStore(db)
+
+	// Set global logo path resolver
+	views.SetLogoPathFunc(func() string {
+		s, err := settingsStore.Get()
+		if err != nil {
+			return ""
+		}
+		return s.LogoPath
+	})
 
 	// Set up router
 	r := chi.NewRouter()
@@ -158,7 +168,7 @@ func main() {
 		// Admin (requires admin role)
 		r.Group(func(r chi.Router) {
 			r.Use(auth.RequireAdmin)
-			adminHandler := handlers.NewAdminHandler(backupMgr, userStore, guestStore, showStore)
+			adminHandler := handlers.NewAdminHandler(backupMgr, userStore, guestStore, showStore, settingsStore, cfg.DataDir)
 			r.Mount("/admin", adminHandler.Routes())
 		})
 	})
