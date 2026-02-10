@@ -591,6 +591,8 @@ func (h *EpisodeHandler) NextNumber(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Fprintf(w, `<span class="text-xs text-gray-500 dark:text-gray-400">Next available: %d</span>`, next)
 	}
+	// OOB swap to auto-fill the episode number input
+	fmt.Fprintf(w, `<input type="number" name="episode_number" id="episode_number" min="1" value="%d" hx-swap-oob="true" class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">`, next)
 }
 
 func formatIntSlice(nums []int) string {
