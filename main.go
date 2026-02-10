@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"net/url"
 	"path/filepath"
 	"time"
 
@@ -74,6 +73,9 @@ func main() {
 			Secure:   false,
 			SameSite: http.SameSiteLaxMode,
 		})
+		// nosurf v1.2.0 defaults isTLS to true, which forces Referer checks
+		// on all requests. Override to actually check for TLS.
+		h.SetIsTLSFunc(func(r *http.Request) bool { return r.TLS != nil })
 		h.SetFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log.Printf("CSRF failure: method=%s url=%s reason=%v", r.Method, r.URL, nosurf.Reason(r))
 			http.Error(w, "CSRF token validation failed", http.StatusBadRequest)
@@ -106,21 +108,6 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(sessionManager.LoadAndSave)
-	// Strip Origin header for same-host requests. Go's http.Server leaves
-	// r.URL.Scheme/Host empty, which makes nosurf's Origin comparison always
-	// fail. Removing Origin for same-host POSTs is safe — the cookie-based
-	// CSRF token check (nosurf's primary defense) still runs. Cross-origin
-	// requests keep the header and are rejected as expected.
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if origin := r.Header.Get("Origin"); origin != "" {
-				if o, err := url.Parse(origin); err == nil && o.Host == r.Host {
-					r.Header.Del("Origin")
-				}
-			}
-			next.ServeHTTP(w, r)
-		})
-	})
 	r.Use(csrfProtect)
 
 	// Public routes (no auth required)
