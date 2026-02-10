@@ -12,7 +12,7 @@ All notable changes to Skald will be documented in this file.
 - **Profile settings** — logged-in users can update name, email, and password at `/profile`
 - **User management** — admin page at `/admin/users` to list users, create users, set role (admin/editor/viewer), and delete accounts (with self-protection guards)
 - **Open registration** — optional self-service account creation via `SKALD_OPEN_REGISTRATION=true`, disabled by default; new registrations get viewer role
-- **Admin sub-navigation** — tabbed nav across admin pages (Backups, Users)
+- **Admin sub-navigation** — tabbed nav across admin pages (Users, Backups), Users as default landing tab
 - **Show hosts** — define default hosts per show, auto-inherited by new episodes, with per-episode override
 - **Sponsorships** — sponsor deal tracking with ad copy, CPM, total cost, average listens, order document upload, episode linking via tag-picker
 - **Guest enhancements** — photo upload, social links (Twitter/X, Instagram, LinkedIn, Mastodon), company/podcast fields
@@ -29,6 +29,8 @@ All notable changes to Skald will be documented in this file.
 - Prompter: quadratic speed curve for finer control at low speeds, font color/background presets, center text toggle, top-positioned controls for tablet ergonomics, localStorage persistence for all preferences
 
 ### Fixed
+- Kanban drag-and-drop was silently failing — missing CSRF token in the fetch POST
+- `.env` file was not loaded — added godotenv for optional `.env` support
 - Episode number uniqueness enforcement (per show+season)
 
 ### Infrastructure
