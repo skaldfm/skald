@@ -12,7 +12,8 @@ RUN go mod download
 COPY . .
 
 # Build static binary
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o skald .
+ARG VERSION=dev
+RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${VERSION}" -o skald .
 
 # Runtime stage
 FROM alpine:3.20
