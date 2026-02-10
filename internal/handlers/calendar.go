@@ -53,6 +53,7 @@ func (h *CalendarHandler) Calendar(w http.ResponseWriter, r *http.Request) {
 		id, _ := strconv.ParseInt(showID, 10, 64)
 		filter.ShowID = id
 	}
+	filter = scopeEpisodeFilter(r, filter)
 
 	episodes, err := h.episodes.List(filter)
 	if err != nil {
@@ -60,7 +61,7 @@ func (h *CalendarHandler) Calendar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shows, err := h.shows.List()
+	shows, err := accessibleShows(r, h.shows)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -175,6 +176,7 @@ func (h *TimelineHandler) Timeline(w http.ResponseWriter, r *http.Request) {
 		id, _ := strconv.ParseInt(showID, 10, 64)
 		filter.ShowID = id
 	}
+	filter = scopeEpisodeFilter(r, filter)
 
 	zoom := r.URL.Query().Get("zoom")
 	if zoom != "week" {
@@ -187,7 +189,7 @@ func (h *TimelineHandler) Timeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shows, err := h.shows.List()
+	shows, err := accessibleShows(r, h.shows)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

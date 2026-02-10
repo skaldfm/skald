@@ -1,0 +1,26 @@
+{{define "title"}}Shows for {{.User.DisplayName}} — Skald{{end}}
+
+{{define "content"}}
+{{template "admin-nav" .}}
+<div class="mx-auto max-w-2xl space-y-6">
+    <div>
+        <a href="/admin/users" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">&larr; Users</a>
+        <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">Show Access for {{.User.DisplayName}}</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {{if eq .User.Role "editor"}}Editor — can view and edit assigned shows{{else}}Viewer — can only view assigned shows{{end}}
+        </p>
+    </div>
+
+    <form method="POST" action="/admin/users/{{.User.ID}}/shows" class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow space-y-4">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+        <div class="tag-picker" data-name="show_ids" data-items='{{toJSON .ShowItems}}' data-selected='{{toJSON .AssignedIDs}}'></div>
+
+        <div class="flex justify-end">
+            <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                Save
+            </button>
+        </div>
+    </form>
+</div>
+{{end}}

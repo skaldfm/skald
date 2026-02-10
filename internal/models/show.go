@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -76,6 +77,34 @@ func (s *ShowStore) Update(id int64, name, description, artwork string) error {
 		return fmt.Errorf("updating show %d: %w", id, err)
 	}
 	return nil
+}
+
+func (s *ShowStore) ListByIDs(ids []int64) ([]Show, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	placeholders := "?" + strings.Repeat(",?", len(ids)-1)
+	query := fmt.Sprintf(`SELECT id, name, description, artwork, created_at, updated_at
+		FROM shows WHERE id IN (%s) ORDER BY name`, placeholders)
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("listing shows by IDs: %w", err)
+	}
+	defer rows.Close()
+
+	var shows []Show
+	for rows.Next() {
+		var show Show
+		if err := rows.Scan(&show.ID, &show.Name, &show.Description, &show.Artwork, &show.CreatedAt, &show.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scanning show: %w", err)
+		}
+		shows = append(shows, show)
+	}
+	return shows, rows.Err()
 }
 
 func (s *ShowStore) Delete(id int64) error {

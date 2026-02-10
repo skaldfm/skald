@@ -17,10 +17,11 @@ type AdminHandler struct {
 	backups *backup.Manager
 	users   *models.UserStore
 	guests  *models.GuestStore
+	shows   *models.ShowStore
 }
 
-func NewAdminHandler(backups *backup.Manager, users *models.UserStore, guests *models.GuestStore) *AdminHandler {
-	return &AdminHandler{backups: backups, users: users, guests: guests}
+func NewAdminHandler(backups *backup.Manager, users *models.UserStore, guests *models.GuestStore, shows *models.ShowStore) *AdminHandler {
+	return &AdminHandler{backups: backups, users: users, guests: guests, shows: shows}
 }
 
 func (h *AdminHandler) Routes() chi.Router {
@@ -30,7 +31,9 @@ func (h *AdminHandler) Routes() chi.Router {
 	r.Get("/backups/{name}", h.DownloadBackup)
 	r.Get("/users", h.Users)
 	r.Post("/users", h.CreateUser)
-	r.Post("/users/{id}/role", h.ToggleRole)
+	r.Post("/users/{id}/role", h.SetRole)
+	r.Get("/users/{id}/shows", h.UserShowsForm)
+	r.Post("/users/{id}/shows", h.UserShowsSave)
 	r.Post("/users/{id}/delete", h.DeleteUser)
 	return r
 }
@@ -77,8 +80,22 @@ func (h *AdminHandler) Users(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Load show assignments per user
+	userShows := make(map[int64][]int64)
+	allShows, _ := h.shows.List()
+	showNames := make(map[int64]string)
+	for _, s := range allShows {
+		showNames[s.ID] = s.Name
+	}
+	for _, u := range users {
+		ids, _ := h.users.ShowIDsForUser(u.ID)
+		userShows[u.ID] = ids
+	}
+
 	data := map[string]any{
 		"Users":     users,
+		"UserShows": userShows,
+		"ShowNames": showNames,
 		"ActiveTab": "users",
 	}
 	if err := views.Render(w, r, "admin/users.html", data); err != nil {
@@ -100,8 +117,8 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Password must be at least 8 characters", http.StatusBadRequest)
 		return
 	}
-	if role != "admin" {
-		role = "user"
+	if role != "admin" && role != "editor" {
+		role = "viewer"
 	}
 
 	existing, _ := h.users.GetByEmail(email)
@@ -129,7 +146,7 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }
 
-func (h *AdminHandler) ToggleRole(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) SetRole(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
@@ -148,13 +165,78 @@ func (h *AdminHandler) ToggleRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.Role == "admin" {
-		user.Role = "user"
-	} else {
-		user.Role = "admin"
+	role := r.FormValue("role")
+	if role != "admin" && role != "editor" && role != "viewer" {
+		http.Error(w, "Invalid role", http.StatusBadRequest)
+		return
 	}
 
+	user.Role = role
 	if err := h.users.Update(user); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
+}
+
+func (h *AdminHandler) UserShowsForm(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.users.Get(id)
+	if err != nil || user == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	allShows, err := h.shows.List()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	assignedIDs, _ := h.users.ShowIDsForUser(id)
+	showItems := make([]pickerItem, len(allShows))
+	for i, s := range allShows {
+		showItems[i] = pickerItem{ID: s.ID, Name: s.Name}
+	}
+
+	data := map[string]any{
+		"User":        user,
+		"ShowItems":   showItems,
+		"AssignedIDs": assignedIDs,
+		"ActiveTab":   "users",
+	}
+	if err := views.Render(w, r, "admin/user_shows.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *AdminHandler) UserShowsSave(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.users.Get(id)
+	if err != nil || user == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var showIDs []int64
+	for _, s := range r.Form["show_ids"] {
+		if sid, err := strconv.ParseInt(s, 10, 64); err == nil {
+			showIDs = append(showIDs, sid)
+		}
+	}
+
+	if err := h.users.SetUserShows(id, showIDs); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

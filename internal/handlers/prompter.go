@@ -34,6 +34,9 @@ func (h *PrompterHandler) Prompter(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	if !requireShowAccess(w, r, ep.ShowID) {
+		return
+	}
 
 	data := map[string]any{
 		"Episode": ep,

@@ -38,7 +38,8 @@
                     <label for="role" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Role</label>
                     <select name="role" id="role"
                             class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                        <option value="user">User</option>
+                        <option value="editor">Editor</option>
+                        <option value="viewer">Viewer</option>
                         <option value="admin">Admin</option>
                     </select>
                 </div>
@@ -58,6 +59,7 @@
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Name</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Email</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Role</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Shows</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Created</th>
                     <th class="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Actions</th>
                 </tr>
@@ -70,8 +72,26 @@
                     <td class="px-6 py-4 text-sm">
                         {{if eq .Role "admin"}}
                         <span class="inline-flex rounded-full bg-purple-100 dark:bg-purple-900/30 px-2 py-1 text-xs font-medium text-purple-800 dark:text-purple-300">Admin</span>
+                        {{else if eq .Role "editor"}}
+                        <span class="inline-flex rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-1 text-xs font-medium text-blue-800 dark:text-blue-300">Editor</span>
                         {{else}}
-                        <span class="inline-flex rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs font-medium text-gray-800 dark:text-gray-300">User</span>
+                        <span class="inline-flex rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs font-medium text-gray-800 dark:text-gray-300">Viewer</span>
+                        {{end}}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {{if eq .Role "admin"}}
+                        <span class="text-gray-400 dark:text-gray-500 italic">All</span>
+                        {{else}}
+                        {{$shows := index $.UserShows .ID}}
+                        {{if $shows}}
+                        <div class="flex flex-wrap gap-1">
+                            {{range $shows}}
+                            <span class="inline-flex rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-400">{{index $.ShowNames .}}</span>
+                            {{end}}
+                        </div>
+                        {{else}}
+                        <span class="text-gray-400 dark:text-gray-500 italic">None</span>
+                        {{end}}
                         {{end}}
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{.CreatedAt.Format "Jan 2, 2006"}}</td>
@@ -79,10 +99,16 @@
                         {{if ne .ID $.CurrentUser.ID}}
                         <form method="POST" action="/admin/users/{{.ID}}/role" class="inline">
                             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-                            <button type="submit" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">
-                                {{if eq .Role "admin"}}Demote{{else}}Make Admin{{end}}
-                            </button>
+                            <select name="role" onchange="this.form.submit()"
+                                    class="rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 px-2 py-1 text-xs focus:border-indigo-500 focus:outline-none">
+                                <option value="admin" {{if eq .Role "admin"}}selected{{end}}>Admin</option>
+                                <option value="editor" {{if eq .Role "editor"}}selected{{end}}>Editor</option>
+                                <option value="viewer" {{if eq .Role "viewer"}}selected{{end}}>Viewer</option>
+                            </select>
                         </form>
+                        {{if ne .Role "admin"}}
+                        <a href="/admin/users/{{.ID}}/shows" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">Shows</a>
+                        {{end}}
                         <form method="POST" action="/admin/users/{{.ID}}/delete" class="inline" onsubmit="return confirm('Delete this user?')">
                             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                             <button type="submit" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">Delete</button>

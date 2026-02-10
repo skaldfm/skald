@@ -5,11 +5,13 @@ All notable changes to Skald will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Role-based access control** — three roles: admin (full access), editor (edit assigned shows), viewer (read-only assigned shows); show-scoped permissions via `user_shows` join table
+- **Show assignment admin** — admin page at `/admin/users/{id}/shows` to assign shows to editors/viewers via tag-picker
 - **Authentication** — single-user auth with bcrypt passwords and server-side sessions (SQLite-backed), first-run setup wizard, login/logout
 - **User roles** — first user gets `admin` role; admin-only route gating with `RequireAdmin` middleware
 - **Profile settings** — logged-in users can update name, email, and password at `/profile`
-- **User management** — admin page at `/admin/users` to list users, create users, toggle admin/user role, and delete accounts (with self-protection guards)
-- **Open registration** — optional self-service account creation via `SKALD_OPEN_REGISTRATION=true`, disabled by default
+- **User management** — admin page at `/admin/users` to list users, create users, set role (admin/editor/viewer), and delete accounts (with self-protection guards)
+- **Open registration** — optional self-service account creation via `SKALD_OPEN_REGISTRATION=true`, disabled by default; new registrations get viewer role
 - **Admin sub-navigation** — tabbed nav across admin pages (Backups, Users)
 - **Show hosts** — define default hosts per show, auto-inherited by new episodes, with per-episode override
 - **Sponsorships** — sponsor deal tracking with ad copy, CPM, total cost, average listens, order document upload, episode linking via tag-picker

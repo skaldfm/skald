@@ -125,7 +125,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.users.Create(email, displayName, hash, "user")
+	user, err := h.users.Create(email, displayName, hash, "viewer")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

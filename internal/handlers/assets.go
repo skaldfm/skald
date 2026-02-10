@@ -13,12 +13,13 @@ import (
 )
 
 type AssetHandler struct {
-	store   *models.AssetStore
-	dataDir string
+	store    *models.AssetStore
+	episodes *models.EpisodeStore
+	dataDir  string
 }
 
-func NewAssetHandler(store *models.AssetStore, dataDir string) *AssetHandler {
-	return &AssetHandler{store: store, dataDir: dataDir}
+func NewAssetHandler(store *models.AssetStore, episodes *models.EpisodeStore, dataDir string) *AssetHandler {
+	return &AssetHandler{store: store, episodes: episodes, dataDir: dataDir}
 }
 
 func (h *AssetHandler) Routes() chi.Router {
@@ -33,6 +34,19 @@ func (h *AssetHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	episodeID, err := strconv.ParseInt(episodeIDStr, 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid episode ID", http.StatusBadRequest)
+		return
+	}
+
+	ep, err := h.episodes.Get(episodeID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if ep == nil {
+		http.NotFound(w, r)
+		return
+	}
+	if !requireShowEdit(w, r, ep.ShowID) {
 		return
 	}
 
@@ -123,6 +137,19 @@ func (h *AssetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 	if asset == nil {
 		http.NotFound(w, r)
+		return
+	}
+
+	ep, err := h.episodes.Get(asset.EpisodeID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if ep == nil {
+		http.NotFound(w, r)
+		return
+	}
+	if !requireShowEdit(w, r, ep.ShowID) {
 		return
 	}
 

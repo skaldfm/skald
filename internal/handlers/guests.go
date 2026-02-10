@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mhermansson/skald/internal/auth"
 	"github.com/mhermansson/skald/internal/models"
 	"github.com/mhermansson/skald/internal/views"
 )
@@ -47,9 +48,11 @@ func (h *GuestHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user := auth.UserFromContext(r.Context())
 	data := map[string]any{
-		"Guests":    guests,
+		"Guests":     guests,
 		"GuestShows": showMap,
+		"CanEdit":    auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "guests/index.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -57,12 +60,20 @@ func (h *GuestHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GuestHandler) New(w http.ResponseWriter, r *http.Request) {
+	if !auth.CanEdit(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	if err := views.Render(w, r, "guests/new.html", nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (h *GuestHandler) Create(w http.ResponseWriter, r *http.Request) {
+	if !auth.CanEdit(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		http.Error(w, "Form too large", http.StatusBadRequest)
 		return
@@ -107,9 +118,11 @@ func (h *GuestHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user := auth.UserFromContext(r.Context())
 	data := map[string]any{
 		"Guest":    guest,
 		"Episodes": episodes,
+		"CanEdit":  auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "guests/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -117,6 +130,10 @@ func (h *GuestHandler) Show(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GuestHandler) Edit(w http.ResponseWriter, r *http.Request) {
+	if !auth.CanEdit(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	guest, err := h.getGuest(w, r)
 	if guest == nil || err != nil {
 		return
@@ -129,6 +146,10 @@ func (h *GuestHandler) Edit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GuestHandler) Update(w http.ResponseWriter, r *http.Request) {
+	if !auth.CanEdit(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	guest, err := h.getGuest(w, r)
 	if guest == nil || err != nil {
 		return
@@ -181,6 +202,10 @@ func (h *GuestHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GuestHandler) DeleteConfirm(w http.ResponseWriter, r *http.Request) {
+	if !auth.CanEdit(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	guest, err := h.getGuest(w, r)
 	if guest == nil || err != nil {
 		return

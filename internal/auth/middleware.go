@@ -10,6 +10,7 @@ import (
 
 // LoadUser is middleware that loads the current user from the session into the
 // request context. It also enforces the first-run setup redirect.
+// For non-admin users, it also loads their accessible show IDs.
 func LoadUser(sm *scs.SessionManager, users *models.UserStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +29,18 @@ func LoadUser(sm *scs.SessionManager, users *models.UserStore) func(http.Handler
 			if userID > 0 {
 				user, err := users.Get(userID)
 				if err == nil && user != nil {
-					r = r.WithContext(WithUser(r.Context(), user))
+					ctx := WithUser(r.Context(), user)
+					// For non-admins, load accessible show IDs
+					if !IsAdmin(user) {
+						showIDs, err := users.ShowIDsForUser(user.ID)
+						if err == nil {
+							if showIDs == nil {
+								showIDs = []int64{} // empty, not nil — means "no shows"
+							}
+							ctx = WithShowIDs(ctx, showIDs)
+						}
+					}
+					r = r.WithContext(ctx)
 				}
 			}
 
@@ -42,6 +54,18 @@ func RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if UserFromContext(r.Context()) == nil {
 			http.Redirect(w, r, "/auth/login", http.StatusFound)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// RequireEditor returns 403 if the current user is not an admin or editor.
+func RequireEditor(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := UserFromContext(r.Context())
+		if !CanEdit(user) {
+			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(w, r)

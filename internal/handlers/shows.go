@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mhermansson/skald/internal/auth"
 	"github.com/mhermansson/skald/internal/models"
 	"github.com/mhermansson/skald/internal/views"
 )
@@ -46,14 +47,16 @@ func (h *ShowHandler) Routes() chi.Router {
 }
 
 func (h *ShowHandler) List(w http.ResponseWriter, r *http.Request) {
-	shows, err := h.store.List()
+	shows, err := accessibleShows(r, h.store)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	user := auth.UserFromContext(r.Context())
 	data := map[string]any{
-		"Shows": shows,
+		"Shows":   shows,
+		"IsAdmin": auth.IsAdmin(user),
 	}
 	if err := views.Render(w, r, "shows/index.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -61,12 +64,20 @@ func (h *ShowHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ShowHandler) New(w http.ResponseWriter, r *http.Request) {
+	if !auth.IsAdmin(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	if err := views.Render(w, r, "shows/new.html", nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (h *ShowHandler) Create(w http.ResponseWriter, r *http.Request) {
+	if !auth.IsAdmin(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	description := strings.TrimSpace(r.FormValue("description"))
 
@@ -95,7 +106,11 @@ func (h *ShowHandler) Show(w http.ResponseWriter, r *http.Request) {
 	if show == nil || err != nil {
 		return
 	}
+	if !requireShowAccess(w, r, show.ID) {
+		return
+	}
 
+	user := auth.UserFromContext(r.Context())
 	episodes, err := h.episodeStore.List(models.EpisodeFilter{ShowID: show.ID})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -150,6 +165,7 @@ func (h *ShowHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"PublishedCount": publishedCount,
 		"NextEpisode":    nextEpisode,
 		"Segments":       segments,
+		"CanEdit":        auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "shows/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -159,6 +175,9 @@ func (h *ShowHandler) Show(w http.ResponseWriter, r *http.Request) {
 func (h *ShowHandler) Edit(w http.ResponseWriter, r *http.Request) {
 	show, err := h.getShow(w, r)
 	if show == nil || err != nil {
+		return
+	}
+	if !requireShowEdit(w, r, show.ID) {
 		return
 	}
 
@@ -173,6 +192,7 @@ func (h *ShowHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		"Show":          show,
 		"HostItems":     hostItems,
 		"LinkedHostIDs": hostIDs,
+		"IsAdmin":       auth.IsAdmin(auth.UserFromContext(r.Context())),
 	}
 	if err := views.Render(w, r, "shows/edit.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -182,6 +202,9 @@ func (h *ShowHandler) Edit(w http.ResponseWriter, r *http.Request) {
 func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 	show, err := h.getShow(w, r)
 	if show == nil || err != nil {
+		return
+	}
+	if !requireShowEdit(w, r, show.ID) {
 		return
 	}
 
@@ -280,6 +303,10 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ShowHandler) DeleteConfirm(w http.ResponseWriter, r *http.Request) {
+	if !auth.IsAdmin(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	show, err := h.getShow(w, r)
 	if show == nil || err != nil {
 		return

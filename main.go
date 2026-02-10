@@ -122,7 +122,7 @@ func main() {
 		r.Mount("/episodes", episodeHandler.Routes())
 
 		// Assets (upload/download/delete routes)
-		assetHandler := handlers.NewAssetHandler(assetStore, cfg.DataDir)
+		assetHandler := handlers.NewAssetHandler(assetStore, episodeStore, cfg.DataDir)
 		r.Post("/episodes/{episodeID}/assets", assetHandler.Upload)
 		r.Mount("/assets", assetHandler.Routes())
 
@@ -155,7 +155,7 @@ func main() {
 		// Admin (requires admin role)
 		r.Group(func(r chi.Router) {
 			r.Use(auth.RequireAdmin)
-			adminHandler := handlers.NewAdminHandler(backupMgr, userStore, guestStore)
+			adminHandler := handlers.NewAdminHandler(backupMgr, userStore, guestStore, showStore)
 			r.Mount("/admin", adminHandler.Routes())
 		})
 	})

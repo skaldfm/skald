@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mhermansson/skald/internal/auth"
 	"github.com/mhermansson/skald/internal/models"
 	"github.com/mhermansson/skald/internal/views"
 )
@@ -56,6 +57,7 @@ func (h *EpisodeHandler) List(w http.ResponseWriter, r *http.Request) {
 		id, _ := strconv.ParseInt(showID, 10, 64)
 		filter.ShowID = id
 	}
+	filter = scopeEpisodeFilter(r, filter)
 
 	episodes, err := h.episodes.List(filter)
 	if err != nil {
@@ -63,17 +65,19 @@ func (h *EpisodeHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shows, err := h.shows.List()
+	shows, err := accessibleShows(r, h.shows)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	user := auth.UserFromContext(r.Context())
 	data := map[string]any{
 		"Episodes": episodes,
 		"Shows":    shows,
 		"Filter":   filter,
 		"Statuses": models.Statuses,
+		"CanEdit":  auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "episodes/index.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -81,7 +85,13 @@ func (h *EpisodeHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *EpisodeHandler) New(w http.ResponseWriter, r *http.Request) {
-	shows, err := h.shows.List()
+	user := auth.UserFromContext(r.Context())
+	if !auth.CanEdit(user) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	shows, err := accessibleShows(r, h.shows)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -98,6 +108,11 @@ func (h *EpisodeHandler) New(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
+	if !auth.CanEdit(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	// Parse multipart form (10 MB max for artwork)
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		http.Error(w, "Form too large", http.StatusBadRequest)
@@ -111,8 +126,13 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	showID, _ := strconv.ParseInt(showIDStr, 10, 64)
 
+	if showID > 0 && !auth.CanAccessShow(r.Context(), showID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	if title == "" || showID == 0 {
-		shows, _ := h.shows.List()
+		shows, _ := accessibleShows(r, h.shows)
 		data := map[string]any{
 			"Error":       "Title and show are required",
 			"Title":       title,
@@ -146,7 +166,7 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if exists {
-			shows, _ := h.shows.List()
+			shows, _ := accessibleShows(r, h.shows)
 			code := views.EpisodeCode(seNumber, epNumber)
 			data := map[string]any{
 				"Error":       fmt.Sprintf("%s already exists in this show", code),
@@ -241,7 +261,11 @@ func (h *EpisodeHandler) Show(w http.ResponseWriter, r *http.Request) {
 	if ep == nil || err != nil {
 		return
 	}
+	if !requireShowAccess(w, r, ep.ShowID) {
+		return
+	}
 
+	user := auth.UserFromContext(r.Context())
 	assets, _ := h.assets.ListForEpisode(ep.ID)
 	hosts, _ := h.guests.HostsForEpisode(ep.ID)
 	guests, _ := h.guests.GuestsForEpisode(ep.ID)
@@ -256,6 +280,7 @@ func (h *EpisodeHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"Guests":       guests,
 		"Tags":         tags,
 		"Sponsorships": sponsorships,
+		"CanEdit":      auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "episodes/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -267,8 +292,11 @@ func (h *EpisodeHandler) Edit(w http.ResponseWriter, r *http.Request) {
 	if ep == nil || err != nil {
 		return
 	}
+	if !requireShowEdit(w, r, ep.ShowID) {
+		return
+	}
 
-	data := h.editData(ep, "")
+	data := h.editData(r, ep, "")
 	if err := views.Render(w, r, "episodes/edit.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -277,6 +305,9 @@ func (h *EpisodeHandler) Edit(w http.ResponseWriter, r *http.Request) {
 func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	ep, err := h.getEpisode(w, r)
 	if ep == nil || err != nil {
+		return
+	}
+	if !requireShowEdit(w, r, ep.ShowID) {
 		return
 	}
 
@@ -324,7 +355,7 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 		if exists {
 			code := views.EpisodeCode(ep.SeasonNumber, ep.EpisodeNumber)
-			data := h.editData(ep, fmt.Sprintf("%s already exists in this show", code))
+			data := h.editData(r, ep, fmt.Sprintf("%s already exists in this show", code))
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			_ = views.Render(w, r, "episodes/edit.html", data)
 			return
@@ -378,7 +409,7 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ep.Title == "" {
-		data := h.editData(ep, "Title is required")
+		data := h.editData(r, ep, "Title is required")
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = views.Render(w, r, "episodes/edit.html", data)
 		return
@@ -484,6 +515,9 @@ func (h *EpisodeHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	if ep == nil || err != nil {
 		return
 	}
+	if !requireShowEdit(w, r, ep.ShowID) {
+		return
+	}
 
 	status := r.FormValue("status")
 	if err := h.episodes.UpdateStatus(ep.ID, status); err != nil {
@@ -507,6 +541,9 @@ func (h *EpisodeHandler) DeleteConfirm(w http.ResponseWriter, r *http.Request) {
 	if ep == nil || err != nil {
 		return
 	}
+	if !requireShowEdit(w, r, ep.ShowID) {
+		return
+	}
 
 	if err := h.episodes.Delete(ep.ID); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -516,8 +553,8 @@ func (h *EpisodeHandler) DeleteConfirm(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/episodes", http.StatusSeeOther)
 }
 
-func (h *EpisodeHandler) editData(ep *models.Episode, errMsg string) map[string]any {
-	shows, _ := h.shows.List()
+func (h *EpisodeHandler) editData(r *http.Request, ep *models.Episode, errMsg string) map[string]any {
+	shows, _ := accessibleShows(r, h.shows)
 	tags, _ := h.tags.TagsForEpisode(ep.ID)
 	var tagNames []string
 	for _, t := range tags {

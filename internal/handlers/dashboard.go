@@ -32,13 +32,14 @@ type pipelineSegment struct {
 }
 
 func (h *DashboardHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
-	shows, err := h.shows.List()
+	shows, err := accessibleShows(r, h.shows)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	allEpisodes, err := h.episodes.List(models.EpisodeFilter{})
+	filter := scopeEpisodeFilter(r, models.EpisodeFilter{})
+	allEpisodes, err := h.episodes.List(filter)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

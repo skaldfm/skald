@@ -9,6 +9,7 @@
             </div>
             <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">{{.Show.Name}}</h1>
         </div>
+        {{if .CanEdit}}
         <div class="flex items-center space-x-3">
             <a href="/shows/{{.Show.ID}}/edit" class="rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
                 Edit
@@ -17,6 +18,7 @@
                 New Episode
             </a>
         </div>
+        {{end}}
     </div>
 
     <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
@@ -134,7 +136,9 @@
     {{else}}
     <div class="rounded-lg bg-white dark:bg-gray-800 p-8 text-center shadow">
         <p class="text-gray-500 dark:text-gray-400">No episodes yet.</p>
+        {{if .CanEdit}}
         <a href="/episodes/new?show={{.Show.ID}}" class="mt-2 inline-block text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">Create the first episode</a>
+        {{end}}
     </div>
     {{end}}
 </div>
