@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -42,6 +43,46 @@ func (s *SponsorshipStore) List() ([]Sponsorship, error) {
 		FROM sponsorships ORDER BY name`)
 	if err != nil {
 		return nil, fmt.Errorf("listing sponsorships: %w", err)
+	}
+	defer rows.Close()
+
+	var sponsorships []Sponsorship
+	for rows.Next() {
+		var sp Sponsorship
+		if err := rows.Scan(&sp.ID, &sp.Name, &sp.Description, &sp.Script, &sp.CPM, &sp.AverageListens,
+			&sp.TotalCost, &sp.DropDate, &sp.PaymentDueDate, &sp.OrderFile, &sp.CreatedAt, &sp.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scanning sponsorship: %w", err)
+		}
+		sponsorships = append(sponsorships, sp)
+	}
+	return sponsorships, rows.Err()
+}
+
+// ListByShowIDs returns sponsorships linked to episodes in the given shows.
+func (s *SponsorshipStore) ListByShowIDs(showIDs []int64) ([]Sponsorship, error) {
+	if len(showIDs) == 0 {
+		return nil, nil
+	}
+	placeholders := "?" + strings.Repeat(",?", len(showIDs)-1)
+	query := fmt.Sprintf(`SELECT DISTINCT sp.id, sp.name, sp.description, sp.script, sp.cpm,
+		sp.average_listens, sp.total_cost, sp.drop_date, sp.payment_due_date,
+		sp.order_file, sp.created_at, sp.updated_at
+		FROM sponsorships sp
+		WHERE sp.id IN (
+			SELECT es.sponsorship_id FROM episode_sponsorships es
+			JOIN episodes e ON e.id = es.episode_id
+			WHERE e.show_id IN (%s)
+		)
+		ORDER BY sp.name`, placeholders)
+
+	args := make([]any, 0, len(showIDs))
+	for _, id := range showIDs {
+		args = append(args, id)
+	}
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("listing sponsorships by show IDs: %w", err)
 	}
 	defer rows.Close()
 
@@ -128,12 +169,26 @@ func (s *SponsorshipStore) SponsorshipsForEpisode(episodeID int64) ([]EpisodeSpo
 	return links, rows.Err()
 }
 
-func (s *SponsorshipStore) EpisodesForSponsorship(sponsorshipID int64) ([]EpisodeSponsor, error) {
-	rows, err := s.db.Query(`SELECT es.episode_id, es.sponsorship_id, e.title
+// EpisodesForSponsorship returns episode links for a sponsorship.
+// If showIDs is nil, returns all; otherwise scopes to the given shows.
+func (s *SponsorshipStore) EpisodesForSponsorship(sponsorshipID int64, showIDs []int64) ([]EpisodeSponsor, error) {
+	query := `SELECT es.episode_id, es.sponsorship_id, e.title
 		FROM episode_sponsorships es
 		JOIN episodes e ON e.id = es.episode_id
-		WHERE es.sponsorship_id = ?
-		ORDER BY e.created_at DESC`, sponsorshipID)
+		WHERE es.sponsorship_id = ?`
+	args := []any{sponsorshipID}
+	if showIDs != nil {
+		if len(showIDs) == 0 {
+			return nil, nil
+		}
+		query += " AND e.show_id IN (?" + strings.Repeat(",?", len(showIDs)-1) + ")"
+		for _, id := range showIDs {
+			args = append(args, id)
+		}
+	}
+	query += " ORDER BY e.created_at DESC"
+
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("listing episodes for sponsorship %d: %w", sponsorshipID, err)
 	}

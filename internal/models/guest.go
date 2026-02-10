@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -84,6 +85,53 @@ func (s *GuestStore) ListHosts() ([]Guest, error) {
 	return guests, rows.Err()
 }
 
+// ListByShowIDs returns guests linked to episodes in the given shows
+// (via episode_guests) or designated as show hosts (via show_hosts).
+func (s *GuestStore) ListByShowIDs(showIDs []int64) ([]Guest, error) {
+	if len(showIDs) == 0 {
+		return nil, nil
+	}
+	placeholders := "?" + strings.Repeat(",?", len(showIDs)-1)
+	query := fmt.Sprintf(`SELECT DISTINCT g.id, g.name, g.email, g.bio, g.website, g.company, g.podcast,
+		g.twitter, g.instagram, g.linkedin, g.mastodon, g.image, g.is_host, g.created_at, g.updated_at
+		FROM guests g
+		WHERE g.id IN (
+			SELECT eg.guest_id FROM episode_guests eg
+			JOIN episodes e ON e.id = eg.episode_id
+			WHERE e.show_id IN (%s)
+			UNION
+			SELECT sh.guest_id FROM show_hosts sh
+			WHERE sh.show_id IN (%s)
+		)
+		ORDER BY g.name`, placeholders, placeholders)
+
+	args := make([]any, 0, len(showIDs)*2)
+	for _, id := range showIDs {
+		args = append(args, id)
+	}
+	for _, id := range showIDs {
+		args = append(args, id)
+	}
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("listing guests by show IDs: %w", err)
+	}
+	defer rows.Close()
+
+	var guests []Guest
+	for rows.Next() {
+		var g Guest
+		if err := rows.Scan(&g.ID, &g.Name, &g.Email, &g.Bio, &g.Website,
+			&g.Company, &g.Podcast, &g.Twitter, &g.Instagram, &g.LinkedIn, &g.Mastodon,
+			&g.Image, &g.IsHost, &g.CreatedAt, &g.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scanning guest: %w", err)
+		}
+		guests = append(guests, g)
+	}
+	return guests, rows.Err()
+}
+
 func (s *GuestStore) Get(id int64) (*Guest, error) {
 	var g Guest
 	err := s.db.QueryRow(`SELECT id, name, email, bio, website, company, podcast,
@@ -145,15 +193,28 @@ func (s *GuestStore) Delete(id int64) error {
 	return nil
 }
 
-// ShowsForAllGuests returns a map of guest ID → list of show names the guest has appeared on.
-func (s *GuestStore) ShowsForAllGuests() (map[int64][]string, error) {
-	rows, err := s.db.Query(`SELECT DISTINCT eg.guest_id, s.name
+// ShowsForGuests returns a map of guest ID → list of show names.
+// If showIDs is nil, returns all shows; otherwise scopes to the given shows.
+func (s *GuestStore) ShowsForGuests(showIDs []int64) (map[int64][]string, error) {
+	query := `SELECT DISTINCT eg.guest_id, s.name
 		FROM episode_guests eg
 		JOIN episodes e ON e.id = eg.episode_id
-		JOIN shows s ON s.id = e.show_id
-		ORDER BY s.name`)
+		JOIN shows s ON s.id = e.show_id`
+	var args []any
+	if showIDs != nil {
+		if len(showIDs) == 0 {
+			return make(map[int64][]string), nil
+		}
+		query += " WHERE e.show_id IN (?" + strings.Repeat(",?", len(showIDs)-1) + ")"
+		for _, id := range showIDs {
+			args = append(args, id)
+		}
+	}
+	query += " ORDER BY s.name"
+
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("listing shows for all guests: %w", err)
+		return nil, fmt.Errorf("listing shows for guests: %w", err)
 	}
 	defer rows.Close()
 
@@ -169,13 +230,26 @@ func (s *GuestStore) ShowsForAllGuests() (map[int64][]string, error) {
 	return result, rows.Err()
 }
 
-// EpisodesForGuest returns all episode links for a guest.
-func (s *GuestStore) EpisodesForGuest(guestID int64) ([]EpisodeGuest, error) {
-	rows, err := s.db.Query(`SELECT eg.episode_id, eg.guest_id, eg.role, e.title
+// EpisodesForGuest returns episode links for a guest.
+// If showIDs is nil, returns all; otherwise scopes to the given shows.
+func (s *GuestStore) EpisodesForGuest(guestID int64, showIDs []int64) ([]EpisodeGuest, error) {
+	query := `SELECT eg.episode_id, eg.guest_id, eg.role, e.title
 		FROM episode_guests eg
 		JOIN episodes e ON e.id = eg.episode_id
-		WHERE eg.guest_id = ?
-		ORDER BY e.created_at DESC`, guestID)
+		WHERE eg.guest_id = ?`
+	args := []any{guestID}
+	if showIDs != nil {
+		if len(showIDs) == 0 {
+			return nil, nil
+		}
+		query += " AND e.show_id IN (?" + strings.Repeat(",?", len(showIDs)-1) + ")"
+		for _, id := range showIDs {
+			args = append(args, id)
+		}
+	}
+	query += " ORDER BY e.created_at DESC"
+
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("listing episodes for guest %d: %w", guestID, err)
 	}
