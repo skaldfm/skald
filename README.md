@@ -48,13 +48,16 @@ Built-in teleprompter for recording sessions:
 - Keyboard shortcuts (Space, arrows, +/-, F, M)
 - Tablet-friendly — works well in portrait and landscape
 
-### Guests
-- Guest profiles with name, email, bio, website, company, podcast
+### People (Hosts & Guests)
+- Profiles with name, email, bio, website, company, podcast
 - Photo upload with avatar display
 - Social links — Twitter/X, Instagram, LinkedIn, Mastodon
+- **Host flag** — mark people as hosts; host pickers only show flagged people
+- **Show hosts** — define default hosts per show, auto-inherited by new episodes
+- **Per-episode override** — change hosts on individual episodes without affecting the show default
 - Link guests to episodes with roles
-- Guest list shows avatar thumbnails and which shows each guest has appeared on
-- Searchable tag-picker for linking guests to episodes
+- People list shows avatar thumbnails and which shows each person has appeared on
+- Searchable tag-picker for linking guests and hosts to episodes
 
 ### Sponsorships
 - Sponsor deal tracking with ad copy, CPM, total cost, average listens

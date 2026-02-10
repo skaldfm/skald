@@ -5,6 +5,25 @@ All notable changes to Skald will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Show hosts** — define default hosts per show, auto-inherited by new episodes, with per-episode override
+- **Sponsorships** — sponsor deal tracking with ad copy, CPM, total cost, average listens, order document upload, episode linking via tag-picker
+- **Guest enhancements** — photo upload, social links (Twitter/X, Instagram, LinkedIn, Mastodon), company/podcast fields
+- **Episode artwork** — per-episode cover art upload with thumbnails in list views
+- **Calendar view** — monthly grid showing episodes on their publish dates, with navigation and show filtering
+- **Timeline view** — horizontal scrollable timeline with month and week zoom levels
+- **Dashboard** — overview stats, production pipeline bar, recent episodes, upcoming schedule, per-show cards
+- **Backups** — automatic pre-migration backups, scheduled backups with configurable interval/retention, manual backup/download from admin page
+- **Searchable tag-picker** — reusable component for linking guests, hosts, and sponsors to episodes/shows
+- **People section** — renamed "Guests" to "People" throughout the UI to better reflect that hosts live there too
+- **Host flag** — `is_host` boolean on people; host pickers (show edit, episode edit) now only show people flagged as hosts
+
+### Changed
+- Prompter: quadratic speed curve for finer control at low speeds, font color/background presets, center text toggle, top-positioned controls for tablet ergonomics, localStorage persistence for all preferences
+
+### Fixed
+- Episode number uniqueness enforcement (per show+season)
+
+### Infrastructure
 - Project scaffolding: Go module, directory structure, Makefile
 - Configuration loading from environment variables
 - SQLite database with WAL mode, foreign keys, and busy timeout
