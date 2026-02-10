@@ -526,12 +526,17 @@ func (h *EpisodeHandler) editData(ep *models.Episode, errMsg string) map[string]
 	allSp, _ := h.sponsorships.List()
 	linkedSpIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
 	allG, _ := h.guests.List()
+	hostG, _ := h.guests.ListHosts()
 	linkedGIDs, _ := h.guests.GuestIDsForEpisode(ep.ID)
 	linkedHostIDs, _ := h.guests.HostIDsForEpisode(ep.ID)
 
 	guestItems := make([]pickerItem, len(allG))
 	for i, g := range allG {
 		guestItems[i] = pickerItem{ID: g.ID, Name: g.Name}
+	}
+	hostItems := make([]pickerItem, len(hostG))
+	for i, g := range hostG {
+		hostItems[i] = pickerItem{ID: g.ID, Name: g.Name}
 	}
 	sponsorItems := make([]pickerItem, len(allSp))
 	for i, s := range allSp {
@@ -543,7 +548,7 @@ func (h *EpisodeHandler) editData(ep *models.Episode, errMsg string) map[string]
 		"Shows":                shows,
 		"Statuses":             models.Statuses,
 		"Tags":                 strings.Join(tagNames, ", "),
-		"HostItems":            guestItems,
+		"HostItems":            hostItems,
 		"LinkedHostIDs":        linkedHostIDs,
 		"GuestItems":           guestItems,
 		"LinkedGuestIDs":       linkedGIDs,

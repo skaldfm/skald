@@ -19,6 +19,7 @@ type Guest struct {
 	LinkedIn  string
 	Mastodon  string
 	Image     string
+	IsHost    bool
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -41,7 +42,7 @@ func NewGuestStore(db *sql.DB) *GuestStore {
 
 func (s *GuestStore) List() ([]Guest, error) {
 	rows, err := s.db.Query(`SELECT id, name, email, bio, website, company, podcast,
-		twitter, instagram, linkedin, mastodon, image, created_at, updated_at
+		twitter, instagram, linkedin, mastodon, image, is_host, created_at, updated_at
 		FROM guests ORDER BY name`)
 	if err != nil {
 		return nil, fmt.Errorf("listing guests: %w", err)
@@ -53,8 +54,30 @@ func (s *GuestStore) List() ([]Guest, error) {
 		var g Guest
 		if err := rows.Scan(&g.ID, &g.Name, &g.Email, &g.Bio, &g.Website,
 			&g.Company, &g.Podcast, &g.Twitter, &g.Instagram, &g.LinkedIn, &g.Mastodon,
-			&g.Image, &g.CreatedAt, &g.UpdatedAt); err != nil {
+			&g.Image, &g.IsHost, &g.CreatedAt, &g.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scanning guest: %w", err)
+		}
+		guests = append(guests, g)
+	}
+	return guests, rows.Err()
+}
+
+func (s *GuestStore) ListHosts() ([]Guest, error) {
+	rows, err := s.db.Query(`SELECT id, name, email, bio, website, company, podcast,
+		twitter, instagram, linkedin, mastodon, image, is_host, created_at, updated_at
+		FROM guests WHERE is_host = 1 ORDER BY name`)
+	if err != nil {
+		return nil, fmt.Errorf("listing hosts: %w", err)
+	}
+	defer rows.Close()
+
+	var guests []Guest
+	for rows.Next() {
+		var g Guest
+		if err := rows.Scan(&g.ID, &g.Name, &g.Email, &g.Bio, &g.Website,
+			&g.Company, &g.Podcast, &g.Twitter, &g.Instagram, &g.LinkedIn, &g.Mastodon,
+			&g.Image, &g.IsHost, &g.CreatedAt, &g.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scanning host: %w", err)
 		}
 		guests = append(guests, g)
 	}
@@ -64,11 +87,11 @@ func (s *GuestStore) List() ([]Guest, error) {
 func (s *GuestStore) Get(id int64) (*Guest, error) {
 	var g Guest
 	err := s.db.QueryRow(`SELECT id, name, email, bio, website, company, podcast,
-		twitter, instagram, linkedin, mastodon, image, created_at, updated_at
+		twitter, instagram, linkedin, mastodon, image, is_host, created_at, updated_at
 		FROM guests WHERE id = ?`, id).Scan(
 		&g.ID, &g.Name, &g.Email, &g.Bio, &g.Website,
 		&g.Company, &g.Podcast, &g.Twitter, &g.Instagram, &g.LinkedIn, &g.Mastodon,
-		&g.Image, &g.CreatedAt, &g.UpdatedAt,
+		&g.Image, &g.IsHost, &g.CreatedAt, &g.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -81,9 +104,9 @@ func (s *GuestStore) Get(id int64) (*Guest, error) {
 
 func (s *GuestStore) Create(g *Guest) (*Guest, error) {
 	result, err := s.db.Exec(`INSERT INTO guests (name, email, bio, website, company, podcast,
-		twitter, instagram, linkedin, mastodon, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		twitter, instagram, linkedin, mastodon, image, is_host) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		g.Name, g.Email, g.Bio, g.Website, g.Company, g.Podcast,
-		g.Twitter, g.Instagram, g.LinkedIn, g.Mastodon, g.Image)
+		g.Twitter, g.Instagram, g.LinkedIn, g.Mastodon, g.Image, g.IsHost)
 	if err != nil {
 		return nil, fmt.Errorf("creating guest: %w", err)
 	}
@@ -97,9 +120,9 @@ func (s *GuestStore) Create(g *Guest) (*Guest, error) {
 func (s *GuestStore) Update(g *Guest) error {
 	_, err := s.db.Exec(`UPDATE guests SET name = ?, email = ?, bio = ?, website = ?,
 		company = ?, podcast = ?, twitter = ?, instagram = ?, linkedin = ?, mastodon = ?,
-		image = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+		image = ?, is_host = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
 		g.Name, g.Email, g.Bio, g.Website, g.Company, g.Podcast,
-		g.Twitter, g.Instagram, g.LinkedIn, g.Mastodon, g.Image, g.ID)
+		g.Twitter, g.Instagram, g.LinkedIn, g.Mastodon, g.Image, g.IsHost, g.ID)
 	if err != nil {
 		return fmt.Errorf("updating guest %d: %w", g.ID, err)
 	}
@@ -237,7 +260,7 @@ func (s *GuestStore) UnlinkGuest(episodeID, guestID int64) error {
 // HostsForShow returns all guests designated as hosts for a show.
 func (s *GuestStore) HostsForShow(showID int64) ([]Guest, error) {
 	rows, err := s.db.Query(`SELECT g.id, g.name, g.email, g.bio, g.website, g.company, g.podcast,
-		g.twitter, g.instagram, g.linkedin, g.mastodon, g.image, g.created_at, g.updated_at
+		g.twitter, g.instagram, g.linkedin, g.mastodon, g.image, g.is_host, g.created_at, g.updated_at
 		FROM guests g
 		JOIN show_hosts sh ON sh.guest_id = g.id
 		WHERE sh.show_id = ?
@@ -252,7 +275,7 @@ func (s *GuestStore) HostsForShow(showID int64) ([]Guest, error) {
 		var g Guest
 		if err := rows.Scan(&g.ID, &g.Name, &g.Email, &g.Bio, &g.Website,
 			&g.Company, &g.Podcast, &g.Twitter, &g.Instagram, &g.LinkedIn, &g.Mastodon,
-			&g.Image, &g.CreatedAt, &g.UpdatedAt); err != nil {
+			&g.Image, &g.IsHost, &g.CreatedAt, &g.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scanning host: %w", err)
 		}
 		guests = append(guests, g)

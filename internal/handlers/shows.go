@@ -162,10 +162,10 @@ func (h *ShowHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allGuests, _ := h.guests.List()
+	hostGuests, _ := h.guests.ListHosts()
 	hostIDs, _ := h.guests.HostIDsForShow(show.ID)
-	hostItems := make([]pickerItem, len(allGuests))
-	for i, g := range allGuests {
+	hostItems := make([]pickerItem, len(hostGuests))
+	for i, g := range hostGuests {
 		hostItems[i] = pickerItem{ID: g.ID, Name: g.Name}
 	}
 
@@ -195,10 +195,10 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 	description := strings.TrimSpace(r.FormValue("description"))
 
 	if name == "" {
-		allGuests, _ := h.guests.List()
+		hostGuests, _ := h.guests.ListHosts()
 		hostIDs, _ := h.guests.HostIDsForShow(show.ID)
-		hostItems := make([]pickerItem, len(allGuests))
-		for i, g := range allGuests {
+		hostItems := make([]pickerItem, len(hostGuests))
+		for i, g := range hostGuests {
 			hostItems[i] = pickerItem{ID: g.ID, Name: g.Name}
 		}
 		data := map[string]any{

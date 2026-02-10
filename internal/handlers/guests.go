@@ -211,6 +211,7 @@ func (h *GuestHandler) fillFromForm(r *http.Request) *models.Guest {
 		Instagram: strings.TrimSpace(r.FormValue("instagram")),
 		LinkedIn:  strings.TrimSpace(r.FormValue("linkedin")),
 		Mastodon:  strings.TrimSpace(r.FormValue("mastodon")),
+		IsHost:    r.FormValue("is_host") == "1",
 	}
 }
 
