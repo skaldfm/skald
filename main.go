@@ -105,6 +105,23 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(sessionManager.LoadAndSave)
+	// Populate r.URL.Scheme/Host so nosurf's Origin header check works
+	// (Go's http.Server leaves these empty on incoming requests)
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Scheme == "" {
+				if r.TLS != nil {
+					r.URL.Scheme = "https"
+				} else {
+					r.URL.Scheme = "http"
+				}
+			}
+			if r.URL.Host == "" {
+				r.URL.Host = r.Host
+			}
+			next.ServeHTTP(w, r)
+		})
+	})
 	r.Use(csrfProtect)
 
 	// Public routes (no auth required)
