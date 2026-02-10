@@ -12,13 +12,14 @@ import (
 )
 
 type AuthHandler struct {
-	users   *models.UserStore
-	guests  *models.GuestStore
-	session *scs.SessionManager
+	users            *models.UserStore
+	guests           *models.GuestStore
+	session          *scs.SessionManager
+	openRegistration bool
 }
 
-func NewAuthHandler(users *models.UserStore, guests *models.GuestStore, session *scs.SessionManager) *AuthHandler {
-	return &AuthHandler{users: users, guests: guests, session: session}
+func NewAuthHandler(users *models.UserStore, guests *models.GuestStore, session *scs.SessionManager, openRegistration bool) *AuthHandler {
+	return &AuthHandler{users: users, guests: guests, session: session, openRegistration: openRegistration}
 }
 
 func (h *AuthHandler) Routes() chi.Router {
@@ -28,11 +29,16 @@ func (h *AuthHandler) Routes() chi.Router {
 	r.Post("/logout", h.Logout)
 	r.Get("/setup", h.SetupForm)
 	r.Post("/setup", h.Setup)
+	r.Get("/register", h.RegisterForm)
+	r.Post("/register", h.Register)
 	return r
 }
 
 func (h *AuthHandler) LoginForm(w http.ResponseWriter, r *http.Request) {
-	if err := views.RenderAuth(w, r, "auth/login.html", nil); err != nil {
+	data := map[string]any{
+		"OpenRegistration": h.openRegistration,
+	}
+	if err := views.RenderAuth(w, r, "auth/login.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -44,8 +50,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := h.users.GetByEmail(email)
 	if err != nil || user == nil || !auth.CheckPassword(user.PasswordHash, password) {
 		data := map[string]any{
-			"Error": "Invalid email or password",
-			"Email": email,
+			"Error":            "Invalid email or password",
+			"Email":            email,
+			"OpenRegistration": h.openRegistration,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = views.RenderAuth(w, r, "auth/login.html", data)
@@ -53,6 +60,77 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Prevent session fixation
+	if err := h.session.RenewToken(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.session.Put(r.Context(), "user_id", user.ID)
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (h *AuthHandler) RegisterForm(w http.ResponseWriter, r *http.Request) {
+	if !h.openRegistration {
+		http.Error(w, "Registration is disabled", http.StatusForbidden)
+		return
+	}
+	if err := views.RenderAuth(w, r, "auth/register.html", nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	if !h.openRegistration {
+		http.Error(w, "Registration is disabled", http.StatusForbidden)
+		return
+	}
+
+	email := strings.TrimSpace(r.FormValue("email"))
+	displayName := strings.TrimSpace(r.FormValue("display_name"))
+	password := r.FormValue("password")
+	confirm := r.FormValue("confirm_password")
+
+	renderErr := func(msg string) {
+		data := map[string]any{
+			"Error":       msg,
+			"Email":       email,
+			"DisplayName": displayName,
+		}
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_ = views.RenderAuth(w, r, "auth/register.html", data)
+	}
+
+	if email == "" || password == "" {
+		renderErr("Email and password are required")
+		return
+	}
+	if password != confirm {
+		renderErr("Passwords do not match")
+		return
+	}
+	if len(password) < 8 {
+		renderErr("Password must be at least 8 characters")
+		return
+	}
+
+	existing, _ := h.users.GetByEmail(email)
+	if existing != nil {
+		renderErr("An account with that email already exists")
+		return
+	}
+
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user, err := h.users.Create(email, displayName, hash, "user")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	if err := h.session.RenewToken(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

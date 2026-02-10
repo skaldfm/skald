@@ -72,10 +72,11 @@ Built-in teleprompter for recording sessions:
 
 ### Authentication & Users
 - **Single-user auth** — bcrypt passwords with server-side sessions (SQLite-backed)
-- **First-run setup** — redirects to setup wizard when no users exist
+- **First-run setup** — redirects to setup wizard when no users exist; auto-creates a host Person entry
 - **User roles** — first user is admin; admin-only route gating
 - **Profile settings** — update name, email, and password
-- **User management** — admin page to list users, toggle roles, and delete accounts
+- **User management** — admin page to create users, toggle roles, and delete accounts
+- **Open registration** — optional self-service registration (`SKALD_OPEN_REGISTRATION=true`), disabled by default
 
 ### Backups
 - **Automatic pre-migration backups** — safety net before any schema changes
@@ -119,6 +120,7 @@ go build -o skald .
 | `SKALD_DB_URL` | `{DataDir}/skald.db` | Database connection string |
 | `SKALD_BACKUP_INTERVAL` | `24h` | Scheduled backup frequency (Go duration) |
 | `SKALD_BACKUP_RETAIN` | `14` | Number of backups to keep |
+| `SKALD_OPEN_REGISTRATION` | `false` | Allow self-service account creation |
 
 ## Screenshots
 

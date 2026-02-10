@@ -3,9 +3,52 @@
 {{define "content"}}
 {{template "admin-nav" .}}
 <div class="space-y-6">
-    <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Users</h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage login accounts and roles</p>
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Users</h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage login accounts and roles</p>
+        </div>
+        <button onclick="document.getElementById('create-user-form').classList.toggle('hidden')"
+                class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+            Add User
+        </button>
+    </div>
+
+    <div id="create-user-form" class="hidden rounded-lg bg-white dark:bg-gray-800 shadow p-6">
+        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Create User</h2>
+        <form method="POST" action="/admin/users" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                    <input type="email" name="email" id="email" required
+                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="display_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+                    <input type="text" name="display_name" id="display_name"
+                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                    <input type="password" name="password" id="password" required minlength="8"
+                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="role" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Role</label>
+                    <select name="role" id="role"
+                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                    Create
+                </button>
+            </div>
+        </form>
     </div>
 
     <div class="overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow">
