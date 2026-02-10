@@ -5,6 +5,11 @@ All notable changes to Skald will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Authentication** — single-user auth with bcrypt passwords and server-side sessions (SQLite-backed), first-run setup wizard, login/logout
+- **User roles** — first user gets `admin` role; admin-only route gating with `RequireAdmin` middleware
+- **Profile settings** — logged-in users can update name, email, and password at `/profile`
+- **User management** — admin page at `/admin/users` to list users, toggle admin/user role, and delete accounts (with self-protection guards)
+- **Admin sub-navigation** — tabbed nav across admin pages (Backups, Users)
 - **Show hosts** — define default hosts per show, auto-inherited by new episodes, with per-episode override
 - **Sponsorships** — sponsor deal tracking with ad copy, CPM, total cost, average listens, order document upload, episode linking via tag-picker
 - **Guest enhancements** — photo upload, social links (Twitter/X, Instagram, LinkedIn, Mastodon), company/podcast fields

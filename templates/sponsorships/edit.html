@@ -12,6 +12,7 @@
     {{end}}
 
     <form method="POST" action="/sponsorships/{{.Sponsorship.ID}}" enctype="multipart/form-data" class="mt-6 space-y-6">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <div>
             <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Sponsor Name</label>
             <input type="text" name="name" id="name" value="{{.Sponsorship.Name}}"
@@ -96,6 +97,6 @@
         </div>
     </form>
     <form id="delete-form" method="POST" action="/sponsorships/{{.Sponsorship.ID}}/delete"
-          onsubmit="return confirm('Delete this sponsorship?')"></form>
+          onsubmit="return confirm('Delete this sponsorship?')"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"></form>
 </div>
 {{end}}

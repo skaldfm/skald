@@ -75,7 +75,7 @@ func (h *EpisodeHandler) List(w http.ResponseWriter, r *http.Request) {
 		"Filter":   filter,
 		"Statuses": models.Statuses,
 	}
-	if err := views.Render(w, "episodes/index.html", data); err != nil {
+	if err := views.Render(w, r, "episodes/index.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -92,7 +92,7 @@ func (h *EpisodeHandler) New(w http.ResponseWriter, r *http.Request) {
 		"Statuses": models.Statuses,
 		"ShowID":   r.URL.Query().Get("show"),
 	}
-	if err := views.Render(w, "episodes/new.html", data); err != nil {
+	if err := views.Render(w, r, "episodes/new.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -123,7 +123,7 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"Statuses":    models.Statuses,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		_ = views.Render(w, "episodes/new.html", data)
+		_ = views.Render(w, r, "episodes/new.html", data)
 		return
 	}
 
@@ -158,7 +158,7 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 				"Statuses":    models.Statuses,
 			}
 			w.WriteHeader(http.StatusUnprocessableEntity)
-			_ = views.Render(w, "episodes/new.html", data)
+			_ = views.Render(w, r, "episodes/new.html", data)
 			return
 		}
 	}
@@ -257,7 +257,7 @@ func (h *EpisodeHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"Tags":         tags,
 		"Sponsorships": sponsorships,
 	}
-	if err := views.Render(w, "episodes/show.html", data); err != nil {
+	if err := views.Render(w, r, "episodes/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -269,7 +269,7 @@ func (h *EpisodeHandler) Edit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := h.editData(ep, "")
-	if err := views.Render(w, "episodes/edit.html", data); err != nil {
+	if err := views.Render(w, r, "episodes/edit.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -326,7 +326,7 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			code := views.EpisodeCode(ep.SeasonNumber, ep.EpisodeNumber)
 			data := h.editData(ep, fmt.Sprintf("%s already exists in this show", code))
 			w.WriteHeader(http.StatusUnprocessableEntity)
-			_ = views.Render(w, "episodes/edit.html", data)
+			_ = views.Render(w, r, "episodes/edit.html", data)
 			return
 		}
 	}
@@ -380,7 +380,7 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if ep.Title == "" {
 		data := h.editData(ep, "Title is required")
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		_ = views.Render(w, "episodes/edit.html", data)
+		_ = views.Render(w, r, "episodes/edit.html", data)
 		return
 	}
 

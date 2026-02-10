@@ -45,13 +45,13 @@ func (h *SponsorshipHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]any{"Sponsorships": sponsorships}
-	if err := views.Render(w, "sponsorships/index.html", data); err != nil {
+	if err := views.Render(w, r, "sponsorships/index.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (h *SponsorshipHandler) New(w http.ResponseWriter, r *http.Request) {
-	if err := views.Render(w, "sponsorships/new.html", nil); err != nil {
+	if err := views.Render(w, r, "sponsorships/new.html", nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -69,7 +69,7 @@ func (h *SponsorshipHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"Name":  name,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		_ = views.Render(w, "sponsorships/new.html", data)
+		_ = views.Render(w, r, "sponsorships/new.html", data)
 		return
 	}
 
@@ -109,7 +109,7 @@ func (h *SponsorshipHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"Sponsorship": sp,
 		"Episodes":    episodes,
 	}
-	if err := views.Render(w, "sponsorships/show.html", data); err != nil {
+	if err := views.Render(w, r, "sponsorships/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -121,7 +121,7 @@ func (h *SponsorshipHandler) Edit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]any{"Sponsorship": sp}
-	if err := views.Render(w, "sponsorships/edit.html", data); err != nil {
+	if err := views.Render(w, r, "sponsorships/edit.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -144,7 +144,7 @@ func (h *SponsorshipHandler) Update(w http.ResponseWriter, r *http.Request) {
 			"Error":       "Name is required",
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		_ = views.Render(w, "sponsorships/edit.html", data)
+		_ = views.Render(w, r, "sponsorships/edit.html", data)
 		return
 	}
 

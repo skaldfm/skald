@@ -39,6 +39,7 @@
                       hx-post="/episodes/{{$.Episode.ID}}/status"
                       hx-target="#status-badge"
                       hx-swap="innerHTML">
+                    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                     <input type="hidden" name="status" value="{{.}}">
                     <button type="submit"
                             class="rounded-full px-3 py-1 text-xs font-medium transition-colors
@@ -113,6 +114,7 @@
                             <span class="ml-1 text-xs text-gray-400 dark:text-gray-500">{{formatBytes .Filesize}}</span>
                         </div>
                         <form method="POST" action="/assets/{{.ID}}/delete" onsubmit="return confirm('Delete this file?')">
+                            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                             <button type="submit" class="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-400">Delete</button>
                         </form>
                     </li>
@@ -122,6 +124,7 @@
 
                 <form method="POST" action="/episodes/{{.Episode.ID}}/assets" enctype="multipart/form-data"
                       class="flex items-center gap-3">
+                    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
                     <div class="flex items-center gap-3">
                         <label for="asset-file" class="cursor-pointer rounded-md bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50">Choose file</label>
                         <span class="text-sm text-gray-500 dark:text-gray-400">No file chosen</span>

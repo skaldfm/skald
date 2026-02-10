@@ -3,18 +3,22 @@ package handlers
 import (
 	"net/http"
 	"path/filepath"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mhermansson/skald/internal/auth"
 	"github.com/mhermansson/skald/internal/backup"
+	"github.com/mhermansson/skald/internal/models"
 	"github.com/mhermansson/skald/internal/views"
 )
 
 type AdminHandler struct {
 	backups *backup.Manager
+	users   *models.UserStore
 }
 
-func NewAdminHandler(backups *backup.Manager) *AdminHandler {
-	return &AdminHandler{backups: backups}
+func NewAdminHandler(backups *backup.Manager, users *models.UserStore) *AdminHandler {
+	return &AdminHandler{backups: backups, users: users}
 }
 
 func (h *AdminHandler) Routes() chi.Router {
@@ -22,6 +26,9 @@ func (h *AdminHandler) Routes() chi.Router {
 	r.Get("/backups", h.Backups)
 	r.Post("/backups", h.CreateBackup)
 	r.Get("/backups/{name}", h.DownloadBackup)
+	r.Get("/users", h.Users)
+	r.Post("/users/{id}/role", h.ToggleRole)
+	r.Post("/users/{id}/delete", h.DeleteUser)
 	return r
 }
 
@@ -33,9 +40,10 @@ func (h *AdminHandler) Backups(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]any{
-		"Backups": backups,
+		"Backups":   backups,
+		"ActiveTab": "backups",
 	}
-	if err := views.Render(w, "admin/backups.html", data); err != nil {
+	if err := views.Render(w, r, "admin/backups.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -57,4 +65,74 @@ func (h *AdminHandler) DownloadBackup(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Disposition", "attachment; filename="+name)
 	http.ServeFile(w, r, path)
+}
+
+func (h *AdminHandler) Users(w http.ResponseWriter, r *http.Request) {
+	users, err := h.users.List()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]any{
+		"Users":     users,
+		"ActiveTab": "users",
+	}
+	if err := views.Render(w, r, "admin/users.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *AdminHandler) ToggleRole(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	current := auth.UserFromContext(r.Context())
+	if current.ID == id {
+		http.Error(w, "Cannot change your own role", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.users.Get(id)
+	if err != nil || user == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	if user.Role == "admin" {
+		user.Role = "user"
+	} else {
+		user.Role = "admin"
+	}
+
+	if err := h.users.Update(user); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
+}
+
+func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	current := auth.UserFromContext(r.Context())
+	if current.ID == id {
+		http.Error(w, "Cannot delete yourself", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.users.Delete(id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }

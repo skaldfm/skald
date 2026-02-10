@@ -1,0 +1,66 @@
+{{define "title"}}Profile — Skald{{end}}
+{{define "content"}}
+<div class="mx-auto max-w-2xl">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Profile Settings</h1>
+
+    {{if .Saved}}
+    <div class="mb-4 rounded-md bg-green-50 dark:bg-green-900/30 p-4">
+        <p class="text-sm text-green-700 dark:text-green-300">Profile updated.</p>
+    </div>
+    {{end}}
+
+    {{if .Error}}
+    <div class="mb-4 rounded-md bg-red-50 dark:bg-red-900/30 p-4">
+        <p class="text-sm text-red-700 dark:text-red-300">{{.Error}}</p>
+    </div>
+    {{end}}
+
+    <form method="POST" action="/profile" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-5">
+            <div>
+                <label for="display_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Your name</label>
+                <input type="text" name="display_name" id="display_name" value="{{.User.DisplayName}}"
+                       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+            </div>
+
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                <input type="email" name="email" id="email" value="{{.User.Email}}" required
+                       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-5">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Change Password</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Leave blank to keep your current password.</p>
+
+            <div>
+                <label for="current_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Current password</label>
+                <input type="password" name="current_password" id="current_password"
+                       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+            </div>
+
+            <div>
+                <label for="new_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">New password</label>
+                <input type="password" name="new_password" id="new_password" minlength="8"
+                       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+            </div>
+
+            <div>
+                <label for="confirm_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm new password</label>
+                <input type="password" name="confirm_password" id="confirm_password" minlength="8"
+                       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit"
+                    class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+{{end}}

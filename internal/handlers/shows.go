@@ -55,13 +55,13 @@ func (h *ShowHandler) List(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
 		"Shows": shows,
 	}
-	if err := views.Render(w, "shows/index.html", data); err != nil {
+	if err := views.Render(w, r, "shows/index.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (h *ShowHandler) New(w http.ResponseWriter, r *http.Request) {
-	if err := views.Render(w, "shows/new.html", nil); err != nil {
+	if err := views.Render(w, r, "shows/new.html", nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -77,7 +77,7 @@ func (h *ShowHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"Description": description,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		_ = views.Render(w, "shows/new.html", data)
+		_ = views.Render(w, r, "shows/new.html", data)
 		return
 	}
 
@@ -151,7 +151,7 @@ func (h *ShowHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"NextEpisode":    nextEpisode,
 		"Segments":       segments,
 	}
-	if err := views.Render(w, "shows/show.html", data); err != nil {
+	if err := views.Render(w, r, "shows/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -174,7 +174,7 @@ func (h *ShowHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		"HostItems":     hostItems,
 		"LinkedHostIDs": hostIDs,
 	}
-	if err := views.Render(w, "shows/edit.html", data); err != nil {
+	if err := views.Render(w, r, "shows/edit.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -208,7 +208,7 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 			"LinkedHostIDs": hostIDs,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		_ = views.Render(w, "shows/edit.html", data)
+		_ = views.Render(w, r, "shows/edit.html", data)
 		return
 	}
 
