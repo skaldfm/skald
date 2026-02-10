@@ -5,6 +5,10 @@ All notable changes to Skald will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Admin settings page** — new Settings tab in admin panel at `/admin/settings`
+- **Custom logo upload** — admins can upload a site logo that replaces the default in nav bar and login page; remove button to revert to default
+- **robots.txt** — disallows all crawling for public-facing instances
+- **PUID/PGID support** — Docker container supports custom user/group IDs via `PUID`/`PGID` environment variables (defaults to 1000:1000)
 - **Role-based access control** — three roles: admin (full access), editor (edit assigned shows), viewer (read-only assigned shows); show-scoped permissions via `user_shows` join table
 - **Show assignment admin** — admin page at `/admin/users/{id}/shows` to assign shows to editors/viewers via tag-picker
 - **Authentication** — multi-user auth with bcrypt passwords and server-side sessions (SQLite-backed), first-run setup wizard, login/logout
@@ -12,7 +16,7 @@ All notable changes to Skald will be documented in this file.
 - **Profile settings** — logged-in users can update name, email, and password at `/profile`
 - **User management** — admin page at `/admin/users` to list users, create users, set role (admin/editor/viewer), and delete accounts (with self-protection guards)
 - **Open registration** — optional self-service account creation via `SKALD_OPEN_REGISTRATION=true`, disabled by default; new registrations get viewer role
-- **Admin sub-navigation** — tabbed nav across admin pages (Users, Backups), Users as default landing tab
+- **Admin sub-navigation** — tabbed nav across admin pages (Users, Backups, Settings), Users as default landing tab
 - **Show hosts** — define default hosts per show, auto-inherited by new episodes, with per-episode override
 - **Sponsorships** — sponsor deal tracking with ad copy, CPM, total cost, average listens, order document upload, episode linking via tag-picker
 - **Guest enhancements** — photo upload, social links (Twitter/X, Instagram, LinkedIn, Mastodon), company/podcast fields

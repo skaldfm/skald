@@ -78,6 +78,10 @@ Built-in teleprompter for recording sessions:
 - **User management** — admin page to create users, toggle roles, and delete accounts
 - **Open registration** — optional self-service registration (`SKALD_OPEN_REGISTRATION=true`), disabled by default
 
+### Admin Settings
+- **Custom logo** — upload a site logo from the admin panel; replaces the default in nav bar and login page
+- **robots.txt** — disallows all crawling by default for public-facing instances
+
 ### Backups
 - **Automatic pre-migration backups** — safety net before any schema changes
 - **Scheduled backups** — configurable interval (default daily), automatic retention/pruning (default 14)
@@ -103,6 +107,14 @@ docker compose up -d
 
 Skald will be available at `http://localhost:7707`. Data is persisted in a Docker volume.
 
+To run the container as a specific user/group (useful for matching volume ownership):
+
+```yaml
+environment:
+  - PUID=1000
+  - PGID=1000
+```
+
 ### From Source
 
 ```sh
@@ -123,6 +135,8 @@ Configuration can be set via environment variables or an optional `.env` file in
 | `SKALD_BACKUP_INTERVAL` | `24h` | Scheduled backup frequency (Go duration) |
 | `SKALD_BACKUP_RETAIN` | `14` | Number of backups to keep |
 | `SKALD_OPEN_REGISTRATION` | `false` | Allow self-service account creation |
+| `PUID` | `1000` | User ID for the container process (Docker only) |
+| `PGID` | `1000` | Group ID for the container process (Docker only) |
 
 ## Screenshots
 
