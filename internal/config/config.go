@@ -8,13 +8,14 @@ import (
 )
 
 type Config struct {
-	Port           string
-	DataDir        string
-	DBType         string
-	DBURL          string
-	SecretKey      string
-	BackupInterval time.Duration
-	BackupRetain   int
+	Port             string
+	DataDir          string
+	DBType           string
+	DBURL            string
+	SecretKey        string
+	BackupInterval   time.Duration
+	BackupRetain     int
+	OpenRegistration bool
 }
 
 func Load() *Config {
@@ -25,7 +26,8 @@ func Load() *Config {
 		DBURL:          os.Getenv("SKALD_DB_URL"),
 		SecretKey:      os.Getenv("SKALD_SECRET_KEY"),
 		BackupInterval: parseDuration(envOr("SKALD_BACKUP_INTERVAL", "24h")),
-		BackupRetain:   parseInt(envOr("SKALD_BACKUP_RETAIN", "14")),
+		BackupRetain:     parseInt(envOr("SKALD_BACKUP_RETAIN", "14")),
+		OpenRegistration: os.Getenv("SKALD_OPEN_REGISTRATION") == "true",
 	}
 
 	// For SQLite, default DB path is inside data dir

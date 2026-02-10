@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mhermansson/skald/internal/auth"
@@ -27,6 +28,7 @@ func (h *AdminHandler) Routes() chi.Router {
 	r.Post("/backups", h.CreateBackup)
 	r.Get("/backups/{name}", h.DownloadBackup)
 	r.Get("/users", h.Users)
+	r.Post("/users", h.CreateUser)
 	r.Post("/users/{id}/role", h.ToggleRole)
 	r.Post("/users/{id}/delete", h.DeleteUser)
 	return r
@@ -81,6 +83,44 @@ func (h *AdminHandler) Users(w http.ResponseWriter, r *http.Request) {
 	if err := views.Render(w, r, "admin/users.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	email := strings.TrimSpace(r.FormValue("email"))
+	displayName := strings.TrimSpace(r.FormValue("display_name"))
+	password := r.FormValue("password")
+	role := r.FormValue("role")
+
+	if email == "" || password == "" {
+		http.Error(w, "Email and password are required", http.StatusBadRequest)
+		return
+	}
+	if len(password) < 8 {
+		http.Error(w, "Password must be at least 8 characters", http.StatusBadRequest)
+		return
+	}
+	if role != "admin" {
+		role = "user"
+	}
+
+	existing, _ := h.users.GetByEmail(email)
+	if existing != nil {
+		http.Error(w, "A user with that email already exists", http.StatusConflict)
+		return
+	}
+
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := h.users.Create(email, displayName, hash, role); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }
 
 func (h *AdminHandler) ToggleRole(w http.ResponseWriter, r *http.Request) {
