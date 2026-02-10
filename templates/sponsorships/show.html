@@ -7,9 +7,11 @@
             <a href="/sponsorships" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">&larr; Sponsors</a>
             <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">{{.Sponsorship.Name}}</h1>
         </div>
+        {{if .CanEdit}}
         <a href="/sponsorships/{{.Sponsorship.ID}}/edit" class="rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
             Edit
         </a>
+        {{end}}
     </div>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">

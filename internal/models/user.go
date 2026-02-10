@@ -111,3 +111,39 @@ func (s *UserStore) Count() (int, error) {
 	}
 	return count, nil
 }
+
+func (s *UserStore) ShowIDsForUser(userID int64) ([]int64, error) {
+	rows, err := s.db.Query(`SELECT show_id FROM user_shows WHERE user_id = ?`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("getting show IDs for user %d: %w", userID, err)
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scanning show ID: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+func (s *UserStore) SetUserShows(userID int64, showIDs []int64) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.Exec(`DELETE FROM user_shows WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("clearing user shows: %w", err)
+	}
+	for _, sid := range showIDs {
+		if _, err := tx.Exec(`INSERT INTO user_shows (user_id, show_id) VALUES (?, ?)`, userID, sid); err != nil {
+			return fmt.Errorf("inserting user show %d: %w", sid, err)
+		}
+	}
+	return tx.Commit()
+}

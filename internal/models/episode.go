@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -26,9 +27,10 @@ type Episode struct {
 }
 
 type EpisodeFilter struct {
-	ShowID int64
-	Status string
-	Search string
+	ShowID  int64
+	ShowIDs []int64 // nil=no restriction (admin), empty=no shows, non-empty=restrict
+	Status  string
+	Search  string
 }
 
 type EpisodeStore struct {
@@ -47,6 +49,16 @@ func (s *EpisodeStore) List(filter EpisodeFilter) ([]Episode, error) {
 		WHERE 1=1`
 	var args []any
 
+	if filter.ShowIDs != nil {
+		if len(filter.ShowIDs) == 0 {
+			query += " AND 1=0"
+		} else {
+			query += " AND e.show_id IN (?" + strings.Repeat(",?", len(filter.ShowIDs)-1) + ")"
+			for _, id := range filter.ShowIDs {
+				args = append(args, id)
+			}
+		}
+	}
 	if filter.ShowID > 0 {
 		query += " AND e.show_id = ?"
 		args = append(args, filter.ShowID)

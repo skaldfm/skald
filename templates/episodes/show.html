@@ -24,9 +24,11 @@
                 Prompter
             </a>
             {{end}}
+            {{if .CanEdit}}
             <a href="/episodes/{{.Episode.ID}}/edit" class="rounded-md bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
                 Edit
             </a>
+            {{end}}
         </div>
     </div>
 
@@ -35,6 +37,7 @@
         <div class="flex items-center justify-between">
             {{range .Statuses}}
             <div class="flex flex-col items-center">
+                {{if $.CanEdit}}
                 <form method="POST" action="/episodes/{{$.Episode.ID}}/status"
                       hx-post="/episodes/{{$.Episode.ID}}/status"
                       hx-target="#status-badge"
@@ -51,6 +54,16 @@
                         {{statusLabel .}}
                     </button>
                 </form>
+                {{else}}
+                <span class="rounded-full px-3 py-1 text-xs font-medium
+                    {{if eq . $.Episode.Status}}
+                        {{statusColor .}} ring-2 ring-offset-2 ring-indigo-500
+                    {{else}}
+                        bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400
+                    {{end}}">
+                    {{statusLabel .}}
+                </span>
+                {{end}}
             </div>
             {{end}}
         </div>
@@ -113,15 +126,18 @@
                             <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">{{.AssetType}}</span>
                             <span class="ml-1 text-xs text-gray-400 dark:text-gray-500">{{formatBytes .Filesize}}</span>
                         </div>
+                        {{if $.CanEdit}}
                         <form method="POST" action="/assets/{{.ID}}/delete" onsubmit="return confirm('Delete this file?')">
                             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                             <button type="submit" class="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-400">Delete</button>
                         </form>
+                        {{end}}
                     </li>
                     {{end}}
                 </ul>
                 {{end}}
 
+                {{if .CanEdit}}
                 <form method="POST" action="/episodes/{{.Episode.ID}}/assets" enctype="multipart/form-data"
                       class="flex items-center gap-3">
                     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -141,6 +157,7 @@
                         Upload
                     </button>
                 </form>
+                {{end}}
             </div>
 
         </div>

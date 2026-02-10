@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mhermansson/skald/internal/auth"
 	"github.com/mhermansson/skald/internal/models"
 	"github.com/mhermansson/skald/internal/views"
 )
@@ -44,19 +45,31 @@ func (h *SponsorshipHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := map[string]any{"Sponsorships": sponsorships}
+	user := auth.UserFromContext(r.Context())
+	data := map[string]any{
+		"Sponsorships": sponsorships,
+		"CanEdit":      auth.CanEdit(user),
+	}
 	if err := views.Render(w, r, "sponsorships/index.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (h *SponsorshipHandler) New(w http.ResponseWriter, r *http.Request) {
+	if !auth.CanEdit(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	if err := views.Render(w, r, "sponsorships/new.html", nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (h *SponsorshipHandler) Create(w http.ResponseWriter, r *http.Request) {
+	if !auth.CanEdit(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		http.Error(w, "Form too large", http.StatusBadRequest)
 		return
@@ -105,9 +118,11 @@ func (h *SponsorshipHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user := auth.UserFromContext(r.Context())
 	data := map[string]any{
 		"Sponsorship": sp,
 		"Episodes":    episodes,
+		"CanEdit":     auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "sponsorships/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -115,6 +130,10 @@ func (h *SponsorshipHandler) Show(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SponsorshipHandler) Edit(w http.ResponseWriter, r *http.Request) {
+	if !auth.CanEdit(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	sp, err := h.getSponsorship(w, r)
 	if sp == nil || err != nil {
 		return
@@ -127,6 +146,10 @@ func (h *SponsorshipHandler) Edit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SponsorshipHandler) Update(w http.ResponseWriter, r *http.Request) {
+	if !auth.CanEdit(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	sp, err := h.getSponsorship(w, r)
 	if sp == nil || err != nil {
 		return
@@ -170,6 +193,10 @@ func (h *SponsorshipHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SponsorshipHandler) DeleteConfirm(w http.ResponseWriter, r *http.Request) {
+	if !auth.CanEdit(auth.UserFromContext(r.Context())) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 	sp, err := h.getSponsorship(w, r)
 	if sp == nil || err != nil {
 		return
