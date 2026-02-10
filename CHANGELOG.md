@@ -5,6 +5,9 @@ All notable changes to Skald will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Backup restore** — restore from any backup directly in the admin UI; validates backup integrity, creates a safety "pre-restore" backup, atomically replaces the database, and restarts the application
+- **Episode number hints** — new episode form auto-suggests the next available episode number when selecting a show or season, with a hint showing which numbers are taken
+- **Show-scoped guests & sponsors** — non-admin users only see guests and sponsors linked to episodes in their assigned shows; episode edit pickers remain global for discoverability
 - **Admin settings page** — new Settings tab in admin panel at `/admin/settings`
 - **Custom logo upload** — admins can upload a site logo that replaces the default in nav bar and login page; remove button to revert to default
 - **robots.txt** — disallows all crawling for public-facing instances
