@@ -38,7 +38,7 @@ func (h *PrompterHandler) Prompter(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
 		"Episode": ep,
 	}
-	if err := views.Render(w, "prompter/show.html", data); err != nil {
+	if err := views.Render(w, r, "prompter/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

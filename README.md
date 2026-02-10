@@ -70,6 +70,13 @@ Built-in teleprompter for recording sessions:
 - File attachments per episode (scripts, audio, artwork, notes)
 - Upload, download, and delete
 
+### Authentication & Users
+- **Single-user auth** — bcrypt passwords with server-side sessions (SQLite-backed)
+- **First-run setup** — redirects to setup wizard when no users exist
+- **User roles** — first user is admin; admin-only route gating
+- **Profile settings** — update name, email, and password
+- **User management** — admin page to list users, toggle roles, and delete accounts
+
 ### Backups
 - **Automatic pre-migration backups** — safety net before any schema changes
 - **Scheduled backups** — configurable interval (default daily), automatic retention/pruning (default 14)

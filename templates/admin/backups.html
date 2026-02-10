@@ -1,6 +1,7 @@
 {{define "title"}}Backups — Skald{{end}}
 
 {{define "content"}}
+{{template "admin-nav" .}}
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <div>
@@ -8,6 +9,7 @@
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Database snapshots for disaster recovery</p>
         </div>
         <form method="POST" action="/admin/backups">
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
             <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
                 Create Backup
             </button>

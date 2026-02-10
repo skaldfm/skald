@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"net/http"
 	"path/filepath"
 	"sync"
 
+	"github.com/justinas/nosurf"
+	"github.com/mhermansson/skald/internal/auth"
 	"github.com/yuin/goldmark"
 )
 
@@ -147,6 +150,7 @@ func Load(templatesDir string) error {
 
 	templates = make(map[string]*template.Template)
 	layout := filepath.Join(templatesDir, "layouts", "base.html")
+	authLayout := filepath.Join(templatesDir, "layouts", "auth.html")
 	components, _ := filepath.Glob(filepath.Join(templatesDir, "components", "*.html"))
 
 	// Parse each page template with the layout and components
@@ -165,6 +169,17 @@ func Load(templatesDir string) error {
 		}
 	}
 
+	// Parse auth templates with the auth layout
+	authPages, _ := filepath.Glob(filepath.Join(templatesDir, "auth", "*.html"))
+	for _, page := range authPages {
+		name := filepath.Base(page)
+		t, err := template.New(filepath.Base(authLayout)).Funcs(FuncMap()).ParseFiles(authLayout, page)
+		if err != nil {
+			return fmt.Errorf("parsing auth template %s: %w", name, err)
+		}
+		templates["auth/"+name] = t
+	}
+
 	// Also parse standalone pages (like home)
 	standalones, _ := filepath.Glob(filepath.Join(templatesDir, "*.html"))
 	for _, page := range standalones {
@@ -180,8 +195,28 @@ func Load(templatesDir string) error {
 	return nil
 }
 
-// Render executes a named template with the given data.
-func Render(w io.Writer, name string, data any) error {
+// injectContext adds CurrentUser and CSRFToken to the template data map.
+func injectContext(r *http.Request, data any) map[string]any {
+	var m map[string]any
+	if data == nil {
+		m = make(map[string]any)
+	} else if existing, ok := data.(map[string]any); ok {
+		m = existing
+	} else {
+		// Data is a struct or something else — can't inject, return as-is wrapper
+		m = map[string]any{"Data": data}
+	}
+
+	if r != nil {
+		m["CSRFToken"] = nosurf.Token(r)
+		m["CurrentUser"] = auth.UserFromContext(r.Context())
+	}
+	return m
+}
+
+// Render executes a named template with the given data, auto-injecting
+// CurrentUser and CSRFToken from the request context.
+func Render(w io.Writer, r *http.Request, name string, data any) error {
 	mu.RLock()
 	t, ok := templates[name]
 	mu.RUnlock()
@@ -190,5 +225,18 @@ func Render(w io.Writer, name string, data any) error {
 		return fmt.Errorf("template %q not found", name)
 	}
 
-	return t.ExecuteTemplate(w, "base", data)
+	return t.ExecuteTemplate(w, "base", injectContext(r, data))
+}
+
+// RenderAuth executes a named auth template with the auth layout.
+func RenderAuth(w io.Writer, r *http.Request, name string, data any) error {
+	mu.RLock()
+	t, ok := templates[name]
+	mu.RUnlock()
+
+	if !ok {
+		return fmt.Errorf("template %q not found", name)
+	}
+
+	return t.ExecuteTemplate(w, "auth", injectContext(r, data))
 }

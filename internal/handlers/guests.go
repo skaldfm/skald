@@ -51,13 +51,13 @@ func (h *GuestHandler) List(w http.ResponseWriter, r *http.Request) {
 		"Guests":    guests,
 		"GuestShows": showMap,
 	}
-	if err := views.Render(w, "guests/index.html", data); err != nil {
+	if err := views.Render(w, r, "guests/index.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (h *GuestHandler) New(w http.ResponseWriter, r *http.Request) {
-	if err := views.Render(w, "guests/new.html", nil); err != nil {
+	if err := views.Render(w, r, "guests/new.html", nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -76,7 +76,7 @@ func (h *GuestHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"Guest": g,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		_ = views.Render(w, "guests/new.html", data)
+		_ = views.Render(w, r, "guests/new.html", data)
 		return
 	}
 
@@ -111,7 +111,7 @@ func (h *GuestHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"Guest":    guest,
 		"Episodes": episodes,
 	}
-	if err := views.Render(w, "guests/show.html", data); err != nil {
+	if err := views.Render(w, r, "guests/show.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -123,7 +123,7 @@ func (h *GuestHandler) Edit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]any{"Guest": guest}
-	if err := views.Render(w, "guests/edit.html", data); err != nil {
+	if err := views.Render(w, r, "guests/edit.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -149,7 +149,7 @@ func (h *GuestHandler) Update(w http.ResponseWriter, r *http.Request) {
 			"Error": "Name is required",
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		_ = views.Render(w, "guests/edit.html", data)
+		_ = views.Render(w, r, "guests/edit.html", data)
 		return
 	}
 

@@ -55,7 +55,7 @@ func (h *KanbanHandler) Board(w http.ResponseWriter, r *http.Request) {
 		"Shows":    shows,
 		"Filter":   filter,
 	}
-	if err := views.Render(w, "episodes/kanban.html", data); err != nil {
+	if err := views.Render(w, r, "episodes/kanban.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

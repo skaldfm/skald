@@ -14,6 +14,7 @@
     {{end}}
 
     <form method="POST" action="/episodes/{{.Episode.ID}}" enctype="multipart/form-data" class="mt-6 space-y-6">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div class="sm:col-span-2">
                 <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
@@ -140,6 +141,6 @@
         </div>
     </form>
     <form id="delete-form" method="POST" action="/episodes/{{.Episode.ID}}/delete"
-          onsubmit="return confirm('Delete this episode? This cannot be undone.')"></form>
+          onsubmit="return confirm('Delete this episode? This cannot be undone.')"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"></form>
 </div>
 {{end}}

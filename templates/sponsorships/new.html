@@ -11,6 +11,7 @@
     {{end}}
 
     <form method="POST" action="/sponsorships" enctype="multipart/form-data" class="mt-6 space-y-6">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <div>
             <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Sponsor Name</label>
             <input type="text" name="name" id="name" value="{{if .Name}}{{.Name}}{{end}}"

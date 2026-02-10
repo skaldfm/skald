@@ -143,7 +143,7 @@ func (h *CalendarHandler) Calendar(w http.ResponseWriter, r *http.Request) {
 		"Unscheduled": unscheduled,
 	}
 
-	if err := views.Render(w, "episodes/calendar.html", data); err != nil {
+	if err := views.Render(w, r, "episodes/calendar.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -306,7 +306,7 @@ func (h *TimelineHandler) Timeline(w http.ResponseWriter, r *http.Request) {
 		"Zoom":        zoom,
 	}
 
-	if err := views.Render(w, "episodes/timeline.html", data); err != nil {
+	if err := views.Render(w, r, "episodes/timeline.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

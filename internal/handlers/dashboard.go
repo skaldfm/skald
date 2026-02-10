@@ -134,7 +134,7 @@ func (h *DashboardHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		"ShowCards":      showCards,
 	}
 
-	if err := views.Render(w, "home.html", data); err != nil {
+	if err := views.Render(w, r, "home.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

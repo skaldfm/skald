@@ -12,6 +12,7 @@ type Config struct {
 	DataDir        string
 	DBType         string
 	DBURL          string
+	SecretKey      string
 	BackupInterval time.Duration
 	BackupRetain   int
 }
@@ -22,6 +23,7 @@ func Load() *Config {
 		DataDir:        envOr("SKALD_DATA_DIR", "./data"),
 		DBType:         envOr("SKALD_DB_TYPE", "sqlite"),
 		DBURL:          os.Getenv("SKALD_DB_URL"),
+		SecretKey:      os.Getenv("SKALD_SECRET_KEY"),
 		BackupInterval: parseDuration(envOr("SKALD_BACKUP_INTERVAL", "24h")),
 		BackupRetain:   parseInt(envOr("SKALD_BACKUP_RETAIN", "14")),
 	}

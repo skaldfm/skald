@@ -12,6 +12,7 @@
     {{end}}
 
     <form method="POST" action="/guests/{{.Guest.ID}}" enctype="multipart/form-data" class="mt-6 space-y-6">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div class="sm:col-span-2">
                 <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
@@ -115,6 +116,6 @@
         </div>
     </form>
     <form id="delete-form" method="POST" action="/guests/{{.Guest.ID}}/delete"
-          onsubmit="return confirm('Delete this person?')"></form>
+          onsubmit="return confirm('Delete this person?')"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"></form>
 </div>
 {{end}}
