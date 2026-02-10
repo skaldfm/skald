@@ -169,6 +169,20 @@
                         </dd>
                     </div>
                     <div>
+                        <dt class="text-gray-500 dark:text-gray-400">Hosts</dt>
+                        <dd class="mt-1 space-y-1">
+                            {{if .Hosts}}
+                            {{range .Hosts}}
+                            <div>
+                                <a href="/guests/{{.GuestID}}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">{{.GuestName}}</a>
+                            </div>
+                            {{end}}
+                            {{else}}
+                            <span class="text-gray-400 dark:text-gray-500 italic">None</span>
+                            {{end}}
+                        </dd>
+                    </div>
+                    <div>
                         <dt class="text-gray-500 dark:text-gray-400">Guests</dt>
                         <dd class="mt-1 space-y-1">
                             {{if .Guests}}

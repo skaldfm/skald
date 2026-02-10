@@ -81,7 +81,7 @@ func main() {
 	r.Get("/", dashboardHandler.Dashboard)
 
 	// Shows
-	showHandler := handlers.NewShowHandler(showStore, episodeStore, cfg.DataDir)
+	showHandler := handlers.NewShowHandler(showStore, episodeStore, guestStore, cfg.DataDir)
 	r.Mount("/shows", showHandler.Routes())
 
 	// Episodes

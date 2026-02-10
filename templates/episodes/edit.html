@@ -103,6 +103,13 @@
         </div>
 
         <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hosts</label>
+            <div class="tag-picker" data-name="host_ids"
+                 data-items='{{toJSON .HostItems}}'
+                 data-selected='{{toJSON .LinkedHostIDs}}'></div>
+        </div>
+
+        <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Guests</label>
             <div class="tag-picker" data-name="guest_ids"
                  data-items='{{toJSON .GuestItems}}'

@@ -227,6 +227,12 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = h.tags.SetEpisodeTags(ep.ID, tagNames)
 
+	// Auto-inherit show hosts
+	showHostIDs, _ := h.guests.HostIDsForShow(showID)
+	for _, hid := range showHostIDs {
+		_ = h.guests.LinkGuest(ep.ID, hid, "host")
+	}
+
 	http.Redirect(w, r, "/episodes/"+strconv.FormatInt(ep.ID, 10), http.StatusSeeOther)
 }
 
@@ -237,6 +243,7 @@ func (h *EpisodeHandler) Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	assets, _ := h.assets.ListForEpisode(ep.ID)
+	hosts, _ := h.guests.HostsForEpisode(ep.ID)
 	guests, _ := h.guests.GuestsForEpisode(ep.ID)
 	tags, _ := h.tags.TagsForEpisode(ep.ID)
 	sponsorships, _ := h.sponsorships.SponsorshipsForEpisode(ep.ID)
@@ -245,6 +252,7 @@ func (h *EpisodeHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"Episode":      ep,
 		"Statuses":     models.Statuses,
 		"Assets":       assets,
+		"Hosts":        hosts,
 		"Guests":       guests,
 		"Tags":         tags,
 		"Sponsorships": sponsorships,
@@ -444,6 +452,30 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Update host links
+	selectedHosts := r.Form["host_ids"]
+	selectedHostMap := make(map[int64]bool)
+	for _, s := range selectedHosts {
+		if id, err := strconv.ParseInt(s, 10, 64); err == nil {
+			selectedHostMap[id] = true
+		}
+	}
+	currentHostIDs, _ := h.guests.HostIDsForEpisode(ep.ID)
+	currentHostMap := make(map[int64]bool)
+	for _, id := range currentHostIDs {
+		currentHostMap[id] = true
+	}
+	for id := range selectedHostMap {
+		if !currentHostMap[id] {
+			_ = h.guests.LinkGuest(ep.ID, id, "host")
+		}
+	}
+	for _, id := range currentHostIDs {
+		if !selectedHostMap[id] {
+			_ = h.guests.UnlinkGuest(ep.ID, id)
+		}
+	}
+
 	http.Redirect(w, r, "/episodes/"+strconv.FormatInt(ep.ID, 10), http.StatusSeeOther)
 }
 
@@ -495,6 +527,7 @@ func (h *EpisodeHandler) editData(ep *models.Episode, errMsg string) map[string]
 	linkedSpIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
 	allG, _ := h.guests.List()
 	linkedGIDs, _ := h.guests.GuestIDsForEpisode(ep.ID)
+	linkedHostIDs, _ := h.guests.HostIDsForEpisode(ep.ID)
 
 	guestItems := make([]pickerItem, len(allG))
 	for i, g := range allG {
@@ -510,6 +543,8 @@ func (h *EpisodeHandler) editData(ep *models.Episode, errMsg string) map[string]
 		"Shows":                shows,
 		"Statuses":             models.Statuses,
 		"Tags":                 strings.Join(tagNames, ", "),
+		"HostItems":            guestItems,
+		"LinkedHostIDs":        linkedHostIDs,
 		"GuestItems":           guestItems,
 		"LinkedGuestIDs":       linkedGIDs,
 		"SponsorItems":         sponsorItems,

@@ -45,6 +45,14 @@
             </div>
         </div>
 
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Hosts</label>
+            <div class="tag-picker" data-name="host_ids"
+                 data-items='{{toJSON .HostItems}}'
+                 data-selected='{{toJSON .LinkedHostIDs}}'></div>
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Hosts are auto-assigned to new episodes</p>
+        </div>
+
         <div class="flex items-center justify-between">
             <button type="submit" form="delete-form" class="rounded-md px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 ring-1 ring-red-300 dark:ring-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">Delete show</button>
             <div class="flex items-center space-x-3">

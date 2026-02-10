@@ -31,6 +31,18 @@
                 <p class="text-gray-400 dark:text-gray-500 italic">No description</p>
                 {{end}}
 
+                {{if .Hosts}}
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Hosts:</span>
+                    {{range .Hosts}}
+                    <a href="/guests/{{.ID}}" class="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50">
+                        {{if .Image}}<img src="/uploads/{{.Image}}" alt="" class="h-4 w-4 rounded-full object-cover">{{end}}
+                        {{.Name}}
+                    </a>
+                    {{end}}
+                </div>
+                {{end}}
+
                 <!-- Stats -->
                 <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
                     <span>{{.TotalEpisodes}} episode{{if ne .TotalEpisodes 1}}s{{end}}</span>
