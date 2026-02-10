@@ -26,6 +26,7 @@ func NewAdminHandler(backups *backup.Manager, users *models.UserStore, guests *m
 
 func (h *AdminHandler) Routes() chi.Router {
 	r := chi.NewRouter()
+	r.Get("/", http.RedirectHandler("/admin/users", http.StatusSeeOther).ServeHTTP)
 	r.Get("/backups", h.Backups)
 	r.Post("/backups", h.CreateBackup)
 	r.Get("/backups/{name}", h.DownloadBackup)
