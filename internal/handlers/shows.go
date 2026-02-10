@@ -19,6 +19,7 @@ import (
 type ShowHandler struct {
 	store        *models.ShowStore
 	episodeStore *models.EpisodeStore
+	guests       *models.GuestStore
 	dataDir      string
 }
 
@@ -28,8 +29,8 @@ type seasonGroup struct {
 	Episodes []models.Episode
 }
 
-func NewShowHandler(store *models.ShowStore, episodeStore *models.EpisodeStore, dataDir string) *ShowHandler {
-	return &ShowHandler{store: store, episodeStore: episodeStore, dataDir: dataDir}
+func NewShowHandler(store *models.ShowStore, episodeStore *models.EpisodeStore, guests *models.GuestStore, dataDir string) *ShowHandler {
+	return &ShowHandler{store: store, episodeStore: episodeStore, guests: guests, dataDir: dataDir}
 }
 
 func (h *ShowHandler) Routes() chi.Router {
@@ -138,8 +139,11 @@ func (h *ShowHandler) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	hosts, _ := h.guests.HostsForShow(show.ID)
+
 	data := map[string]any{
 		"Show":           show,
+		"Hosts":          hosts,
 		"SeasonGroups":   groups,
 		"HasEpisodes":    len(episodes) > 0,
 		"TotalEpisodes":  total,
@@ -158,8 +162,17 @@ func (h *ShowHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	allGuests, _ := h.guests.List()
+	hostIDs, _ := h.guests.HostIDsForShow(show.ID)
+	hostItems := make([]pickerItem, len(allGuests))
+	for i, g := range allGuests {
+		hostItems[i] = pickerItem{ID: g.ID, Name: g.Name}
+	}
+
 	data := map[string]any{
-		"Show": show,
+		"Show":          show,
+		"HostItems":     hostItems,
+		"LinkedHostIDs": hostIDs,
 	}
 	if err := views.Render(w, "shows/edit.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -182,9 +195,17 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 	description := strings.TrimSpace(r.FormValue("description"))
 
 	if name == "" {
+		allGuests, _ := h.guests.List()
+		hostIDs, _ := h.guests.HostIDsForShow(show.ID)
+		hostItems := make([]pickerItem, len(allGuests))
+		for i, g := range allGuests {
+			hostItems[i] = pickerItem{ID: g.ID, Name: g.Name}
+		}
 		data := map[string]any{
-			"Show":  show,
-			"Error": "Name is required",
+			"Show":          show,
+			"Error":         "Name is required",
+			"HostItems":     hostItems,
+			"LinkedHostIDs": hostIDs,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = views.Render(w, "shows/edit.html", data)
@@ -239,6 +260,18 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.store.Update(show.ID, name, description, artwork); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Save hosts
+	var hostIDs []int64
+	for _, s := range r.Form["host_ids"] {
+		if id, err := strconv.ParseInt(s, 10, 64); err == nil {
+			hostIDs = append(hostIDs, id)
+		}
+	}
+	if err := h.guests.SetShowHosts(show.ID, hostIDs); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

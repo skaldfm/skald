@@ -169,12 +169,12 @@ func (s *GuestStore) EpisodesForGuest(guestID int64) ([]EpisodeGuest, error) {
 	return links, rows.Err()
 }
 
-// GuestsForEpisode returns all guests linked to an episode.
+// GuestsForEpisode returns non-host guests linked to an episode.
 func (s *GuestStore) GuestsForEpisode(episodeID int64) ([]EpisodeGuest, error) {
 	rows, err := s.db.Query(`SELECT eg.episode_id, eg.guest_id, eg.role, g.name
 		FROM episode_guests eg
 		JOIN guests g ON g.id = eg.guest_id
-		WHERE eg.episode_id = ?
+		WHERE eg.episode_id = ? AND eg.role != 'host'
 		ORDER BY g.name`, episodeID)
 	if err != nil {
 		return nil, fmt.Errorf("listing guests for episode %d: %w", episodeID, err)
@@ -192,9 +192,9 @@ func (s *GuestStore) GuestsForEpisode(episodeID int64) ([]EpisodeGuest, error) {
 	return links, rows.Err()
 }
 
-// GuestIDsForEpisode returns the IDs of guests linked to an episode.
+// GuestIDsForEpisode returns the IDs of non-host guests linked to an episode.
 func (s *GuestStore) GuestIDsForEpisode(episodeID int64) ([]int64, error) {
-	rows, err := s.db.Query(`SELECT guest_id FROM episode_guests WHERE episode_id = ?`, episodeID)
+	rows, err := s.db.Query(`SELECT guest_id FROM episode_guests WHERE episode_id = ? AND role != 'host'`, episodeID)
 	if err != nil {
 		return nil, fmt.Errorf("listing guest IDs for episode %d: %w", episodeID, err)
 	}
@@ -232,4 +232,110 @@ func (s *GuestStore) UnlinkGuest(episodeID, guestID int64) error {
 		return fmt.Errorf("unlinking guest %d from episode %d: %w", guestID, episodeID, err)
 	}
 	return nil
+}
+
+// HostsForShow returns all guests designated as hosts for a show.
+func (s *GuestStore) HostsForShow(showID int64) ([]Guest, error) {
+	rows, err := s.db.Query(`SELECT g.id, g.name, g.email, g.bio, g.website, g.company, g.podcast,
+		g.twitter, g.instagram, g.linkedin, g.mastodon, g.image, g.created_at, g.updated_at
+		FROM guests g
+		JOIN show_hosts sh ON sh.guest_id = g.id
+		WHERE sh.show_id = ?
+		ORDER BY g.name`, showID)
+	if err != nil {
+		return nil, fmt.Errorf("listing hosts for show %d: %w", showID, err)
+	}
+	defer rows.Close()
+
+	var guests []Guest
+	for rows.Next() {
+		var g Guest
+		if err := rows.Scan(&g.ID, &g.Name, &g.Email, &g.Bio, &g.Website,
+			&g.Company, &g.Podcast, &g.Twitter, &g.Instagram, &g.LinkedIn, &g.Mastodon,
+			&g.Image, &g.CreatedAt, &g.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scanning host: %w", err)
+		}
+		guests = append(guests, g)
+	}
+	return guests, rows.Err()
+}
+
+// HostIDsForShow returns the guest IDs of hosts for a show.
+func (s *GuestStore) HostIDsForShow(showID int64) ([]int64, error) {
+	rows, err := s.db.Query(`SELECT guest_id FROM show_hosts WHERE show_id = ?`, showID)
+	if err != nil {
+		return nil, fmt.Errorf("listing host IDs for show %d: %w", showID, err)
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scanning host ID: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// SetShowHosts replaces all hosts for a show with the given guest IDs.
+func (s *GuestStore) SetShowHosts(showID int64, guestIDs []int64) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`DELETE FROM show_hosts WHERE show_id = ?`, showID); err != nil {
+		return fmt.Errorf("clearing show hosts: %w", err)
+	}
+	for _, gid := range guestIDs {
+		if _, err := tx.Exec(`INSERT INTO show_hosts (show_id, guest_id) VALUES (?, ?)`, showID, gid); err != nil {
+			return fmt.Errorf("inserting show host %d: %w", gid, err)
+		}
+	}
+	return tx.Commit()
+}
+
+// HostsForEpisode returns episode_guests with role='host' for an episode.
+func (s *GuestStore) HostsForEpisode(episodeID int64) ([]EpisodeGuest, error) {
+	rows, err := s.db.Query(`SELECT eg.episode_id, eg.guest_id, eg.role, g.name
+		FROM episode_guests eg
+		JOIN guests g ON g.id = eg.guest_id
+		WHERE eg.episode_id = ? AND eg.role = 'host'
+		ORDER BY g.name`, episodeID)
+	if err != nil {
+		return nil, fmt.Errorf("listing hosts for episode %d: %w", episodeID, err)
+	}
+	defer rows.Close()
+
+	var links []EpisodeGuest
+	for rows.Next() {
+		var eg EpisodeGuest
+		if err := rows.Scan(&eg.EpisodeID, &eg.GuestID, &eg.Role, &eg.GuestName); err != nil {
+			return nil, fmt.Errorf("scanning episode host: %w", err)
+		}
+		links = append(links, eg)
+	}
+	return links, rows.Err()
+}
+
+// HostIDsForEpisode returns the guest IDs of hosts for an episode.
+func (s *GuestStore) HostIDsForEpisode(episodeID int64) ([]int64, error) {
+	rows, err := s.db.Query(`SELECT guest_id FROM episode_guests WHERE episode_id = ? AND role = 'host'`, episodeID)
+	if err != nil {
+		return nil, fmt.Errorf("listing host IDs for episode %d: %w", episodeID, err)
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scanning host ID: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }
