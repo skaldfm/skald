@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/mhermansson/skald/internal/auth"
-	"github.com/mhermansson/skald/internal/models"
+	"github.com/skaldfm/skald/internal/auth"
+	"github.com/skaldfm/skald/internal/models"
 )
 
 // accessibleShows returns shows filtered by user access (admin gets all).

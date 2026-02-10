@@ -1,6 +1,7 @@
 services:
   skald:
-    build: .
+    image: skaldfm/skald:latest
+    # build: .  # uncomment to build from source instead
     ports:
       - "7707:7707"
     volumes:

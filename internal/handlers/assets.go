@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mhermansson/skald/internal/models"
+	"github.com/skaldfm/skald/internal/models"
 )
 
 type AssetHandler struct {
