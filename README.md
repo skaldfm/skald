@@ -110,6 +110,8 @@ go build -o skald .
 ./skald
 ```
 
+Configuration can be set via environment variables or an optional `.env` file in the working directory.
+
 ## Configuration
 
 | Variable | Default | Description |
