@@ -87,6 +87,7 @@ function handleDrop(event, newStatus) {
     // Update on server
     const formData = new FormData();
     formData.append('status', newStatus);
+    formData.append('csrf_token', '{{.CSRFToken}}');
     fetch(`/episodes/${episodeId}/status`, {
         method: 'POST',
         body: formData,

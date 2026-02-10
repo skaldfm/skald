@@ -9,6 +9,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/joho/godotenv"
 	"github.com/justinas/nosurf"
 	"github.com/mhermansson/skald/internal/auth"
 	"github.com/mhermansson/skald/internal/backup"
@@ -22,6 +23,8 @@ import (
 var version = "dev"
 
 func main() {
+	_ = godotenv.Load() // optional .env file
+
 	cfg := config.Load()
 
 	// Open database
