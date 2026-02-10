@@ -7,6 +7,8 @@ services:
       - skald-data:/app/data
     environment:
       - SKALD_PORT=7707
+      - PUID=1000
+      - PGID=1000
     restart: unless-stopped
 
 volumes:
