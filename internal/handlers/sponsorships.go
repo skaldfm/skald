@@ -39,7 +39,15 @@ func (h *SponsorshipHandler) Routes() chi.Router {
 }
 
 func (h *SponsorshipHandler) List(w http.ResponseWriter, r *http.Request) {
-	sponsorships, err := h.store.List()
+	showIDs := auth.AccessibleShowIDs(r.Context())
+
+	var sponsorships []models.Sponsorship
+	var err error
+	if showIDs == nil {
+		sponsorships, err = h.store.List()
+	} else {
+		sponsorships, err = h.store.ListByShowIDs(showIDs)
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -112,7 +120,8 @@ func (h *SponsorshipHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	episodes, err := h.store.EpisodesForSponsorship(sp.ID)
+	showIDs := auth.AccessibleShowIDs(r.Context())
+	episodes, err := h.store.EpisodesForSponsorship(sp.ID, showIDs)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

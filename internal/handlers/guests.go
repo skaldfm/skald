@@ -36,13 +36,21 @@ func (h *GuestHandler) Routes() chi.Router {
 }
 
 func (h *GuestHandler) List(w http.ResponseWriter, r *http.Request) {
-	guests, err := h.store.List()
+	showIDs := auth.AccessibleShowIDs(r.Context())
+
+	var guests []models.Guest
+	var err error
+	if showIDs == nil {
+		guests, err = h.store.List()
+	} else {
+		guests, err = h.store.ListByShowIDs(showIDs)
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	showMap, err := h.store.ShowsForAllGuests()
+	showMap, err := h.store.ShowsForGuests(showIDs)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -112,7 +120,8 @@ func (h *GuestHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	episodes, err := h.store.EpisodesForGuest(guest.ID)
+	showIDs := auth.AccessibleShowIDs(r.Context())
+	episodes, err := h.store.EpisodesForGuest(guest.ID, showIDs)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
