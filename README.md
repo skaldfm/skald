@@ -12,7 +12,7 @@ Single Go binary, SQLite database, no external dependencies. Deploy with Docker 
 
 ### Shows & Episodes
 - **Multi-show support** — manage multiple podcasts in one instance
-- **Full episode metadata** — title, season/episode numbers (S01E01 format with uniqueness enforcement), description, publish date, status, script, show notes
+- **Full episode metadata** — title, season/episode numbers (S01E01 format with uniqueness enforcement and next-number suggestions), description, publish date, status, script, show notes
 - **Episode artwork** — per-episode cover art upload with thumbnails in list views
 - **Show artwork** — cover art for each podcast
 - **Tags** — flexible tagging system for episodes
@@ -74,6 +74,7 @@ Built-in teleprompter for recording sessions:
 - **Single-user auth** — bcrypt passwords with server-side sessions (SQLite-backed)
 - **First-run setup** — redirects to setup wizard when no users exist; auto-creates a host Person entry
 - **User roles** — first user is admin; admin-only route gating
+- **Show-scoped permissions** — editors and viewers only see episodes, guests, and sponsors from their assigned shows
 - **Profile settings** — update name, email, and password
 - **User management** — admin page to create users, toggle roles, and delete accounts
 - **Open registration** — optional self-service registration (`SKALD_OPEN_REGISTRATION=true`), disabled by default
@@ -86,6 +87,7 @@ Built-in teleprompter for recording sessions:
 - **Automatic pre-migration backups** — safety net before any schema changes
 - **Scheduled backups** — configurable interval (default daily), automatic retention/pruning (default 14)
 - **Manual backups** — create and download from the admin page
+- **Backup restore** — restore from any backup in the admin UI with integrity validation and automatic safety backup
 - Uses SQLite `VACUUM INTO` for consistent snapshots safe with WAL mode
 
 ## Tech Stack
