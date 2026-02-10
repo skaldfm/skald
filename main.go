@@ -73,6 +73,10 @@ func main() {
 			Secure:   false,
 			SameSite: http.SameSiteLaxMode,
 		})
+		h.SetFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log.Printf("CSRF failure: method=%s url=%s reason=%v", r.Method, r.URL, nosurf.Reason(r))
+			http.Error(w, "CSRF token validation failed", http.StatusBadRequest)
+		}))
 		return h
 	}
 
