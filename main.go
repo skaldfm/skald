@@ -101,7 +101,7 @@ func main() {
 	})
 
 	// Auth routes (public, but setup redirect handled by LoadUser)
-	authHandler := handlers.NewAuthHandler(userStore, sessionManager)
+	authHandler := handlers.NewAuthHandler(userStore, guestStore, sessionManager)
 	r.Mount("/auth", authHandler.Routes())
 
 	// Protected routes (auth required)
