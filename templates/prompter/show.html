@@ -3,83 +3,79 @@
 {{define "content"}}
 <div id="prompter-container" class="relative">
     <!-- Controls bar (top) -->
-    <div id="prompter-controls" class="fixed top-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-90 text-white px-4 py-3 transition-opacity">
-        <div class="mx-auto max-w-4xl flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-                <a href="/episodes/{{.Episode.ID}}" class="text-sm text-gray-300 hover:text-white">&larr; Back</a>
-                <span class="text-sm text-gray-400">{{.Episode.Title}}</span>
+    <div id="prompter-controls" class="fixed top-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-90 text-white px-4 py-2 transition-opacity">
+        <div class="mx-auto flex items-center justify-center gap-3">
+            <a href="/episodes/{{.Episode.ID}}" class="text-sm text-gray-300 hover:text-white shrink-0">&larr;</a>
+            <span class="text-sm text-gray-400 truncate max-w-[10rem]" title="{{.Episode.Title}}">{{.Episode.Title}}</span>
+
+            <div class="h-4 border-l border-gray-600"></div>
+
+            <!-- Speed control -->
+            <div class="flex items-center gap-1">
+                <label class="text-xs text-gray-400">Speed</label>
+                <button onclick="adjustSpeed(-1)" class="rounded bg-gray-700 px-1.5 py-0.5 text-xs hover:bg-gray-600">-</button>
+                <span id="speed-display" class="w-6 text-center text-xs">5</span>
+                <button onclick="adjustSpeed(1)" class="rounded bg-gray-700 px-1.5 py-0.5 text-xs hover:bg-gray-600">+</button>
             </div>
 
-            <div class="flex items-center gap-4 flex-wrap">
-                <!-- Speed control -->
-                <div class="flex items-center gap-2">
-                    <label class="text-xs text-gray-400">Speed</label>
-                    <button onclick="adjustSpeed(-1)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">-</button>
-                    <span id="speed-display" class="w-8 text-center text-sm">5</span>
-                    <button onclick="adjustSpeed(1)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">+</button>
-                </div>
-
-                <!-- Font size -->
-                <div class="flex items-center gap-2">
-                    <label class="text-xs text-gray-400">Font</label>
-                    <button onclick="adjustFont(-4)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">A-</button>
-                    <span id="font-display" class="w-8 text-center text-sm">32</span>
-                    <button onclick="adjustFont(4)" class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">A+</button>
-                </div>
-
-                <!-- Font color -->
-                <div class="flex items-center gap-1">
-                    <label class="text-xs text-gray-400">Color</label>
-                    <button onclick="setFontColor('#ffffff')" class="h-6 w-6 rounded border border-gray-600" style="background:#ffffff" title="White"></button>
-                    <button onclick="setFontColor('#fde047')" class="h-6 w-6 rounded border border-gray-600" style="background:#fde047" title="Yellow"></button>
-                    <button onclick="setFontColor('#4ade80')" class="h-6 w-6 rounded border border-gray-600" style="background:#4ade80" title="Green"></button>
-                    <button onclick="setFontColor('#22d3ee')" class="h-6 w-6 rounded border border-gray-600" style="background:#22d3ee" title="Cyan"></button>
-                </div>
-
-                <!-- Background color -->
-                <div class="flex items-center gap-1">
-                    <label class="text-xs text-gray-400">BG</label>
-                    <button onclick="setBgColor('#000000')" class="h-6 w-6 rounded border border-gray-600" style="background:#000000" title="Black"></button>
-                    <button onclick="setBgColor('#1e1b4b')" class="h-6 w-6 rounded border border-gray-600" style="background:#1e1b4b" title="Dark Blue"></button>
-                    <button onclick="setBgColor('#052e16')" class="h-6 w-6 rounded border border-gray-600" style="background:#052e16" title="Dark Green"></button>
-                    <button onclick="setBgColor('#1f2937')" class="h-6 w-6 rounded border border-gray-600" style="background:#1f2937" title="Dark Gray"></button>
-                </div>
-
-                <!-- Center toggle -->
-                <button id="center-btn" onclick="toggleCenter()"
-                        class="rounded bg-gray-700 px-3 py-1 text-xs hover:bg-gray-600" title="Toggle center alignment">
-                    Center
-                </button>
-
-                <!-- Play/Pause -->
-                <button id="play-btn" onclick="togglePlay()"
-                        class="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-700">
-                    Play
-                </button>
-
-                <!-- Fullscreen -->
-                <button onclick="toggleFullscreen()"
-                        class="rounded bg-gray-700 px-3 py-2 text-xs hover:bg-gray-600">
-                    Fullscreen
-                </button>
-
-                <!-- Mirror -->
-                <button onclick="toggleMirror()"
-                        class="rounded bg-gray-700 px-3 py-2 text-xs hover:bg-gray-600"
-                        title="Mirror text (for reflected teleprompter)">
-                    Mirror
-                </button>
+            <!-- Font size -->
+            <div class="flex items-center gap-1">
+                <label class="text-xs text-gray-400">Font</label>
+                <button onclick="adjustFont(-4)" class="rounded bg-gray-700 px-1.5 py-0.5 text-xs hover:bg-gray-600">A-</button>
+                <span id="font-display" class="w-6 text-center text-xs">32</span>
+                <button onclick="adjustFont(4)" class="rounded bg-gray-700 px-1.5 py-0.5 text-xs hover:bg-gray-600">A+</button>
             </div>
 
-            <!-- Progress -->
-            <div class="flex items-center gap-2">
-                <span id="progress" class="text-xs text-gray-400">0%</span>
+            <div class="h-4 border-l border-gray-600"></div>
+
+            <!-- Font color -->
+            <div class="flex items-center gap-1">
+                <label class="text-xs text-gray-400">Color</label>
+                <button onclick="setFontColor('#ffffff')" class="h-5 w-5 rounded border border-gray-600" style="background:#ffffff" title="White"></button>
+                <button onclick="setFontColor('#fde047')" class="h-5 w-5 rounded border border-gray-600" style="background:#fde047" title="Yellow"></button>
+                <button onclick="setFontColor('#4ade80')" class="h-5 w-5 rounded border border-gray-600" style="background:#4ade80" title="Green"></button>
+                <button onclick="setFontColor('#22d3ee')" class="h-5 w-5 rounded border border-gray-600" style="background:#22d3ee" title="Cyan"></button>
             </div>
+
+            <!-- Background color -->
+            <div class="flex items-center gap-1">
+                <label class="text-xs text-gray-400">BG</label>
+                <button onclick="setBgColor('#000000')" class="h-5 w-5 rounded border border-gray-600" style="background:#000000" title="Black"></button>
+                <button onclick="setBgColor('#1e1b4b')" class="h-5 w-5 rounded border border-gray-600" style="background:#1e1b4b" title="Dark Blue"></button>
+                <button onclick="setBgColor('#052e16')" class="h-5 w-5 rounded border border-gray-600" style="background:#052e16" title="Dark Green"></button>
+                <button onclick="setBgColor('#1f2937')" class="h-5 w-5 rounded border border-gray-600" style="background:#1f2937" title="Dark Gray"></button>
+            </div>
+
+            <div class="h-4 border-l border-gray-600"></div>
+
+            <!-- Toggle buttons -->
+            <button id="center-btn" onclick="toggleCenter()"
+                    class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600" title="Toggle center alignment">
+                Center
+            </button>
+            <button onclick="toggleMirror()"
+                    class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600"
+                    title="Mirror text (for reflected teleprompter)">
+                Mirror
+            </button>
+            <button onclick="toggleFullscreen()"
+                    class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">
+                Fullscreen
+            </button>
+
+            <div class="h-4 border-l border-gray-600"></div>
+
+            <!-- Play/Pause -->
+            <button id="play-btn" onclick="togglePlay()"
+                    class="rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-medium hover:bg-indigo-700">
+                Play
+            </button>
+            <span id="progress" class="text-xs text-gray-400 w-8 text-right">0%</span>
         </div>
     </div>
 
     <!-- Script content -->
-    <div id="prompter-scroll" class="min-h-screen px-8 py-16 pt-24" style="background: #000000">
+    <div id="prompter-scroll" class="min-h-screen px-8 py-16 pt-16" style="background: #000000">
         <!-- Top padding so text starts below viewport center -->
         <div style="height: 50vh"></div>
 
