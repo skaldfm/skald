@@ -2,6 +2,8 @@
 
 A self-hosted podcast management tool for indie podcasters who want control over their workflow and data.
 
+**Website:** [skald.fm](https://skald.fm) · **Docker Hub:** [skaldfm/skald](https://hub.docker.com/r/skaldfm/skald) · **License:** [AGPL-3.0](LICENSE)
+
 ## What Is This?
 
 Most podcast tools are cloud-only, subscription-heavy, and ignore the production workflow. Skald covers the full lifecycle — from episode planning and scripting to a built-in prompter for recording — all running on your own infrastructure.
