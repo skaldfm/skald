@@ -1,0 +1,17 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+LICENSE
+
+# Dev/local files
+.env
+.claude
+CLAUDE.md
+data/
+node_modules/
+
+# Build artifacts
+static/css/style.css
