@@ -12,6 +12,7 @@ type Show struct {
 	Name        string
 	Description string
 	Artwork     string
+	Website     string
 	Color       string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -26,7 +27,7 @@ func NewShowStore(db *sql.DB) *ShowStore {
 }
 
 func (s *ShowStore) List() ([]Show, error) {
-	rows, err := s.db.Query(`SELECT id, name, description, artwork, color, created_at, updated_at
+	rows, err := s.db.Query(`SELECT id, name, description, artwork, website, color, created_at, updated_at
 		FROM shows ORDER BY name`)
 	if err != nil {
 		return nil, fmt.Errorf("listing shows: %w", err)
@@ -36,7 +37,7 @@ func (s *ShowStore) List() ([]Show, error) {
 	var shows []Show
 	for rows.Next() {
 		var show Show
-		if err := rows.Scan(&show.ID, &show.Name, &show.Description, &show.Artwork, &show.Color, &show.CreatedAt, &show.UpdatedAt); err != nil {
+		if err := rows.Scan(&show.ID, &show.Name, &show.Description, &show.Artwork, &show.Website, &show.Color, &show.CreatedAt, &show.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scanning show: %w", err)
 		}
 		shows = append(shows, show)
@@ -46,9 +47,9 @@ func (s *ShowStore) List() ([]Show, error) {
 
 func (s *ShowStore) Get(id int64) (*Show, error) {
 	var show Show
-	err := s.db.QueryRow(`SELECT id, name, description, artwork, color, created_at, updated_at
+	err := s.db.QueryRow(`SELECT id, name, description, artwork, website, color, created_at, updated_at
 		FROM shows WHERE id = ?`, id).Scan(
-		&show.ID, &show.Name, &show.Description, &show.Artwork, &show.Color, &show.CreatedAt, &show.UpdatedAt,
+		&show.ID, &show.Name, &show.Description, &show.Artwork, &show.Website, &show.Color, &show.CreatedAt, &show.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -59,8 +60,8 @@ func (s *ShowStore) Get(id int64) (*Show, error) {
 	return &show, nil
 }
 
-func (s *ShowStore) Create(name, description, color string) (*Show, error) {
-	result, err := s.db.Exec(`INSERT INTO shows (name, description, color) VALUES (?, ?, ?)`, name, description, color)
+func (s *ShowStore) Create(name, description, website, color string) (*Show, error) {
+	result, err := s.db.Exec(`INSERT INTO shows (name, description, website, color) VALUES (?, ?, ?, ?)`, name, description, website, color)
 	if err != nil {
 		return nil, fmt.Errorf("creating show: %w", err)
 	}
@@ -71,9 +72,9 @@ func (s *ShowStore) Create(name, description, color string) (*Show, error) {
 	return s.Get(id)
 }
 
-func (s *ShowStore) Update(id int64, name, description, artwork, color string) error {
-	_, err := s.db.Exec(`UPDATE shows SET name = ?, description = ?, artwork = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-		name, description, artwork, color, id)
+func (s *ShowStore) Update(id int64, name, description, artwork, website, color string) error {
+	_, err := s.db.Exec(`UPDATE shows SET name = ?, description = ?, artwork = ?, website = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+		name, description, artwork, website, color, id)
 	if err != nil {
 		return fmt.Errorf("updating show %d: %w", id, err)
 	}
@@ -85,7 +86,7 @@ func (s *ShowStore) ListByIDs(ids []int64) ([]Show, error) {
 		return nil, nil
 	}
 	placeholders := "?" + strings.Repeat(",?", len(ids)-1)
-	query := fmt.Sprintf(`SELECT id, name, description, artwork, color, created_at, updated_at
+	query := fmt.Sprintf(`SELECT id, name, description, artwork, website, color, created_at, updated_at
 		FROM shows WHERE id IN (%s) ORDER BY name`, placeholders)
 	args := make([]any, len(ids))
 	for i, id := range ids {
@@ -100,7 +101,7 @@ func (s *ShowStore) ListByIDs(ids []int64) ([]Show, error) {
 	var shows []Show
 	for rows.Next() {
 		var show Show
-		if err := rows.Scan(&show.ID, &show.Name, &show.Description, &show.Artwork, &show.Color, &show.CreatedAt, &show.UpdatedAt); err != nil {
+		if err := rows.Scan(&show.ID, &show.Name, &show.Description, &show.Artwork, &show.Website, &show.Color, &show.CreatedAt, &show.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scanning show: %w", err)
 		}
 		shows = append(shows, show)

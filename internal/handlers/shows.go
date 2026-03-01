@@ -80,6 +80,7 @@ func (h *ShowHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	description := strings.TrimSpace(r.FormValue("description"))
+	website := strings.TrimSpace(r.FormValue("website"))
 	color := r.FormValue("color")
 
 	if name == "" {
@@ -87,6 +88,7 @@ func (h *ShowHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"Error":       "Name is required",
 			"Name":        name,
 			"Description": description,
+			"Website":     website,
 			"Color":       color,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -94,7 +96,7 @@ func (h *ShowHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	show, err := h.store.Create(name, description, color)
+	show, err := h.store.Create(name, description, website, color)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -218,6 +220,7 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	name := strings.TrimSpace(r.FormValue("name"))
 	description := strings.TrimSpace(r.FormValue("description"))
+	website := strings.TrimSpace(r.FormValue("website"))
 	color := r.FormValue("color")
 
 	if name == "" {
@@ -227,6 +230,7 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 		for i, g := range hostGuests {
 			hostItems[i] = pickerItem{ID: g.ID, Name: g.Name}
 		}
+		show.Website = website
 		show.Color = color
 		data := map[string]any{
 			"Show":          show,
@@ -286,7 +290,7 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 		artwork = ""
 	}
 
-	if err := h.store.Update(show.ID, name, description, artwork, color); err != nil {
+	if err := h.store.Update(show.ID, name, description, artwork, website, color); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
