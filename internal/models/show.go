@@ -61,8 +61,9 @@ func (s *ShowStore) Get(id int64) (*Show, error) {
 	return &show, nil
 }
 
-func (s *ShowStore) Create(name, description, website, podcastHost, color string) (*Show, error) {
-	result, err := s.db.Exec(`INSERT INTO shows (name, description, website, podcast_host, color) VALUES (?, ?, ?, ?, ?)`, name, description, website, podcastHost, color)
+func (s *ShowStore) Create(show *Show) (*Show, error) {
+	result, err := s.db.Exec(`INSERT INTO shows (name, description, website, podcast_host, color) VALUES (?, ?, ?, ?, ?)`,
+		show.Name, show.Description, show.Website, show.PodcastHost, show.Color)
 	if err != nil {
 		return nil, fmt.Errorf("creating show: %w", err)
 	}
@@ -73,11 +74,11 @@ func (s *ShowStore) Create(name, description, website, podcastHost, color string
 	return s.Get(id)
 }
 
-func (s *ShowStore) Update(id int64, name, description, artwork, website, podcastHost, color string) error {
+func (s *ShowStore) Update(show *Show) error {
 	_, err := s.db.Exec(`UPDATE shows SET name = ?, description = ?, artwork = ?, website = ?, podcast_host = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-		name, description, artwork, website, podcastHost, color, id)
+		show.Name, show.Description, show.Artwork, show.Website, show.PodcastHost, show.Color, show.ID)
 	if err != nil {
-		return fmt.Errorf("updating show %d: %w", id, err)
+		return fmt.Errorf("updating show %d: %w", show.ID, err)
 	}
 	return nil
 }

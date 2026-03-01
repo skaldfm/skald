@@ -98,7 +98,13 @@ func (h *ShowHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	show, err := h.store.Create(name, description, website, podcastHost, color)
+	show, err := h.store.Create(&models.Show{
+		Name:        name,
+		Description: description,
+		Website:     website,
+		PodcastHost: podcastHost,
+		Color:       color,
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -294,7 +300,13 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 		artwork = ""
 	}
 
-	if err := h.store.Update(show.ID, name, description, artwork, website, podcastHost, color); err != nil {
+	show.Name = name
+	show.Description = description
+	show.Artwork = artwork
+	show.Website = website
+	show.PodcastHost = podcastHost
+	show.Color = color
+	if err := h.store.Update(show); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
