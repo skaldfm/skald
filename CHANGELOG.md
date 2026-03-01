@@ -35,6 +35,7 @@ All notable changes to Skald will be documented in this file.
 
 ### Changed
 - Prompter: quadratic speed curve for finer control at low speeds, font color/background presets, center text toggle, top-positioned controls for tablet ergonomics, localStorage persistence for all preferences
+- **UI modernization** — status badges now have proper dark-mode colors, auth pages use consistent indigo palette, active nav link highlighting, mobile nav wraps instead of overflowing, self-hosted HTMX (no CDN), inline styles replaced with Tailwind classes, loading indicators on status changes and form submits, kanban drop animation, tag-picker keyboard navigation and ARIA accessibility, input borders fixed on auth/profile forms
 
 ### Fixed
 - Kanban drag-and-drop was silently failing — missing CSRF token in the fetch POST

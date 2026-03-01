@@ -47,7 +47,7 @@
             <div class="space-y-2" id="column-{{.}}">
                 {{$episodes := index $.Columns .}}
                 {{range $episodes}}
-                <div class="{{if $.CanEdit}}cursor-grab{{end}} rounded-md bg-white dark:bg-gray-800 p-3 shadow-sm hover:shadow transition-shadow"
+                <div class="{{if $.CanEdit}}cursor-grab{{end}} rounded-md bg-white dark:bg-gray-800 p-3 shadow-sm hover:shadow transition-all duration-300"
                      {{if $.CanEdit}}draggable="true"{{end}}
                      data-episode-id="{{.ID}}"
                      {{if $.CanEdit}}ondragstart="event.dataTransfer.setData('text/plain', '{{.ID}}')"{{end}}>
@@ -82,6 +82,8 @@ function handleDrop(event, newStatus) {
     const column = document.getElementById(`column-${newStatus}`);
     if (card && column) {
         column.appendChild(card);
+        card.classList.add('ring-2', 'ring-indigo-400');
+        setTimeout(function() { card.classList.remove('ring-2', 'ring-indigo-400'); }, 1000);
     }
 
     // Update on server

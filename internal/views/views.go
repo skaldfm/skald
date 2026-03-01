@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/justinas/nosurf"
@@ -39,6 +40,7 @@ func FuncMap() template.FuncMap {
 		"formatFloat":    formatFloat,
 		"contains":       containsInt64,
 		"toJSON":          toJSON,
+		"hasPrefix":       strings.HasPrefix,
 	}
 }
 
@@ -59,17 +61,17 @@ func StatusLabel(s string) string {
 
 func StatusColor(s string) string {
 	colors := map[string]string{
-		"idea":      "bg-gray-100 text-gray-800",
-		"research":  "bg-blue-100 text-blue-800",
-		"scripted":  "bg-yellow-100 text-yellow-800",
-		"recorded":  "bg-purple-100 text-purple-800",
-		"edited":    "bg-orange-100 text-orange-800",
-		"published": "bg-green-100 text-green-800",
+		"idea":      "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+		"research":  "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+		"scripted":  "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+		"recorded":  "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+		"edited":    "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+		"published": "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 	}
 	if c, ok := colors[s]; ok {
 		return c
 	}
-	return "bg-gray-100 text-gray-800"
+	return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
 }
 
 func StatusBarColor(s string) string {
@@ -216,6 +218,7 @@ func injectContext(r *http.Request, data any) map[string]any {
 	if r != nil {
 		m["CSRFToken"] = nosurf.Token(r)
 		m["CurrentUser"] = auth.UserFromContext(r.Context())
+		m["RequestPath"] = r.URL.Path
 	}
 
 	// Inject logo path
