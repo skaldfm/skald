@@ -28,43 +28,55 @@
         </div>
     </div>
 
-    <div class="flex gap-4 overflow-x-auto pb-4" id="kanban-board">
+    <div class="flex gap-4 overflow-x-auto pb-4 items-start" id="kanban-board">
         {{range .Statuses}}
-        <div class="flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700 p-3 transition-all duration-200"
+        <div class="flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700 transition-all duration-200"
              data-status="{{.}}"
              {{if $.CanEdit}}
              ondragover="event.preventDefault(); if(!this.classList.contains('kanban-collapsed')) this.classList.add('ring-2', 'ring-indigo-400')"
              ondragleave="this.classList.remove('ring-2', 'ring-indigo-400')"
              ondrop="handleDrop(event, '{{.}}')"
              {{end}}>
-            <div class="flex items-center justify-between cursor-pointer select-none kanban-header" data-col="{{.}}">
-                <div class="flex items-center gap-2">
-                    <svg class="kanban-chevron h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{{statusLabel .}}</h3>
+            <!-- Expanded header -->
+            <div class="kanban-expanded p-3">
+                <div class="flex items-center justify-between cursor-pointer select-none kanban-header" data-col="{{.}}">
+                    <div class="flex items-center gap-2">
+                        <svg class="h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{{statusLabel .}}</h3>
+                    </div>
+                    <span class="kanban-count rounded-full bg-gray-200 dark:bg-gray-600 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-400">
+                        {{$episodes := index $.Columns .}}
+                        {{if $episodes}}{{len $episodes}}{{else}}0{{end}}
+                    </span>
                 </div>
-                <span class="rounded-full bg-gray-200 dark:bg-gray-600 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-400">
+                <div class="space-y-2 mt-3" id="column-{{.}}">
+                    {{$episodes := index $.Columns .}}
+                    {{range $episodes}}
+                    <div class="{{if $.CanEdit}}cursor-grab{{end}} rounded-md bg-white dark:bg-gray-800 p-3 shadow-sm hover:shadow transition-all duration-300"
+                         {{if $.CanEdit}}draggable="true"{{end}}
+                         data-episode-id="{{.ID}}"
+                         {{if $.CanEdit}}ondragstart="event.dataTransfer.setData('text/plain', '{{.ID}}')"{{end}}>
+                        <a href="/episodes/{{.ID}}" class="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400">
+                            {{.Title}}
+                        </a>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{.ShowName}}</p>
+                        {{if .EpisodeNumber}}
+                        <span class="mt-1 inline-block text-xs text-gray-400 dark:text-gray-500">
+                            {{episodeCode .SeasonNumber .EpisodeNumber}}
+                        </span>
+                        {{end}}
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+            <!-- Collapsed vertical header -->
+            <div class="kanban-collapsed-bar hidden cursor-pointer select-none flex flex-col items-center py-3 px-1 gap-2" data-col="{{.}}">
+                <svg class="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                <span class="kanban-count rounded-full bg-gray-200 dark:bg-gray-600 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-400">
                     {{$episodes := index $.Columns .}}
                     {{if $episodes}}{{len $episodes}}{{else}}0{{end}}
                 </span>
-            </div>
-            <div class="space-y-2 mt-3" id="column-{{.}}">
-                {{$episodes := index $.Columns .}}
-                {{range $episodes}}
-                <div class="{{if $.CanEdit}}cursor-grab{{end}} rounded-md bg-white dark:bg-gray-800 p-3 shadow-sm hover:shadow transition-all duration-300"
-                     {{if $.CanEdit}}draggable="true"{{end}}
-                     data-episode-id="{{.ID}}"
-                     {{if $.CanEdit}}ondragstart="event.dataTransfer.setData('text/plain', '{{.ID}}')"{{end}}>
-                    <a href="/episodes/{{.ID}}" class="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400">
-                        {{.Title}}
-                    </a>
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{.ShowName}}</p>
-                    {{if .EpisodeNumber}}
-                    <span class="mt-1 inline-block text-xs text-gray-400 dark:text-gray-500">
-                        {{episodeCode .SeasonNumber .EpisodeNumber}}
-                    </span>
-                    {{end}}
-                </div>
-                {{end}}
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300" style="writing-mode: vertical-lr">{{statusLabel .}}</span>
             </div>
         </div>
         {{end}}
@@ -84,26 +96,25 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     }
 
-    function collapseColumn(col, status) {
-        var cards = col.querySelector('[id^="column-"]');
-        if (!cards) return;
-        cards.style.display = 'none';
+    function collapseColumn(col) {
+        var expanded = col.querySelector('.kanban-expanded');
+        var collapsed = col.querySelector('.kanban-collapsed-bar');
+        if (!expanded || !collapsed) return;
+        expanded.classList.add('hidden');
+        collapsed.classList.remove('hidden');
         col.classList.add('kanban-collapsed');
         col.style.minWidth = '';
-        col.style.width = '3.5rem';
-        var chevron = col.querySelector('.kanban-chevron');
-        if (chevron) chevron.style.transform = 'rotate(-90deg)';
+        col.style.width = '';
     }
 
-    function expandColumn(col, status) {
-        var cards = col.querySelector('[id^="column-"]');
-        if (!cards) return;
-        cards.style.display = '';
+    function expandColumn(col) {
+        var expanded = col.querySelector('.kanban-expanded');
+        var collapsed = col.querySelector('.kanban-collapsed-bar');
+        if (!expanded || !collapsed) return;
+        collapsed.classList.add('hidden');
+        expanded.classList.remove('hidden');
         col.classList.remove('kanban-collapsed');
-        col.style.width = '';
         col.style.minWidth = '280px';
-        var chevron = col.querySelector('.kanban-chevron');
-        if (chevron) chevron.style.transform = '';
     }
 
     function toggleColumn(status) {
@@ -113,10 +124,10 @@
         var idx = collapsed.indexOf(status);
         if (idx === -1) {
             collapsed.push(status);
-            collapseColumn(col, status);
+            collapseColumn(col);
         } else {
             collapsed.splice(idx, 1);
-            expandColumn(col, status);
+            expandColumn(col);
         }
         saveCollapsed(collapsed);
     }
@@ -126,16 +137,23 @@
     document.querySelectorAll('[data-status]').forEach(function(col) {
         var status = col.dataset.status;
         if (collapsed.indexOf(status) !== -1) {
-            collapseColumn(col, status);
+            collapseColumn(col);
         } else {
             col.style.minWidth = '280px';
         }
     });
 
-    // Click handlers on headers
+    // Click handlers on expanded headers
     document.querySelectorAll('.kanban-header').forEach(function(header) {
         header.addEventListener('click', function() {
             toggleColumn(header.dataset.col);
+        });
+    });
+
+    // Click handlers on collapsed bars
+    document.querySelectorAll('.kanban-collapsed-bar').forEach(function(bar) {
+        bar.addEventListener('click', function() {
+            toggleColumn(bar.dataset.col);
         });
     });
 
@@ -147,7 +165,7 @@
             collapsed.splice(idx, 1);
             saveCollapsed(collapsed);
             var col = document.querySelector('[data-status="' + status + '"]');
-            if (col) expandColumn(col, status);
+            if (col) expandColumn(col);
         }
     };
 })();
