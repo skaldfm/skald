@@ -44,16 +44,27 @@ RSS feed generation, analytics, Obsidian/Notion integration, multi-user/teams, a
 
 ```sql
 -- Core tables
-Show       (id, name, description, artwork, created_at, updated_at)
-Episode    (id, show_id FK, title, episode_number, season_number, description,
-            status ENUM, publish_date, script TEXT, show_notes TEXT,
+Show       (id, name, description, artwork, website, podcast_host, color,
             created_at, updated_at)
-Guest      (id, name, email, bio, website, created_at, updated_at)
+Episode    (id, show_id FK, title, episode_number, season_number, description,
+            status ENUM, publish_date, script TEXT, show_notes TEXT, artwork,
+            created_at, updated_at)
+Guest      (id, name, email, bio, website, image, company, podcast,
+            twitter, instagram, linkedin, mastodon, is_host,
+            created_at, updated_at)
 EpisodeGuest (episode_id, guest_id, role)
+ShowHost   (show_id, guest_id)
+Sponsorship (id, name, contact_name, contact_email, website, ad_copy,
+            cpm, total_cost, avg_listens, drop_date, payment_due,
+            order_doc, notes, created_at, updated_at)
+EpisodeSponsor (episode_id, sponsorship_id)
 Asset      (id, episode_id FK, filename, filepath, filetype, filesize,
             asset_type ENUM, created_at)
 Tag        (id, name)
 EpisodeTag (episode_id, tag_id)
+User       (id, username, email, password_hash, role, created_at, updated_at)
+UserShow   (user_id, show_id)
+SiteSetting (key, value)
 ```
 
 Status enum: `idea`, `research`, `scripted`, `recorded`, `edited`, `published`
@@ -70,18 +81,23 @@ skald/
 ├── go.mod
 ├── main.go
 ├── internal/
+│   ├── auth/          # Authentication, sessions, RBAC
+│   ├── backup/        # Backup/restore manager
 │   ├── config/
 │   ├── database/      # Connection, migrations
 │   ├── handlers/      # HTTP handlers (thin)
 │   ├── models/        # Data models and queries
-│   ├── prompter/      # Prompter logic
 │   └── views/         # Template rendering helpers
 ├── migrations/        # Numbered SQL files
 ├── templates/
 │   ├── layouts/
 │   ├── episodes/
 │   ├── shows/
+│   ├── guests/
+│   ├── sponsorships/
 │   ├── prompter/
+│   ├── admin/
+│   ├── auth/
 │   └── components/    # Reusable partials
 ├── static/
 │   ├── css/
