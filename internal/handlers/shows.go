@@ -81,6 +81,7 @@ func (h *ShowHandler) Create(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
 	description := strings.TrimSpace(r.FormValue("description"))
 	website := strings.TrimSpace(r.FormValue("website"))
+	podcastHost := strings.TrimSpace(r.FormValue("podcast_host"))
 	color := r.FormValue("color")
 
 	if name == "" {
@@ -89,6 +90,7 @@ func (h *ShowHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"Name":        name,
 			"Description": description,
 			"Website":     website,
+			"PodcastHost": podcastHost,
 			"Color":       color,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -96,7 +98,7 @@ func (h *ShowHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	show, err := h.store.Create(name, description, website, color)
+	show, err := h.store.Create(name, description, website, podcastHost, color)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -221,6 +223,7 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
 	description := strings.TrimSpace(r.FormValue("description"))
 	website := strings.TrimSpace(r.FormValue("website"))
+	podcastHost := strings.TrimSpace(r.FormValue("podcast_host"))
 	color := r.FormValue("color")
 
 	if name == "" {
@@ -231,6 +234,7 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 			hostItems[i] = pickerItem{ID: g.ID, Name: g.Name}
 		}
 		show.Website = website
+		show.PodcastHost = podcastHost
 		show.Color = color
 		data := map[string]any{
 			"Show":          show,
@@ -290,7 +294,7 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 		artwork = ""
 	}
 
-	if err := h.store.Update(show.ID, name, description, artwork, website, color); err != nil {
+	if err := h.store.Update(show.ID, name, description, artwork, website, podcastHost, color); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

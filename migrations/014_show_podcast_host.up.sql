@@ -1,0 +1,1 @@
+ALTER TABLE shows ADD COLUMN podcast_host TEXT NOT NULL DEFAULT '';
