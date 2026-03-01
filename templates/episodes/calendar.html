@@ -62,7 +62,7 @@
                 </div>
                 <div class="space-y-1">
                     {{range .Episodes}}
-                    <a href="/episodes/{{.ID}}" class="block rounded px-1.5 py-0.5 text-xs truncate {{statusColor .Status}} hover:opacity-80" title="{{.Title}} — {{.ShowName}}">
+                    <a href="/episodes/{{.ID}}" class="block rounded px-1.5 py-0.5 text-xs truncate {{index $.ShowColors .ShowID | showColor}} hover:opacity-80" title="{{.Title}} — {{.ShowName}}">
                         {{.Title}}
                     </a>
                     {{end}}
@@ -80,7 +80,7 @@
         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Unscheduled</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {{range .Unscheduled}}
-            <a href="/episodes/{{.ID}}" class="flex items-center space-x-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 hover:shadow-sm transition-shadow">
+            <a href="/episodes/{{.ID}}" class="flex items-center space-x-3 rounded-lg border border-gray-200 dark:border-gray-700 {{index $.ShowColors .ShowID | showColor}} p-3 hover:shadow-sm transition-shadow">
                 <span class="inline-block rounded px-2 py-0.5 text-xs {{statusColor .Status}}">{{statusLabel .Status}}</span>
                 <div class="min-w-0">
                     <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{.Title}}</p>

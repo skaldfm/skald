@@ -47,6 +47,19 @@
         </div>
 
         <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Color</label>
+            <div class="mt-2 flex items-center space-x-2">
+                {{$current := .Show.Color}}
+                {{range showColorPalette}}
+                <label class="cursor-pointer">
+                    <input type="radio" name="color" value="{{.}}" class="peer sr-only" {{if or (eq . $current) (and (eq $current "") (eq . "slate"))}}checked{{end}}>
+                    <span class="block h-8 w-8 rounded-full {{showColorDot .}} ring-2 ring-transparent peer-checked:ring-indigo-500 peer-checked:ring-offset-2 dark:peer-checked:ring-offset-gray-900 hover:opacity-80"></span>
+                </label>
+                {{end}}
+            </div>
+        </div>
+
+        <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Hosts</label>
             <div class="tag-picker" data-name="host_ids"
                  data-items='{{toJSON .HostItems}}'

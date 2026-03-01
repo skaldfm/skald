@@ -27,20 +27,68 @@ func SetLogoPathFunc(fn func() string) {
 	logoPathFunc = fn
 }
 
+// ShowColorPalette is the ordered list of available show color keys.
+var ShowColorPalette = []string{"slate", "red", "orange", "yellow", "green", "blue", "purple", "pink"}
+
+// ShowColor returns Tailwind classes for an episode card background tinted by show color.
+func ShowColor(key string) string {
+	if key == "" {
+		key = "slate"
+	}
+	colors := map[string]string{
+		"slate":  "bg-slate-100 dark:bg-slate-800/60",
+		"red":    "bg-red-100 dark:bg-red-900/30",
+		"orange": "bg-orange-100 dark:bg-orange-900/30",
+		"yellow": "bg-yellow-100 dark:bg-yellow-900/30",
+		"green":  "bg-green-100 dark:bg-green-900/30",
+		"blue":   "bg-blue-100 dark:bg-blue-900/30",
+		"purple": "bg-purple-100 dark:bg-purple-900/30",
+		"pink":   "bg-pink-100 dark:bg-pink-900/30",
+	}
+	if c, ok := colors[key]; ok {
+		return c
+	}
+	return colors["slate"]
+}
+
+// ShowColorDot returns a solid Tailwind bg class for a color swatch dot.
+func ShowColorDot(key string) string {
+	if key == "" {
+		key = "slate"
+	}
+	dots := map[string]string{
+		"slate":  "bg-slate-400",
+		"red":    "bg-red-400",
+		"orange": "bg-orange-400",
+		"yellow": "bg-yellow-400",
+		"green":  "bg-green-400",
+		"blue":   "bg-blue-400",
+		"purple": "bg-purple-400",
+		"pink":   "bg-pink-400",
+	}
+	if c, ok := dots[key]; ok {
+		return c
+	}
+	return dots["slate"]
+}
+
 // FuncMap returns the shared template function map.
 func FuncMap() template.FuncMap {
 	return template.FuncMap{
-		"statusLabel":    StatusLabel,
-		"statusColor":    StatusColor,
-		"statusBarColor": StatusBarColor,
-		"formatBytes":    formatBytes,
-		"episodeCode":    EpisodeCode,
-		"renderMarkdown": renderMarkdown,
-		"formatCurrency": formatCurrency,
-		"formatFloat":    formatFloat,
-		"contains":       containsInt64,
-		"toJSON":          toJSON,
-		"hasPrefix":       strings.HasPrefix,
+		"statusLabel":      StatusLabel,
+		"statusColor":      StatusColor,
+		"statusBarColor":   StatusBarColor,
+		"showColor":        ShowColor,
+		"showColorDot":     ShowColorDot,
+		"showColorPalette": func() []string { return ShowColorPalette },
+		"formatBytes":      formatBytes,
+		"episodeCode":      EpisodeCode,
+		"renderMarkdown":   renderMarkdown,
+		"formatCurrency":   formatCurrency,
+		"formatFloat":      formatFloat,
+		"contains":         containsInt64,
+		"toJSON":           toJSON,
+		"hasPrefix":        strings.HasPrefix,
 	}
 }
 

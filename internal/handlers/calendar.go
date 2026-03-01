@@ -130,6 +130,11 @@ func (h *CalendarHandler) Calendar(w http.ResponseWriter, r *http.Request) {
 	prevMonth := time.Date(year, time.Month(month)-1, 1, 0, 0, 0, 0, time.Local)
 	nextMonth := time.Date(year, time.Month(month)+1, 1, 0, 0, 0, 0, time.Local)
 
+	showColors := make(map[int64]string, len(shows))
+	for _, s := range shows {
+		showColors[s.ID] = s.Color
+	}
+
 	data := map[string]any{
 		"Weeks":       weeks,
 		"Year":        year,
@@ -140,6 +145,7 @@ func (h *CalendarHandler) Calendar(w http.ResponseWriter, r *http.Request) {
 		"NextYear":    nextMonth.Year(),
 		"NextMonth":   int(nextMonth.Month()),
 		"Shows":       shows,
+		"ShowColors":  showColors,
 		"Filter":      filter,
 		"Unscheduled": unscheduled,
 	}
@@ -299,9 +305,15 @@ func (h *TimelineHandler) Timeline(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	showColors := make(map[int64]string, len(shows))
+	for _, s := range shows {
+		showColors[s.ID] = s.Color
+	}
+
 	data := map[string]any{
 		"Columns":     columns,
 		"Shows":       shows,
+		"ShowColors":  showColors,
 		"Filter":      filter,
 		"Unscheduled": unscheduled,
 		"TodayIdx":    todayIdx,
