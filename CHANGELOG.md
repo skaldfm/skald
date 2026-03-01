@@ -4,6 +4,8 @@ All notable changes to Skald will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-01
+
 ### Added
 - **Backup restore** — restore from any backup directly in the admin UI; validates backup integrity, creates a safety "pre-restore" backup, atomically replaces the database, and restarts the application
 - **Episode number hints** — new episode form auto-suggests the next available episode number when selecting a show or season, with a hint showing which numbers are taken
