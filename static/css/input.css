@@ -1,5 +1,16 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 @source "../../templates";
+@source "../../internal";
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+.htmx-indicator {
+  display: none;
+}
+.htmx-request .htmx-indicator {
+  display: inline-block;
+}
+.htmx-request.htmx-indicator {
+  display: inline-block;
+}

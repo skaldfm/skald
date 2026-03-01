@@ -41,7 +41,8 @@
                 <form method="POST" action="/episodes/{{$.Episode.ID}}/status"
                       hx-post="/episodes/{{$.Episode.ID}}/status"
                       hx-target="#status-badge"
-                      hx-swap="innerHTML">
+                      hx-swap="innerHTML"
+                      hx-indicator="closest div">
                     <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                     <input type="hidden" name="status" value="{{.}}">
                     <button type="submit"
@@ -53,6 +54,7 @@
                             {{end}}">
                         {{statusLabel .}}
                     </button>
+                    <svg class="htmx-indicator h-3 w-3 animate-spin text-gray-400 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                 </form>
                 {{else}}
                 <span class="rounded-full px-3 py-1 text-xs font-medium

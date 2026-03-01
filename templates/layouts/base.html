@@ -7,7 +7,7 @@
     <title>{{block "title" .}}Skald{{end}}</title>
     <link rel="icon" type="image/png" href="{{.LogoPath}}">
     <link rel="stylesheet" href="/static/css/style.css">
-    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="/static/js/htmx.min.js"></script>
     <script>
         if (localStorage.getItem('theme') === 'dark' ||
             (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -23,6 +23,24 @@
         </main>
     </div>
     <script src="/static/js/tag-picker.js"></script>
+    <script>
+    document.addEventListener('submit', function(e) {
+        var btn = e.target.querySelector('button[type="submit"]');
+        if (btn && !btn.disabled) {
+            btn.disabled = true;
+            btn.dataset.originalText = btn.textContent;
+            btn.textContent = 'Saving\u2026';
+        }
+    });
+    document.addEventListener('htmx:afterRequest', function(e) {
+        var btn = e.target.querySelector('button[type="submit"]');
+        if (btn && btn.dataset.originalText) {
+            btn.disabled = false;
+            btn.textContent = btn.dataset.originalText;
+            delete btn.dataset.originalText;
+        }
+    });
+    </script>
 </body>
 </html>
 {{end}}
