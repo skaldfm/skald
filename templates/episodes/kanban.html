@@ -28,23 +28,26 @@
         </div>
     </div>
 
-    <div class="flex gap-4 overflow-x-auto pb-4">
+    <div class="flex gap-4 overflow-x-auto pb-4" id="kanban-board">
         {{range .Statuses}}
-        <div class="min-w-[280px] flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700 p-3"
+        <div class="flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700 p-3 transition-all duration-200"
              data-status="{{.}}"
              {{if $.CanEdit}}
-             ondragover="event.preventDefault(); this.classList.add('ring-2', 'ring-indigo-400')"
+             ondragover="event.preventDefault(); if(!this.classList.contains('kanban-collapsed')) this.classList.add('ring-2', 'ring-indigo-400')"
              ondragleave="this.classList.remove('ring-2', 'ring-indigo-400')"
              ondrop="handleDrop(event, '{{.}}')"
              {{end}}>
-            <div class="mb-3 flex items-center justify-between">
-                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{{statusLabel .}}</h3>
+            <div class="flex items-center justify-between cursor-pointer select-none kanban-header" data-col="{{.}}">
+                <div class="flex items-center gap-2">
+                    <svg class="kanban-chevron h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{{statusLabel .}}</h3>
+                </div>
                 <span class="rounded-full bg-gray-200 dark:bg-gray-600 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-400">
                     {{$episodes := index $.Columns .}}
                     {{if $episodes}}{{len $episodes}}{{else}}0{{end}}
                 </span>
             </div>
-            <div class="space-y-2" id="column-{{.}}">
+            <div class="space-y-2 mt-3" id="column-{{.}}">
                 {{$episodes := index $.Columns .}}
                 {{range $episodes}}
                 <div class="{{if $.CanEdit}}cursor-grab{{end}} rounded-md bg-white dark:bg-gray-800 p-3 shadow-sm hover:shadow transition-all duration-300"
@@ -68,11 +71,96 @@
     </div>
 </div>
 
+<script>
+(function() {
+    var STORAGE_KEY = 'skald-kanban-collapsed';
+
+    function getCollapsed() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+        catch(e) { return []; }
+    }
+
+    function saveCollapsed(list) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
+
+    function collapseColumn(col, status) {
+        var cards = col.querySelector('[id^="column-"]');
+        if (!cards) return;
+        cards.style.display = 'none';
+        col.classList.add('kanban-collapsed');
+        col.style.minWidth = '';
+        col.style.width = '3.5rem';
+        var chevron = col.querySelector('.kanban-chevron');
+        if (chevron) chevron.style.transform = 'rotate(-90deg)';
+    }
+
+    function expandColumn(col, status) {
+        var cards = col.querySelector('[id^="column-"]');
+        if (!cards) return;
+        cards.style.display = '';
+        col.classList.remove('kanban-collapsed');
+        col.style.width = '';
+        col.style.minWidth = '280px';
+        var chevron = col.querySelector('.kanban-chevron');
+        if (chevron) chevron.style.transform = '';
+    }
+
+    function toggleColumn(status) {
+        var col = document.querySelector('[data-status="' + status + '"]');
+        if (!col) return;
+        var collapsed = getCollapsed();
+        var idx = collapsed.indexOf(status);
+        if (idx === -1) {
+            collapsed.push(status);
+            collapseColumn(col, status);
+        } else {
+            collapsed.splice(idx, 1);
+            expandColumn(col, status);
+        }
+        saveCollapsed(collapsed);
+    }
+
+    // Restore saved state
+    var collapsed = getCollapsed();
+    document.querySelectorAll('[data-status]').forEach(function(col) {
+        var status = col.dataset.status;
+        if (collapsed.indexOf(status) !== -1) {
+            collapseColumn(col, status);
+        } else {
+            col.style.minWidth = '280px';
+        }
+    });
+
+    // Click handlers on headers
+    document.querySelectorAll('.kanban-header').forEach(function(header) {
+        header.addEventListener('click', function() {
+            toggleColumn(header.dataset.col);
+        });
+    });
+
+    // Auto-expand on drop
+    window._kanbanExpandOnDrop = function(status) {
+        var collapsed = getCollapsed();
+        var idx = collapsed.indexOf(status);
+        if (idx !== -1) {
+            collapsed.splice(idx, 1);
+            saveCollapsed(collapsed);
+            var col = document.querySelector('[data-status="' + status + '"]');
+            if (col) expandColumn(col, status);
+        }
+    };
+})();
+</script>
+
 {{if .CanEdit}}
 <script>
 function handleDrop(event, newStatus) {
     event.preventDefault();
     event.currentTarget.classList.remove('ring-2', 'ring-indigo-400');
+
+    // Auto-expand target column if collapsed
+    if (window._kanbanExpandOnDrop) window._kanbanExpandOnDrop(newStatus);
 
     const episodeId = event.dataTransfer.getData('text/plain');
     if (!episodeId) return;
