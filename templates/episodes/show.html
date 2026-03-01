@@ -33,7 +33,7 @@
     </div>
 
     <!-- Status pipeline -->
-    <div class="rounded-lg bg-white dark:bg-gray-800 p-4 shadow">
+    <div id="status-pipeline" class="rounded-lg bg-white dark:bg-gray-800 p-4 shadow">
         <div class="flex items-center justify-between">
             {{range .Statuses}}
             <div class="flex flex-col items-center">
@@ -45,8 +45,8 @@
                       hx-indicator="closest div">
                     <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                     <input type="hidden" name="status" value="{{.}}">
-                    <button type="submit"
-                            class="rounded-full px-3 py-1 text-xs font-medium transition-colors
+                    <button type="submit" data-status="{{.}}"
+                            class="status-btn rounded-full px-3 py-1 text-xs font-medium transition-colors
                             {{if eq . $.Episode.Status}}
                                 {{statusColor .}} ring-2 ring-offset-2 ring-indigo-500
                             {{else}}
@@ -70,6 +70,39 @@
             {{end}}
         </div>
     </div>
+    <script>
+    (function() {
+        var statusColors = {
+            'idea':      'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+            'research':  'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+            'scripted':  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+            'recorded':  'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+            'edited':    'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+            'published': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+        };
+        var inactiveClasses = 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600';
+        var allColorClasses = Object.values(statusColors).join(' ').split(/\s+/)
+            .concat(inactiveClasses.split(/\s+/))
+            .concat(['ring-2', 'ring-offset-2', 'ring-indigo-500']);
+
+        var pipeline = document.getElementById('status-pipeline');
+        if (!pipeline) return;
+        pipeline.addEventListener('htmx:afterRequest', function(e) {
+            var form = e.target.closest('form');
+            if (!form) return;
+            var newStatus = form.querySelector('input[name="status"]').value;
+            pipeline.querySelectorAll('.status-btn').forEach(function(btn) {
+                allColorClasses.forEach(function(c) { btn.classList.remove(c); });
+                if (btn.dataset.status === newStatus) {
+                    (statusColors[newStatus] || '').split(/\s+/).forEach(function(c) { btn.classList.add(c); });
+                    btn.classList.add('ring-2', 'ring-offset-2', 'ring-indigo-500');
+                } else {
+                    inactiveClasses.split(/\s+/).forEach(function(c) { btn.classList.add(c); });
+                }
+            });
+        });
+    })();
+    </script>
 
     <!-- Details -->
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
