@@ -17,6 +17,7 @@ Single Go binary, SQLite database, no external dependencies. Deploy with Docker 
 - **Full episode metadata** — title, season/episode numbers (S01E01 format with uniqueness enforcement and next-number suggestions), description, publish date, status, script, show notes
 - **Episode artwork** — per-episode cover art upload with thumbnails in list views
 - **Show artwork** — cover art for each podcast
+- **Show details** — website URL, podcast hosting platform, color-coded identity
 - **Tags** — flexible tagging system for episodes
 
 ### Production Pipeline
@@ -27,8 +28,8 @@ Single Go binary, SQLite database, no external dependencies. Deploy with Docker 
 ### Views
 - **List view** — sortable, filterable episode table with search, show filter, and status filter
 - **Kanban board** — visual drag-and-drop board grouped by pipeline stage
-- **Calendar** — monthly grid showing episodes on their publish dates, with navigation and show filtering
-- **Timeline** — horizontal scrollable timeline with month and week zoom levels, auto-scrolls to current period
+- **Calendar** — monthly grid showing episodes on their publish dates, with navigation and show filtering; episodes color-coded by show
+- **Timeline** — horizontal scrollable timeline with month and week zoom levels, auto-scrolls to current period; episodes color-coded by show
 
 ### Dashboard
 - Overview stats (shows, episodes, published count, guests)

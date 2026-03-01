@@ -4,6 +4,17 @@ All notable changes to Skald will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-01
+
+### Added
+- **Show colors** — assign a color to each show from an 8-color palette; episodes on calendar and timeline views are tinted by their show's color for easy visual distinction
+- **Show website** — URL field on shows, displayed as a clickable link on the show detail page
+- **Show podcast host** — freetext field for the hosting platform (e.g. Buzzsprout, Libsyn), shown on the detail page
+- **Collapsible kanban columns** — click column headers to collapse/expand pipeline stages; state persisted in localStorage
+
+### Fixed
+- Status pipeline highlight bar on show detail page now follows correctly after HTMX status changes
+
 ## [0.2.0] - 2026-03-01
 
 ### Added
