@@ -174,7 +174,11 @@ func main() {
 
 	// Set up router
 	r := chi.NewRouter()
-	r.Use(middleware.RealIP)
+	// RealIP trusts X-Forwarded-For/X-Real-IP, which is only safe behind a
+	// reverse proxy that sets them — Skald's documented deployment. It gives the
+	// real client IP for logging and login rate-limiting; a direct-to-internet
+	// deployment should front the app with such a proxy.
+	r.Use(middleware.RealIP) //nolint:staticcheck // trusted-proxy deployment; see comment above
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(maxBodyBytes(cfg.MaxUploadBytes))
