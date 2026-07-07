@@ -12,6 +12,10 @@ LICENSE
 CLAUDE.md
 data/
 node_modules/
+.github/
+docs/
+Makefile
+.golangci.yml
 
 # Build artifacts
 static/css/style.css

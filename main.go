@@ -90,6 +90,12 @@ func main() {
 
 	cfg := config.Load()
 
+	// Only SQLite is wired up; a stray SKALD_DB_TYPE=postgres would otherwise
+	// fall through and open a garbage SQLite path. Fail loudly instead.
+	if cfg.DBType != "sqlite" {
+		log.Fatalf("Unsupported SKALD_DB_TYPE %q: only \"sqlite\" is implemented", cfg.DBType)
+	}
+
 	// Open database
 	db, err := database.Open(cfg.DBURL, cfg.DataDir)
 	if err != nil {

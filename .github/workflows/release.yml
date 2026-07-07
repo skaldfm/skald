@@ -29,7 +29,7 @@ jobs:
       # so the CSS must be compiled before `go build` or releases ship unstyled.
       - name: Build CSS
         run: |
-          npm install tailwindcss @tailwindcss/typography
+          npm install
           npx @tailwindcss/cli -i static/css/input.css -o static/css/style.css --minify
 
       - name: Build binaries

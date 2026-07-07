@@ -1,9 +1,12 @@
 # CSS build stage
 FROM node:22-alpine AS css
 WORKDIR /build
+# Pinned Tailwind toolchain (package.json) so the generated CSS is reproducible
+# rather than tracking whatever "latest" resolves to at build time.
+COPY package.json package.json
+RUN npm install
 COPY static/css/input.css static/css/input.css
 COPY templates/ templates/
-RUN npm install tailwindcss @tailwindcss/typography
 RUN npx @tailwindcss/cli -i static/css/input.css -o static/css/style.css --minify
 
 # Go build stage

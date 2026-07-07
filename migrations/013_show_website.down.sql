@@ -1,1 +1,0 @@
-ALTER TABLE shows DROP COLUMN website;

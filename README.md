@@ -93,6 +93,11 @@ Built-in teleprompter for recording sessions:
 - **Backup restore** — restore from any backup in the admin UI with integrity validation and automatic safety backup
 - Uses SQLite `VACUUM INTO` for consistent snapshots safe with WAL mode
 
+> **Note:** Backups cover the **database only**, not uploaded files (`data/uploads/`).
+> Restoring an old database can therefore reference assets that no longer exist on
+> disk. Back up the whole `data/` directory (or the mounted volume) at the
+> filesystem level — e.g. a volume snapshot or `restic`/`borg` — to capture uploads.
+
 ## Tech Stack
 
 - **Backend:** Go with [chi](https://github.com/go-chi/chi) router
@@ -106,8 +111,10 @@ Built-in teleprompter for recording sessions:
 
 ### Docker (recommended)
 
+`docker compose` needs a compose file in the working directory, so grab it first:
+
 ```sh
-docker pull skaldfm/skald:latest
+curl -O https://raw.githubusercontent.com/skaldfm/skald/main/docker-compose.yml
 docker compose up -d
 ```
 

@@ -37,4 +37,5 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: go test ./...
+      # -race catches data races (modernc.org/sqlite is pure Go, so no CGO needed).
+      - run: go test -race ./...
