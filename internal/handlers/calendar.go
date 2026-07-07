@@ -57,13 +57,13 @@ func (h *CalendarHandler) Calendar(w http.ResponseWriter, r *http.Request) {
 
 	episodes, err := h.episodes.List(filter)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
 	shows, err := accessibleShows(r, h.shows)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -151,7 +151,7 @@ func (h *CalendarHandler) Calendar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := views.Render(w, r, "episodes/calendar.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -191,13 +191,13 @@ func (h *TimelineHandler) Timeline(w http.ResponseWriter, r *http.Request) {
 
 	episodes, err := h.episodes.List(filter)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
 	shows, err := accessibleShows(r, h.shows)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -321,6 +321,6 @@ func (h *TimelineHandler) Timeline(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := views.Render(w, r, "episodes/timeline.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }

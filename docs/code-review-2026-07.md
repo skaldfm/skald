@@ -69,7 +69,7 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 
 - [x] **Internal error text leaked to browsers** — fixed
   **Applied:** added `serverError(w, r, err)` helper (`internal/handlers/errors.go`) that logs the detail and returns a generic 500; replaced the `http.Error(w, err.Error(), 500)` sites across the handlers, plus the admin restore message. Invalid episode status already returns 400 (validated against `models.Statuses`).
-  **⚠️ Correction (follow-up review):** this was **not** exhaustive — `internal/handlers/calendar.go` was never converted and still leaks internal error text at lines 60, 66, 154, 194, 200, 324. Re-open and finish the conversion there.
+  **⚠️ Correction (follow-up review):** this was **not** exhaustive — `internal/handlers/calendar.go` was never converted and still leaked internal error text at 6 sites. **✅ Now fixed:** all six `http.Error(w, err.Error(), 500)` sites in `calendar.go` (Calendar + Timeline handlers) converted to `serverError(w, r, err)`. No `err.Error()` leaks remain in any handler.
 
 ### Lower-severity correctness
 - [x] Episode-number uniqueness NULL-season loophole — migration `015` replaces the index with an expression index on `COALESCE(season_number, -1)` so NULL-season duplicates are now rejected at the DB level (unit-tested). The app-level check-then-write race remains theoretically possible but is bounded by `SetMaxOpenConns(1)` and now backstopped by the DB constraint.
@@ -106,7 +106,7 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 ### Ops / config lower-severity
 - [x] `linux-amd64` release binary is glibc-dynamic (CGO unset) — ✅ `CGO_ENABLED=0` set in `release.yml` + `Makefile dist`.
 - [x] `SKALD_SECRET_KEY` is dead config — ✅ DONE. Field removed entirely from `config.go`; `.env.example` no longer mentions it.
-- [ ] `SKALD_DB_TYPE=postgres` silently opens a garbage sqlite path (`database.go:27` hardcodes the sqlite driver, never inspects `cfg.DBType`). Fail fast on `DBType != "sqlite"`. **Still open.**
+- [x] `SKALD_DB_TYPE=postgres` silently opens a garbage sqlite path — ✅ DONE. `main.go:118` fails fast (`slog.Error` + `os.Exit(1)`) when `cfg.DBType != "sqlite"`, before `database.Open`. (Guard lives in `main.go`, not `database.go`.)
 - [x] Down migrations are dead code — ✅ DONE. The `*.down.sql` files were deleted; only `*.up.sql` (001–016) remain.
 - [x] `chown -R /app/data` on every start — ✅ gated on a `stat` check in entrypoint.sh.
 - [x] Unpinned `npm install tailwindcss` / `.dockerignore` / CI `-race` / golangci-lint `latest` — ✅ DONE. tailwind pinned to `4.1.11` in `package.json`; `.dockerignore` now lists `.github/`, `Makefile`, `docs/`; CI runs `go test -race ./...`; golangci-lint pinned to `v2.12.2`.
