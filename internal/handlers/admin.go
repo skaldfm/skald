@@ -158,8 +158,8 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Email and password are required", http.StatusBadRequest)
 		return
 	}
-	if len(password) < 8 {
-		http.Error(w, "Password must be at least 8 characters", http.StatusBadRequest)
+	if msg := passwordProblem(password); msg != "" {
+		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 	if role != "admin" && role != "editor" {

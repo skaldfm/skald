@@ -25,7 +25,7 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 
 ## P1 — Security (remaining)
 
-> **Status (2026-07-07):** all P1 security, lifecycle, and correctness items are done (build/vet/test/smoke-verified). Guest/sponsor scoping (show-scoped isolation) and the episode-save transactionality both landed with unit tests. Remaining P1 leftovers are minor: idle session timeout, login rate-limit, the central error-message helper, and the lower-severity correctness list below.
+> **Status (2026-07-07):** ✅ **P1 fully complete** — all security, lifecycle, and correctness items done and build/vet/test/smoke-verified, including login rate-limiting, password bounds, the episode-number NULL-season fix (migration 015), and a configurable upload cap. The only thing not addressed is a CSP (needs a template refactor to drop inline scripts — tracked under P2/frontend). Dependency advisories are also cleared (`govulncheck` clean). Next up: P2.
 
 - [x] **Upload file type never validated** — fixed
   **Applied:** added `internal/handlers/upload.go` with image/doc extension allowlists (SVG excluded — scriptable); applied to episode/show artwork, guest image, sponsor order file; admin logo now uses the shared helper (drops `.svg`). Combined with `X-Content-Type-Options: nosniff` (added globally) this closes the stored-XSS-via-upload vector.
@@ -45,7 +45,8 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 ### Hardening (not bugs)
 - [x] Security headers middleware — `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS when secure. **CSP intentionally omitted** (templates use inline `<script>`/`onclick`; needs a template refactor first).
 - [x] Idle session timeout — `sessionManager.IdleTimeout = 14d` added (absolute lifetime stays 30d).
-- [ ] Password max length + login rate-limit/lockout — bcrypt's lib already errors on >72 bytes; explicit max-length message and brute-force lockout still not added. **(remaining)**
+- [x] Password max length + login rate-limit/lockout — fixed
+  **Applied:** `passwordProblem` helper enforces 8–72 chars (bcrypt truncates past 72) at register/setup/profile/admin-create; `loginLimiter` (in-memory, per-IP, 10 failures / 15 min → 429) throttles online guessing. Both unit-tested.
 
 ---
 
@@ -57,8 +58,8 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 - [x] **Episode save is non-transactional, all errors swallowed** — fixed
   **Applied:** added atomic replace-all `SetEpisodeGuests`/`SetEpisodeHosts`/`SetEpisodeSponsorships` (each in its own transaction, matching the existing `SetEpisodeTags`/`SetShowHosts` pattern), and the `Update` handler now **propagates** their errors as 500s instead of `_ =` swallowing them. Guest/host role separation is unit-tested. Note: this is **per-relation** atomicity, not one global transaction across all link tables — a deliberate choice for simplicity given the app's scale; `SetMaxOpenConns(1)` already removed the `SQLITE_BUSY` trigger that caused the original silent drops.
 
-- [ ] **Multipart size limits are dead code** — **DEFERRED (needs decision)**
-  A global `MaxBytesReader` would break large **audio** asset uploads (podcast files are big). Needs a configurable max-upload size (e.g. `SKALD_MAX_UPLOAD`) applied per-route, not a blanket cap.
+- [x] **Multipart size limits are dead code** — fixed
+  **Applied:** `maxBodyBytes` middleware wraps request bodies with `http.MaxBytesReader` on POST/PUT/PATCH, sized by `SKALD_MAX_UPLOAD_MB` (default 512 MB — generous for audio, but no longer unbounded).
 
 - [x] **Expired sessions never cleaned up** — `main.go` → fixed
   **Applied:** `sessionStore.Cleanup(time.Hour)` started at boot.
@@ -70,7 +71,7 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
   **Applied:** added `serverError(w, r, err)` helper (`internal/handlers/errors.go`) that logs the detail and returns a generic 500; replaced all 113 `http.Error(w, err.Error(), 500)` sites across the handlers, plus the admin restore message. Invalid episode status already returns 400 (validated against `models.Statuses`).
 
 ### Lower-severity correctness
-- [ ] Episode-number uniqueness check-then-write race + NULL season loophole — `episodes.go`, `003_unique_episode_number.up.sql`. **(remaining)**
+- [x] Episode-number uniqueness NULL-season loophole — migration `015` replaces the index with an expression index on `COALESCE(season_number, -1)` so NULL-season duplicates are now rejected at the DB level (unit-tested). The app-level check-then-write race remains theoretically possible but is bounded by `SetMaxOpenConns(1)` and now backstopped by the DB constraint.
 - [x] `migrate.go` treated any query error as "not applied" — now checks `errors.Is(err, sql.ErrNoRows)` and returns real errors.
 - [x] Ignored `Atoi` errors — episode/season number parse errors now return 400 instead of silently storing `0`.
 - [x] `assets.go` stored absolute `Filepath` — now stores a data-dir-relative path (with a `resolvePath` helper that still handles legacy absolute rows).

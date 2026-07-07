@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
@@ -16,10 +17,18 @@ type AuthHandler struct {
 	guests           *models.GuestStore
 	session          *scs.SessionManager
 	openRegistration bool
+	loginLimiter     *loginLimiter
 }
 
 func NewAuthHandler(users *models.UserStore, guests *models.GuestStore, session *scs.SessionManager, openRegistration bool) *AuthHandler {
-	return &AuthHandler{users: users, guests: guests, session: session, openRegistration: openRegistration}
+	return &AuthHandler{
+		users:            users,
+		guests:           guests,
+		session:          session,
+		openRegistration: openRegistration,
+		// Allow 10 failed logins per IP per 15 minutes.
+		loginLimiter: newLoginLimiter(10, 15*time.Minute),
+	}
 }
 
 func (h *AuthHandler) Routes() chi.Router {
@@ -47,6 +56,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(r.FormValue("email"))
 	password := r.FormValue("password")
 
+	ip := clientIP(r)
+	if !h.loginLimiter.allow(ip) {
+		data := map[string]any{
+			"Error":            "Too many failed attempts. Please wait a few minutes and try again.",
+			"Email":            email,
+			"OpenRegistration": h.openRegistration,
+		}
+		w.WriteHeader(http.StatusTooManyRequests)
+		_ = views.RenderAuth(w, r, "auth/login.html", data)
+		return
+	}
+
 	user, err := h.users.GetByEmail(email)
 	valid := false
 	if err == nil && user != nil {
@@ -57,6 +78,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		auth.CheckDummyPassword(password)
 	}
 	if !valid {
+		h.loginLimiter.recordFailure(ip)
 		data := map[string]any{
 			"Error":            "Invalid email or password",
 			"Email":            email,
@@ -66,6 +88,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		_ = views.RenderAuth(w, r, "auth/login.html", data)
 		return
 	}
+
+	h.loginLimiter.reset(ip)
 
 	// Prevent session fixation
 	if err := h.session.RenewToken(r.Context()); err != nil {
@@ -116,8 +140,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		renderErr("Passwords do not match")
 		return
 	}
-	if len(password) < 8 {
-		renderErr("Password must be at least 8 characters")
+	if msg := passwordProblem(password); msg != "" {
+		renderErr(msg)
 		return
 	}
 
@@ -202,8 +226,8 @@ func (h *AuthHandler) ProfileUpdate(w http.ResponseWriter, r *http.Request) {
 			renderErr("New passwords do not match")
 			return
 		}
-		if len(newPassword) < 8 {
-			renderErr("New password must be at least 8 characters")
+		if msg := passwordProblem(newPassword); msg != "" {
+			renderErr(msg)
 			return
 		}
 		hash, err := auth.HashPassword(newPassword)
@@ -271,8 +295,8 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		renderErr("Passwords do not match")
 		return
 	}
-	if len(password) < 8 {
-		renderErr("Password must be at least 8 characters")
+	if msg := passwordProblem(password); msg != "" {
+		renderErr(msg)
 		return
 	}
 

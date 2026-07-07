@@ -50,6 +50,21 @@ func (n noListFS) Open(name string) (http.File, error) {
 	return f, nil
 }
 
+// maxBodyBytes caps the size of request bodies (uploads spool to disk during
+// multipart parsing, so an unbounded body is a disk-exhaustion vector). Applied
+// to methods that carry a body; GETs are untouched.
+func maxBodyBytes(n int64) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.Method {
+			case http.MethodPost, http.MethodPut, http.MethodPatch:
+				r.Body = http.MaxBytesReader(w, r.Body, n)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // securityHeaders sets response headers that harden the app without breaking
 // its inline scripts/styles (a Content-Security-Policy is intentionally omitted
 // until the templates drop inline handlers). nosniff also stops browsers from
@@ -162,6 +177,7 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(maxBodyBytes(cfg.MaxUploadBytes))
 	r.Use(sessionManager.LoadAndSave)
 	r.Use(csrfProtect)
 	r.Use(securityHeaders(cfg.SecureCookies))

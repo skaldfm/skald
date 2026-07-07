@@ -87,6 +87,23 @@ func TestGuestAccessibleToShows(t *testing.T) {
 	})
 }
 
+func TestEpisodeNumberUniqueWithNullSeason(t *testing.T) {
+	db := newTestDB(t)
+	show := mustExec(t, db, `INSERT INTO shows (name) VALUES ('S')`)
+	mustExec(t, db, `INSERT INTO episodes (show_id, title, status, episode_number) VALUES (?, 'A', 'idea', 5)`, show)
+
+	// Same show, same episode number, both with NULL season — the migration 015
+	// expression index must reject this (SQLite would otherwise treat NULLs as
+	// distinct and allow the duplicate).
+	if _, err := db.Exec(`INSERT INTO episodes (show_id, title, status, episode_number) VALUES (?, 'B', 'idea', 5)`, show); err == nil {
+		t.Fatal("expected a UNIQUE violation for a duplicate episode number with NULL season")
+	}
+
+	// A different number, or a season, is still fine.
+	mustExec(t, db, `INSERT INTO episodes (show_id, title, status, episode_number) VALUES (?, 'C', 'idea', 6)`, show)
+	mustExec(t, db, `INSERT INTO episodes (show_id, title, status, season_number, episode_number) VALUES (?, 'D', 'idea', 1, 5)`, show)
+}
+
 func TestSetEpisodeGuestsAndHosts(t *testing.T) {
 	db := newTestDB(t)
 	show := mustExec(t, db, `INSERT INTO shows (name) VALUES ('Show')`)

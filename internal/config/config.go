@@ -17,6 +17,7 @@ type Config struct {
 	BackupRetain     int
 	OpenRegistration bool
 	SecureCookies    bool
+	MaxUploadBytes   int64
 }
 
 func Load() *Config {
@@ -38,6 +39,14 @@ func Load() *Config {
 	if cfg.DBType == "sqlite" && cfg.DBURL == "" {
 		cfg.DBURL = filepath.Join(cfg.DataDir, "skald.db")
 	}
+
+	// Max request body size (default 512 MB — generous enough for audio assets,
+	// but bounds unbounded uploads spooling to disk).
+	maxMB := 512
+	if n, err := strconv.Atoi(envOr("SKALD_MAX_UPLOAD_MB", "512")); err == nil && n > 0 {
+		maxMB = n
+	}
+	cfg.MaxUploadBytes = int64(maxMB) << 20
 
 	return cfg
 }
