@@ -49,7 +49,7 @@ func (h *ShowHandler) Routes() chi.Router {
 func (h *ShowHandler) List(w http.ResponseWriter, r *http.Request) {
 	shows, err := accessibleShows(r, h.store)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -59,7 +59,7 @@ func (h *ShowHandler) List(w http.ResponseWriter, r *http.Request) {
 		"IsAdmin": auth.IsAdmin(user),
 	}
 	if err := views.Render(w, r, "shows/index.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -69,7 +69,7 @@ func (h *ShowHandler) New(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := views.Render(w, r, "shows/new.html", nil); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -106,7 +106,7 @@ func (h *ShowHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Color:       color,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -125,7 +125,7 @@ func (h *ShowHandler) Show(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	episodes, err := h.episodeStore.List(models.EpisodeFilter{ShowID: show.ID})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -180,7 +180,7 @@ func (h *ShowHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"CanEdit":        auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "shows/show.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -207,7 +207,7 @@ func (h *ShowHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		"IsAdmin":       auth.IsAdmin(auth.UserFromContext(r.Context())),
 	}
 	if err := views.Render(w, r, "shows/edit.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -312,7 +312,7 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 	show.PodcastHost = podcastHost
 	show.Color = color
 	if err := h.store.Update(show); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -324,7 +324,7 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := h.guests.SetShowHosts(show.ID, hostIDs); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -342,7 +342,7 @@ func (h *ShowHandler) DeleteConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.store.Delete(show.ID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -359,7 +359,7 @@ func (h *ShowHandler) getShow(w http.ResponseWriter, r *http.Request) (*models.S
 
 	show, err := h.store.Get(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return nil, err
 	}
 	if show == nil {

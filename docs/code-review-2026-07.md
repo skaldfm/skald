@@ -44,8 +44,8 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 
 ### Hardening (not bugs)
 - [x] Security headers middleware — `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS when secure. **CSP intentionally omitted** (templates use inline `<script>`/`onclick`; needs a template refactor first).
-- [ ] Idle/absolute session timeout — still a flat 30-day lifetime, no idle expiry.
-- [ ] Password max length + login rate-limit/lockout — bcrypt's lib already errors on >72 bytes; explicit max-length message and brute-force lockout still not added.
+- [x] Idle session timeout — `sessionManager.IdleTimeout = 14d` added (absolute lifetime stays 30d).
+- [ ] Password max length + login rate-limit/lockout — bcrypt's lib already errors on >72 bytes; explicit max-length message and brute-force lockout still not added. **(remaining)**
 
 ---
 
@@ -66,17 +66,16 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 - [x] **No graceful shutdown or server timeouts** — `main.go` → fixed
   **Applied:** `http.Server` with `ReadHeaderTimeout`/`IdleTimeout`, `signal.NotifyContext(SIGINT/SIGTERM)` + `srv.Shutdown`. Verified clean exit on SIGTERM. `/health` now does `db.PingContext` (returns 503 on a dead DB).
 
-- [ ] **Internal error text leaked to browsers** — **partially done**
-  `http.Error(w, err.Error(), 500)` still used in most handlers (info disclosure). **Done:** invalid episode status now returns 400 (validated against `models.Statuses` in Create/Update/UpdateStatus) instead of a raw CHECK-constraint 500.
-  **Remaining:** central error helper (log detail, return generic message) applied across handlers.
+- [x] **Internal error text leaked to browsers** — fixed
+  **Applied:** added `serverError(w, r, err)` helper (`internal/handlers/errors.go`) that logs the detail and returns a generic 500; replaced all 113 `http.Error(w, err.Error(), 500)` sites across the handlers, plus the admin restore message. Invalid episode status already returns 400 (validated against `models.Statuses`).
 
 ### Lower-severity correctness
-- [ ] Episode-number uniqueness check-then-write race + NULL season loophole — `episodes.go:163-185`, `003_unique_episode_number.up.sql`.
-- [ ] `migrate.go:42` treats any query error (not just `ErrNoRows`) as "not applied" → re-apply attempt. Use `errors.Is(err, sql.ErrNoRows)`.
-- [ ] Ignored `Atoi` errors — `episodes.go:154,158,331,337`: `episode_number=abc` silently stores `0`.
-- [ ] `assets.go:94` stores absolute `Filepath` → breaks if data dir moves/restored elsewhere. Store relative paths.
-- [ ] `views.Render` writes directly to ResponseWriter (`views.go:295`) → template error mid-render yields a garbled half-page. Render to a buffer first.
-- [ ] Dashboard counts unscoped guests — `dashboard.go:48` uses `guests.List()` while the rest of the page is scoped.
+- [ ] Episode-number uniqueness check-then-write race + NULL season loophole — `episodes.go`, `003_unique_episode_number.up.sql`. **(remaining)**
+- [x] `migrate.go` treated any query error as "not applied" — now checks `errors.Is(err, sql.ErrNoRows)` and returns real errors.
+- [x] Ignored `Atoi` errors — episode/season number parse errors now return 400 instead of silently storing `0`.
+- [x] `assets.go` stored absolute `Filepath` — now stores a data-dir-relative path (with a `resolvePath` helper that still handles legacy absolute rows).
+- [x] `views.Render` wrote directly to the ResponseWriter — now renders into a buffer first, so a template error leaves the response clean.
+- [x] Dashboard counted unscoped guests — now scoped to the user's shows (admins get all).
 
 ---
 

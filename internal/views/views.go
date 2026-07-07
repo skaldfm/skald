@@ -291,19 +291,18 @@ func injectContext(r *http.Request, data any) map[string]any {
 // Render executes a named template with the given data, auto-injecting
 // CurrentUser and CSRFToken from the request context.
 func Render(w io.Writer, r *http.Request, name string, data any) error {
-	mu.RLock()
-	t, ok := templates[name]
-	mu.RUnlock()
-
-	if !ok {
-		return fmt.Errorf("template %q not found", name)
-	}
-
-	return t.ExecuteTemplate(w, "base", injectContext(r, data))
+	return render(w, r, name, "base", data)
 }
 
 // RenderAuth executes a named auth template with the auth layout.
 func RenderAuth(w io.Writer, r *http.Request, name string, data any) error {
+	return render(w, r, name, "auth", data)
+}
+
+// render executes the template into a buffer first, so a mid-render error
+// leaves the ResponseWriter untouched (no half-written page, and the caller's
+// error branch can still send a clean status) instead of a garbled response.
+func render(w io.Writer, r *http.Request, name, layout string, data any) error {
 	mu.RLock()
 	t, ok := templates[name]
 	mu.RUnlock()
@@ -312,5 +311,10 @@ func RenderAuth(w io.Writer, r *http.Request, name string, data any) error {
 		return fmt.Errorf("template %q not found", name)
 	}
 
-	return t.ExecuteTemplate(w, "auth", injectContext(r, data))
+	var buf bytes.Buffer
+	if err := t.ExecuteTemplate(&buf, layout, injectContext(r, data)); err != nil {
+		return err
+	}
+	_, err := buf.WriteTo(w)
+	return err
 }

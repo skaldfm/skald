@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/skaldfm/skald/internal/auth"
 	"github.com/skaldfm/skald/internal/models"
 	"github.com/skaldfm/skald/internal/views"
 )
@@ -34,20 +35,27 @@ type pipelineSegment struct {
 func (h *DashboardHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	shows, err := accessibleShows(r, h.shows)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
 	filter := scopeEpisodeFilter(r, models.EpisodeFilter{})
 	allEpisodes, err := h.episodes.List(filter)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
-	guests, err := h.guests.List()
+	// Scope the guest count to the user's shows, consistent with the rest of
+	// the dashboard (admins get all).
+	var guests []models.Guest
+	if showIDs := auth.AccessibleShowIDs(r.Context()); showIDs == nil {
+		guests, err = h.guests.List()
+	} else {
+		guests, err = h.guests.ListByShowIDs(showIDs)
+	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -136,6 +144,6 @@ func (h *DashboardHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := views.Render(w, r, "home.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }

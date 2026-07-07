@@ -27,7 +27,7 @@ func (h *PrompterHandler) Prompter(w http.ResponseWriter, r *http.Request) {
 
 	ep, err := h.episodes.Get(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	if ep == nil {
@@ -42,6 +42,6 @@ func (h *PrompterHandler) Prompter(w http.ResponseWriter, r *http.Request) {
 		"Episode": ep,
 	}
 	if err := views.Render(w, r, "prompter/show.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }

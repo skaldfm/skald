@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -42,6 +43,11 @@ func Migrate(db *sql.DB, migrationsDir string) error {
 		err := db.QueryRow("SELECT version FROM schema_migrations WHERE version = ?", version).Scan(&exists)
 		if err == nil {
 			continue // Already applied
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			// A real error (locked DB, I/O) must not be mistaken for "not
+			// applied" — that would re-run the migration and fail on CREATE.
+			return fmt.Errorf("checking migration %s: %w", version, err)
 		}
 
 		log.Printf("Applying migration: %s", file)

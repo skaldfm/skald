@@ -55,7 +55,7 @@ func (h *AdminHandler) Routes() chi.Router {
 func (h *AdminHandler) Backups(w http.ResponseWriter, r *http.Request) {
 	backups, err := h.backups.List()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -64,13 +64,13 @@ func (h *AdminHandler) Backups(w http.ResponseWriter, r *http.Request) {
 		"ActiveTab": "backups",
 	}
 	if err := views.Render(w, r, "admin/backups.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
 func (h *AdminHandler) CreateBackup(w http.ResponseWriter, r *http.Request) {
 	if _, err := h.backups.Create("manual"); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	_ = h.backups.Prune()
@@ -96,7 +96,7 @@ func (h *AdminHandler) RestoreBackup(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.backups.Restore(name); err != nil {
 		log.Printf("Restore failed: %v", err)
-		http.Error(w, "Restore failed: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Restore failed. Check the server logs for details.", http.StatusInternalServerError)
 		return
 	}
 
@@ -121,7 +121,7 @@ func (h *AdminHandler) RestoreBackup(w http.ResponseWriter, r *http.Request) {
 func (h *AdminHandler) Users(w http.ResponseWriter, r *http.Request) {
 	users, err := h.users.List()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -144,7 +144,7 @@ func (h *AdminHandler) Users(w http.ResponseWriter, r *http.Request) {
 		"ActiveTab": "users",
 	}
 	if err := views.Render(w, r, "admin/users.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -174,12 +174,12 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	hash, err := auth.HashPassword(password)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
 	if _, err := h.users.Create(email, displayName, hash, role); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -218,7 +218,7 @@ func (h *AdminHandler) SetRole(w http.ResponseWriter, r *http.Request) {
 
 	user.Role = role
 	if err := h.users.Update(user); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -240,7 +240,7 @@ func (h *AdminHandler) UserShowsForm(w http.ResponseWriter, r *http.Request) {
 
 	allShows, err := h.shows.List()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -257,7 +257,7 @@ func (h *AdminHandler) UserShowsForm(w http.ResponseWriter, r *http.Request) {
 		"ActiveTab":   "users",
 	}
 	if err := views.Render(w, r, "admin/user_shows.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -282,7 +282,7 @@ func (h *AdminHandler) UserShowsSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.users.SetUserShows(id, showIDs); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -303,7 +303,7 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.users.Delete(id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -313,7 +313,7 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 func (h *AdminHandler) Settings(w http.ResponseWriter, r *http.Request) {
 	ss, err := h.settings.Get()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -322,7 +322,7 @@ func (h *AdminHandler) Settings(w http.ResponseWriter, r *http.Request) {
 		"HasCustomLogo": ss.LogoPath != "",
 	}
 	if err := views.Render(w, r, "admin/settings.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -354,7 +354,7 @@ func (h *AdminHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 
 	uploadDir := filepath.Join(h.dataDir, "uploads", "site")
 	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -363,19 +363,19 @@ func (h *AdminHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 
 	dst, err := os.Create(destPath)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	defer dst.Close()
 
 	if _, err := io.Copy(dst, file); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
 	relativePath := fmt.Sprintf("site/%s", filename)
 	if err := h.settings.Update(relativePath); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -385,7 +385,7 @@ func (h *AdminHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 func (h *AdminHandler) RemoveLogo(w http.ResponseWriter, r *http.Request) {
 	ss, err := h.settings.Get()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -395,7 +395,7 @@ func (h *AdminHandler) RemoveLogo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.settings.Update(""); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 

@@ -109,6 +109,7 @@ func main() {
 	sessionManager := scs.New()
 	sessionManager.Store = sessionStore
 	sessionManager.Lifetime = 30 * 24 * time.Hour
+	sessionManager.IdleTimeout = 14 * 24 * time.Hour // log out sessions idle for 2 weeks
 	sessionManager.Cookie.Secure = cfg.SecureCookies
 	sessionManager.Cookie.SameSite = http.SameSiteLaxMode
 

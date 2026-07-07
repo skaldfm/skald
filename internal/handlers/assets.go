@@ -22,6 +22,16 @@ func NewAssetHandler(store *models.AssetStore, episodes *models.EpisodeStore, da
 	return &AssetHandler{store: store, episodes: episodes, dataDir: dataDir}
 }
 
+// resolvePath turns a stored asset path into an on-disk path. New assets are
+// stored relative to the data dir; older rows may hold an absolute path, which
+// is used as-is for backward compatibility.
+func (h *AssetHandler) resolvePath(p string) string {
+	if filepath.IsAbs(p) {
+		return p
+	}
+	return filepath.Join(h.dataDir, p)
+}
+
 func (h *AssetHandler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/{id}/download", h.Download)
@@ -39,7 +49,7 @@ func (h *AssetHandler) Upload(w http.ResponseWriter, r *http.Request) {
 
 	ep, err := h.episodes.Get(episodeID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	if ep == nil {
@@ -90,10 +100,12 @@ func (h *AssetHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Store in database
-	_, err = h.store.Create(episodeID, header.Filename, destPath, header.Header.Get("Content-Type"), written, assetType)
+	// Store the path relative to the data dir so the DB stays portable if the
+	// data directory moves or is restored on another host.
+	relPath := filepath.Join("uploads", episodeIDStr, header.Filename)
+	_, err = h.store.Create(episodeID, header.Filename, relPath, header.Header.Get("Content-Type"), written, assetType)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -110,7 +122,7 @@ func (h *AssetHandler) Download(w http.ResponseWriter, r *http.Request) {
 
 	asset, err := h.store.Get(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	if asset == nil {
@@ -120,7 +132,7 @@ func (h *AssetHandler) Download(w http.ResponseWriter, r *http.Request) {
 
 	ep, err := h.episodes.Get(asset.EpisodeID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	if ep == nil {
@@ -132,7 +144,7 @@ func (h *AssetHandler) Download(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, asset.Filename))
-	http.ServeFile(w, r, asset.Filepath)
+	http.ServeFile(w, r, h.resolvePath(asset.Filepath))
 }
 
 func (h *AssetHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -145,7 +157,7 @@ func (h *AssetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	asset, err := h.store.Get(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	if asset == nil {
@@ -155,7 +167,7 @@ func (h *AssetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	ep, err := h.episodes.Get(asset.EpisodeID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	if ep == nil {
@@ -167,11 +179,11 @@ func (h *AssetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Remove file from disk
-	os.Remove(asset.Filepath)
+	os.Remove(h.resolvePath(asset.Filepath))
 
 	// Remove from database
 	if err := h.store.Delete(id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 

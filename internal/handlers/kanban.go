@@ -35,13 +35,13 @@ func (h *KanbanHandler) Board(w http.ResponseWriter, r *http.Request) {
 
 	episodes, err := h.episodes.List(filter)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
 	shows, err := accessibleShows(r, h.shows)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -60,6 +60,6 @@ func (h *KanbanHandler) Board(w http.ResponseWriter, r *http.Request) {
 		"CanEdit":  auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "episodes/kanban.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }

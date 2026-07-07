@@ -62,13 +62,13 @@ func (h *EpisodeHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	episodes, err := h.episodes.List(filter)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
 	shows, err := accessibleShows(r, h.shows)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -81,7 +81,7 @@ func (h *EpisodeHandler) List(w http.ResponseWriter, r *http.Request) {
 		"CanEdit":  auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "episodes/index.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -94,7 +94,7 @@ func (h *EpisodeHandler) New(w http.ResponseWriter, r *http.Request) {
 
 	shows, err := accessibleShows(r, h.shows)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -104,7 +104,7 @@ func (h *EpisodeHandler) New(w http.ResponseWriter, r *http.Request) {
 		"ShowID":   r.URL.Query().Get("show"),
 	}
 	if err := views.Render(w, r, "episodes/new.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -155,11 +155,19 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Parse episode/season numbers early for validation
 	var epNumber, seNumber *int
 	if epNum := r.FormValue("episode_number"); epNum != "" {
-		n, _ := strconv.Atoi(epNum)
+		n, err := strconv.Atoi(epNum)
+		if err != nil {
+			http.Error(w, "Episode number must be a number", http.StatusBadRequest)
+			return
+		}
 		epNumber = &n
 	}
 	if seNum := r.FormValue("season_number"); seNum != "" {
-		n, _ := strconv.Atoi(seNum)
+		n, err := strconv.Atoi(seNum)
+		if err != nil {
+			http.Error(w, "Season number must be a number", http.StatusBadRequest)
+			return
+		}
 		seNumber = &n
 	}
 
@@ -167,7 +175,7 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if epNumber != nil {
 		exists, err := h.episodes.EpisodeNumberExists(showID, seNumber, epNumber, 0)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			serverError(w, r, err)
 			return
 		}
 		if exists {
@@ -190,7 +198,7 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	ep, err := h.episodes.Create(showID, title, description, status)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -241,7 +249,7 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.episodes.Update(ep); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -293,7 +301,7 @@ func (h *EpisodeHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"CanEdit":      auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "episodes/show.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -308,7 +316,7 @@ func (h *EpisodeHandler) Edit(w http.ResponseWriter, r *http.Request) {
 
 	data := h.editData(r, ep, "")
 	if err := views.Render(w, r, "episodes/edit.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -347,13 +355,21 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		ep.ShowID = showID
 	}
 	if epNum := r.FormValue("episode_number"); epNum != "" {
-		n, _ := strconv.Atoi(epNum)
+		n, err := strconv.Atoi(epNum)
+		if err != nil {
+			http.Error(w, "Episode number must be a number", http.StatusBadRequest)
+			return
+		}
 		ep.EpisodeNumber = &n
 	} else {
 		ep.EpisodeNumber = nil
 	}
 	if seNum := r.FormValue("season_number"); seNum != "" {
-		n, _ := strconv.Atoi(seNum)
+		n, err := strconv.Atoi(seNum)
+		if err != nil {
+			http.Error(w, "Season number must be a number", http.StatusBadRequest)
+			return
+		}
 		ep.SeasonNumber = &n
 	} else {
 		ep.SeasonNumber = nil
@@ -370,7 +386,7 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if ep.EpisodeNumber != nil {
 		exists, err := h.episodes.EpisodeNumberExists(ep.ShowID, ep.SeasonNumber, ep.EpisodeNumber, ep.ID)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			serverError(w, r, err)
 			return
 		}
 		if exists {
@@ -441,7 +457,7 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.episodes.Update(ep); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -457,19 +473,19 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := h.tags.SetEpisodeTags(ep.ID, tagNames); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	if err := h.sponsorships.SetEpisodeSponsorships(ep.ID, parseIDs(r.Form["sponsorship_ids"])); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	if err := h.guests.SetEpisodeGuests(ep.ID, parseIDs(r.Form["guest_ids"])); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	if err := h.guests.SetEpisodeHosts(ep.ID, parseIDs(r.Form["host_ids"])); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -491,7 +507,7 @@ func (h *EpisodeHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.episodes.UpdateStatus(ep.ID, status); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -516,7 +532,7 @@ func (h *EpisodeHandler) DeleteConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.episodes.Delete(ep.ID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -539,7 +555,7 @@ func (h *EpisodeHandler) NextNumber(w http.ResponseWriter, r *http.Request) {
 
 	taken, err := h.episodes.TakenEpisodeNumbers(showID, season)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -638,7 +654,7 @@ func (h *EpisodeHandler) getEpisode(w http.ResponseWriter, r *http.Request) (*mo
 
 	ep, err := h.episodes.Get(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return nil, err
 	}
 	if ep == nil {

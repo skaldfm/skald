@@ -49,7 +49,7 @@ func (h *SponsorshipHandler) List(w http.ResponseWriter, r *http.Request) {
 		sponsorships, err = h.store.ListByShowIDs(showIDs)
 	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -59,7 +59,7 @@ func (h *SponsorshipHandler) List(w http.ResponseWriter, r *http.Request) {
 		"CanEdit":      auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "sponsorships/index.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -69,7 +69,7 @@ func (h *SponsorshipHandler) New(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := views.Render(w, r, "sponsorships/new.html", nil); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -96,7 +96,7 @@ func (h *SponsorshipHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	sp, err := h.store.Create(name)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -107,7 +107,7 @@ func (h *SponsorshipHandler) Create(w http.ResponseWriter, r *http.Request) {
 	h.handleOrderUpload(sp, r)
 
 	if err := h.store.Update(sp); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -123,7 +123,7 @@ func (h *SponsorshipHandler) Show(w http.ResponseWriter, r *http.Request) {
 	showIDs := auth.AccessibleShowIDs(r.Context())
 	episodes, err := h.store.EpisodesForSponsorship(sp.ID, showIDs)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -134,7 +134,7 @@ func (h *SponsorshipHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"CanEdit":     auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "sponsorships/show.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -150,7 +150,7 @@ func (h *SponsorshipHandler) Edit(w http.ResponseWriter, r *http.Request) {
 
 	data := map[string]any{"Sponsorship": sp}
 	if err := views.Render(w, r, "sponsorships/edit.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -194,7 +194,7 @@ func (h *SponsorshipHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.store.Update(sp); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -217,7 +217,7 @@ func (h *SponsorshipHandler) DeleteConfirm(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := h.store.Delete(sp.ID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -234,7 +234,7 @@ func (h *SponsorshipHandler) getSponsorship(w http.ResponseWriter, r *http.Reque
 
 	sp, err := h.store.Get(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return nil, err
 	}
 	if sp == nil {
@@ -247,7 +247,7 @@ func (h *SponsorshipHandler) getSponsorship(w http.ResponseWriter, r *http.Reque
 	if showIDs := auth.AccessibleShowIDs(r.Context()); showIDs != nil {
 		ok, err := h.store.AccessibleToShows(sp.ID, showIDs)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			serverError(w, r, err)
 			return nil, err
 		}
 		if !ok {

@@ -39,7 +39,7 @@ func (h *AuthHandler) LoginForm(w http.ResponseWriter, r *http.Request) {
 		"OpenRegistration": h.openRegistration,
 	}
 	if err := views.RenderAuth(w, r, "auth/login.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -69,7 +69,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Prevent session fixation
 	if err := h.session.RenewToken(r.Context()); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	h.session.Put(r.Context(), "user_id", user.ID)
@@ -83,7 +83,7 @@ func (h *AuthHandler) RegisterForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := views.RenderAuth(w, r, "auth/register.html", nil); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -129,13 +129,13 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	hash, err := auth.HashPassword(password)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
 	user, err := h.users.Create(email, displayName, hash, "viewer")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -145,7 +145,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err := h.session.RenewToken(r.Context()); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	h.session.Put(r.Context(), "user_id", user.ID)
@@ -160,7 +160,7 @@ func (h *AuthHandler) ProfileForm(w http.ResponseWriter, r *http.Request) {
 		"Saved": r.URL.Query().Get("saved") == "1",
 	}
 	if err := views.Render(w, r, "profile.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -208,14 +208,14 @@ func (h *AuthHandler) ProfileUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 		hash, err := auth.HashPassword(newPassword)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			serverError(w, r, err)
 			return
 		}
 		user.PasswordHash = hash
 	}
 
 	if err := h.users.Update(user); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -224,7 +224,7 @@ func (h *AuthHandler) ProfileUpdate(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.session.Destroy(r.Context()); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
@@ -237,7 +237,7 @@ func (h *AuthHandler) SetupForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := views.RenderAuth(w, r, "auth/setup.html", nil); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -278,13 +278,13 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 
 	hash, err := auth.HashPassword(password)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
 	user, err := h.users.Create(email, displayName, hash, "admin")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -297,7 +297,7 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 
 	// Log the new user in
 	if err := h.session.RenewToken(r.Context()); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	h.session.Put(r.Context(), "user_id", user.ID)

@@ -47,13 +47,13 @@ func (h *GuestHandler) List(w http.ResponseWriter, r *http.Request) {
 		guests, err = h.store.ListByShowIDs(showIDs)
 	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
 	showMap, err := h.store.ShowsForGuests(showIDs)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *GuestHandler) List(w http.ResponseWriter, r *http.Request) {
 		"CanEdit":    auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "guests/index.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -74,7 +74,7 @@ func (h *GuestHandler) New(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := views.Render(w, r, "guests/new.html", nil); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -102,13 +102,13 @@ func (h *GuestHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	guest, err := h.store.Create(g)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
 	// Handle image upload
 	if err := h.handleImageUpload(r, guest); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *GuestHandler) Show(w http.ResponseWriter, r *http.Request) {
 	showIDs := auth.AccessibleShowIDs(r.Context())
 	episodes, err := h.store.EpisodesForGuest(guest.ID, showIDs)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -135,7 +135,7 @@ func (h *GuestHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"CanEdit":  auth.CanEdit(user),
 	}
 	if err := views.Render(w, r, "guests/show.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -151,7 +151,7 @@ func (h *GuestHandler) Edit(w http.ResponseWriter, r *http.Request) {
 
 	data := map[string]any{"Guest": guest}
 	if err := views.Render(w, r, "guests/edit.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 	}
 }
 
@@ -194,7 +194,7 @@ func (h *GuestHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Handle image upload
 	if err := h.handleImageUpload(r, &models.Guest{ID: guest.ID, Image: g.Image}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 	// Re-read to get the updated image path
@@ -204,7 +204,7 @@ func (h *GuestHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.store.Update(g); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -227,7 +227,7 @@ func (h *GuestHandler) DeleteConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.store.Delete(guest.ID); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -304,7 +304,7 @@ func (h *GuestHandler) getGuest(w http.ResponseWriter, r *http.Request) (*models
 
 	guest, err := h.store.Get(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serverError(w, r, err)
 		return nil, err
 	}
 	if guest == nil {
@@ -317,7 +317,7 @@ func (h *GuestHandler) getGuest(w http.ResponseWriter, r *http.Request) (*models
 	if showIDs := auth.AccessibleShowIDs(r.Context()); showIDs != nil {
 		ok, err := h.store.AccessibleToShows(guest.ID, showIDs)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			serverError(w, r, err)
 			return nil, err
 		}
 		if !ok {
