@@ -68,7 +68,8 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
   **Applied:** `http.Server` with `ReadHeaderTimeout`/`IdleTimeout`, `signal.NotifyContext(SIGINT/SIGTERM)` + `srv.Shutdown`. Verified clean exit on SIGTERM. `/health` now does `db.PingContext` (returns 503 on a dead DB).
 
 - [x] **Internal error text leaked to browsers** — fixed
-  **Applied:** added `serverError(w, r, err)` helper (`internal/handlers/errors.go`) that logs the detail and returns a generic 500; replaced all 113 `http.Error(w, err.Error(), 500)` sites across the handlers, plus the admin restore message. Invalid episode status already returns 400 (validated against `models.Statuses`).
+  **Applied:** added `serverError(w, r, err)` helper (`internal/handlers/errors.go`) that logs the detail and returns a generic 500; replaced the `http.Error(w, err.Error(), 500)` sites across the handlers, plus the admin restore message. Invalid episode status already returns 400 (validated against `models.Statuses`).
+  **⚠️ Correction (follow-up review):** this was **not** exhaustive — `internal/handlers/calendar.go` was never converted and still leaks internal error text at lines 60, 66, 154, 194, 200, 324. Re-open and finish the conversion there.
 
 ### Lower-severity correctness
 - [x] Episode-number uniqueness NULL-season loophole — migration `015` replaces the index with an expression index on `COALESCE(season_number, -1)` so NULL-season duplicates are now rejected at the DB level (unit-tested). The app-level check-then-write race remains theoretically possible but is bounded by `SetMaxOpenConns(1)` and now backstopped by the DB constraint.
@@ -104,13 +105,13 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 
 ### Ops / config lower-severity
 - [x] `linux-amd64` release binary is glibc-dynamic (CGO unset) — ✅ `CGO_ENABLED=0` set in `release.yml` + `Makefile dist`.
-- [ ] `SKALD_SECRET_KEY` is dead config (read `config.go:27`, never used). `.env.example` claims "auto-generated if empty" — false. Remove or wire up.
-- [ ] `SKALD_DB_TYPE=postgres` silently opens a garbage sqlite path (`database.go:18` hardcodes sqlite driver). Fail fast on `DBType != "sqlite"`.
-- [ ] Down migrations are dead code (only `*.up.sql` executed) and internally inconsistent. Add a down-runner or delete them.
+- [x] `SKALD_SECRET_KEY` is dead config — ✅ DONE. Field removed entirely from `config.go`; `.env.example` no longer mentions it.
+- [ ] `SKALD_DB_TYPE=postgres` silently opens a garbage sqlite path (`database.go:27` hardcodes the sqlite driver, never inspects `cfg.DBType`). Fail fast on `DBType != "sqlite"`. **Still open.**
+- [x] Down migrations are dead code — ✅ DONE. The `*.down.sql` files were deleted; only `*.up.sql` (001–016) remain.
 - [x] `chown -R /app/data` on every start — ✅ gated on a `stat` check in entrypoint.sh.
-- [ ] Unpinned `npm install tailwindcss` (`Dockerfile:6`) → unreproducible CSS. `.dockerignore` misses `.github/`, `Makefile`, screenshots (which ship in runtime image and are publicly served). CI runs tests without `-race`; golangci-lint pinned to `latest`. _(Note: screenshots are now also embedded in the binary via `go:embed static` — consider moving them out of `static/`.)_
+- [x] Unpinned `npm install tailwindcss` / `.dockerignore` / CI `-race` / golangci-lint `latest` — ✅ DONE. tailwind pinned to `4.1.11` in `package.json`; `.dockerignore` now lists `.github/`, `Makefile`, `docs/`; CI runs `go test -race ./...`; golangci-lint pinned to `v2.12.2`.
 - [x] Docker branch builds get `VERSION=main` (`docker.yml:44`) — ✅ now `main-<sha>`.
-- [ ] README: add "download docker-compose.yml first" to Quick Start; remove `SKALD_SECRET_KEY` and postgres implications.
+- [x] README: "download docker-compose.yml first" in Quick Start; `SKALD_SECRET_KEY`/postgres implications removed — ✅ DONE (`README.md:117`).
 
 ### Ops improvements worth adding
 - [x] Structured logging (`log/slog`) + `SKALD_LOG_LEVEL` — ✅ DONE (commit adds `internal/logging`, `SKALD_LOG_FORMAT` text|json, slog request-logger, all call sites converted).
@@ -169,11 +170,11 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 
 ## Performance (cheap wins, evidence-based)
 
-- [ ] Middleware runs `users.Count()` on **every request** for first-run detection (`middleware.go:18`) + `users.Get` + `ShowIDsForUser`. Cache setup flag in an atomic bool (invalidate on user create).
-- [ ] `site_settings` SELECT on every page render for logo path (`views.go:274`, `main.go:97`). Cache, invalidate on logo update.
-- [ ] Calendar/timeline/dashboard load every episode ever and filter by month in Go (`calendar.go:58`, `dashboard.go:42`). Add publish-date range to `EpisodeFilter`; dashboard counts can use `CountByStatus`.
-- [ ] Missing reverse-lookup indexes: `episode_guests(guest_id)` (`guest.go:236`), `episode_sponsorships(sponsorship_id)` (`sponsorship.go:175`); also `episodes(updated_at)` for default `List` ordering.
-- [ ] Admin users page N+1 — `ShowIDsForUser` per user (`admin.go:135`). One `SELECT user_id, show_id FROM user_shows` does it.
+- [x] Middleware runs `users.Count()` on **every request** — ✅ DONE. Replaced with `users.HasAnyUser()` backed by an `atomic.Bool` cache (`middleware.go:18`, `user.go:25,35`).
+- [x] `site_settings` SELECT on every page render for logo path — ✅ DONE. Cached via `atomic.Pointer[string]`, invalidated in `Update` (`settings.go:19,53`).
+- [ ] Calendar/timeline/dashboard load every episode ever and filter by month in Go (`calendar.go:58`, `dashboard.go:43`). Add publish-date range to `EpisodeFilter`; dashboard counts can use `CountByStatus` (method now exists at `episode.go:260` but is unused). **Still open** — `EpisodeFilter` still has no date range.
+- [x] Missing reverse-lookup indexes — ✅ DONE. `migrations/016` adds `episode_guests(guest_id)`, `episode_sponsorships(sponsorship_id)`, `episodes(updated_at)`.
+- [x] Admin users page N+1 — ✅ DONE. All assignments loaded in one query (`admin.go:143`).
 
 ---
 
@@ -187,3 +188,62 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 - No register-as-admin — `Register` hardcodes "viewer" + gated by `openRegistration`; `Setup` only works while `users.Count()==0`.
 - Session fixation handled — `RenewToken` on login/register/setup; logout destroys session; 32-byte crypto/rand tokens.
 - Stale authz after role change — `LoadUser` reloads user + show IDs each request.
+
+---
+
+# Follow-up review (2026-07-07, second pass)
+
+A fresh deep pass over the post-remediation code (commits `bcf1413..e344b5f`) plus a re-verification of the backlog above. The stale checkboxes and the `err.Error()` correction are folded into the sections above. New findings below.
+
+## New bugs found this pass
+
+- [x] **HIGH — Stored XSS / privilege escalation via generic episode asset upload** — `internal/handlers/assets.go:69`, served at `main.go:270` — ✅ FIXED
+  The P0/P1 upload-allowlist fix (`upload.go`) only covered the **fixed-name** uploads via `saveUpload`. The generic episode-asset path in `assets.go` `Upload` was deliberately left out (see line 164 parenthetical) and accepts **any** extension, storing the file under `<data>/uploads/<episodeID>/<original-filename>` — the exact tree served by the authenticated `/uploads/*` `http.FileServer`. An editor uploads `notes.html` (or `.svg`); it becomes reachable at `/uploads/12/notes.html`, and `http.FileServer` sets `Content-Type: text/html` from the extension, so it executes on the app origin for any authenticated visitor. `nosniff` doesn't help (no sniffing involved) and there is no CSP. Escalation: send the link to an admin → script scrapes the CSRF token from `/admin/users` and POSTs a new admin (or hits `/admin/backups/restore`).
+  **Fix applied:** added a `forceDownload` wrapper around the `/uploads/*` file server (`main.go`) that sets `Content-Disposition: attachment` on every served upload, so any top-level navigation to an uploaded file downloads instead of rendering — closing the vector for every extension (html, svg, …) at the serving layer rather than blocklisting extensions on the arbitrary-attachment feature. Inline artwork is unaffected because `<img>`/`<link rel=icon>` subresource loads ignore `Content-Disposition` (verified: the only `<a href>` into `/uploads` is the sponsor order-doc "Download" link). Regression-tested in `main_test.go` (`TestUploadsForceDownload`, `TestUploadsNoDirectoryListing`). This also corrects the doc's line 31 claim that the stored-XSS-via-upload vector was already fully closed.
+
+- [ ] **MEDIUM — Setup takeover gated on a discarded DB error** — `internal/auth/auth.go:268`, `middleware.go:18`
+  `Setup` guards with `hasUser, _ := h.users.HasAnyUser()` — the error is discarded. The `hasUser` cache (`user.go:35`) only ever caches `true`, so before the first positive read a transient SQLite error (e.g. `SQLITE_BUSY` past the busy_timeout under the single-conn pool, or the brief restore window) yields `hasUser=false`, and `Setup` proceeds to create an **admin** account on an already-populated system. Low probability but it's an unauthenticated admin-creation path. Fix: treat a `HasAnyUser` error in `Setup`/`SetupForm` (and the first-run redirect) as "cannot proceed."
+
+- [ ] **MEDIUM — Login rate-limiter trivially bypassed via forwarded headers** — `internal/handlers/ratelimit.go:37`, `main.go:192`
+  The limiter keys on `clientIP(r)` from `r.RemoteAddr`, which `middleware.RealIP` sets from the client-controlled `X-Forwarded-For` / `X-Real-IP`. `RealIP` is applied **unconditionally**, so a direct-to-internet deployment (which the code permits) lets an attacker send a unique `X-Forwarded-For` per request and defeat the 10/15min throttle entirely. Fix: only trust forwarded headers when a reverse proxy is configured (config flag), otherwise use `RemoteAddr` directly.
+
+- [ ] **MEDIUM — Episode/show deletion leaks upload files on disk** — `internal/models/episode.go:201` + delete handler
+  `Delete` removes the row (asset rows cascade via FK) but **never removes `data/uploads/episodes/{id}/`**. Deleting a show cascades this for every episode. Combined with backups deliberately not covering uploads, disk quietly fills with orphans. Fix: `os.RemoveAll(uploads/episodes/{id})` in the delete handler.
+
+- [ ] **LOW — `/metrics` is unauthenticated; "firewall the port" doesn't match the topology** — `main.go:230`
+  Unlike `/health` (ok/503 only), `/metrics` exposes `skald_last_backup_timestamp_seconds`, uptime, request counts, goroutines and heap to any unauthenticated caller. The single-container/single-port deployment serves the app and `/metrics` on the same `:7707`, so there is no separate port to firewall. Fix: gate behind auth or a token/bind-address, or document that the proxy must block `/metrics`.
+
+- [ ] **LOW — `Restore` never prunes its `pre-restore` safety backups** — `backup.go:167`, `admin.go:96`
+  Every `Restore` runs `Create("pre-restore")` but never `Prune`, and the process `os.Exit`s before the scheduler prunes. Repeated failed restores accumulate safety backups and can push good scheduled backups past the retention window on the next prune. Minor erosion of the retention guarantee.
+
+### Verified clean this pass (no action)
+`models/tx.go` + `episode.go` `Save()` (correct rollback/commit, one tx over row + 4 link tables); `saveUpload`/`uploadSpec` (no path traversal — `Base` constant, `ext` from allowlist, subdir from numeric IDs); `logging.go`; the `atomic.Pointer`/`atomic.Bool` caches (race-free, correctly invalidated); backup `Restore` restart contract; `embed.go` `assetFS` disk-fallback; and the touched templates (`base.html` submitter fix, `kanban.html` `.catch()` + dual-badge refresh, `prompter/show.html` markdown CSS, `renderMarkdown` → goldmark default escaping). Note: standalone `SetEpisodeTags`/`SetEpisodeGuests`/`SetEpisodeSponsorships` wrappers are now dead code (only `Save` is called) — cleanliness, not a bug.
+
+## Features worth adding — expanded (ranked by value/effort)
+
+The original five (prompter timing/WPM, segment jump list, markdown preview + dirty guard, kanban publish-date chips, sponsor deadlines on dashboard) are **all still unimplemented**, verified against the templates. Additional gaps, grounded in the existing model/handlers:
+
+**Tier 1 — cheap workflow wins**
+- [ ] **Search over scripts + show notes** — search is `title/description LIKE` only (`episode.go:81`); the core artifact (the script) is unsearchable. SQLite FTS5 over title/description/script/show_notes is nearly free.
+- [ ] **Tag filtering — tags are currently write-only.** Tags create/display fine but `EpisodeFilter` has no tag field, `episodes/index.html` has no tag filter, and chips link nowhere. Add `filter.Tag` join + link chips to `/episodes?tag=X`.
+- [ ] **Episode duplication** — `POST /episodes/{id}/duplicate`, composable from `Save(ep, EpisodeLinks)`. Weekly-format podcasters retype structure every episode.
+- [ ] **List-view sorting + publish-date column + pagination** — README claims "sortable" but `episode.go:86` hardcodes `ORDER BY updated_at DESC`, no sort param, no `LIMIT` anywhere (every list loads all rows), and the list doesn't even show publish date. Build it or fix the README claim.
+- [ ] **Record/session date on episodes** — only `PublishDate` exists (`episode.go:22`); calendar/timeline can't show when recording happens. Add `record_date` (migration 017) + second color on calendar/timeline.
+- [ ] **Archive shows / age-out published episodes** — no archived flag anywhere; retired shows pollute every dropdown and the kanban Published column grows unbounded. Add `shows.archived` + cap the Published column.
+
+**Tier 2 — data lifecycle & money**
+- [ ] **Data export (JSON/CSV)** — only export today is the raw SQLite backup; poor fit for a "your data" pitch. Admin JSON export (full) + per-show episode CSV; all queries already exist.
+- [ ] **Sponsorship lifecycle status (lead→booked→aired→invoiced→paid) + per-episode ad placement** — `Sponsorship` tracks the deal but not payment state; `EpisodeSponsor` is a bare join (no pre/mid/post-roll or spot count). This is the feature that loses indie podcasters real money.
+- [ ] **Guest outreach status** — `EpisodeGuest` has only `role`; `Guest` has no notes. Add `status` on `episode_guests` (invited→confirmed→recorded→thanked) + `notes` on guests.
+- [ ] **Orphaned-upload cleanup + storage view** — pairs with the deletion-leak bug above; add an admin "storage" section that walks `data/uploads`, diffs against asset/artwork paths, shows total + orphans.
+- [ ] **iCal feed** (`GET /calendar.ics`, per-user token) — makes Skald's schedule ambient in the podcaster's real calendar.
+
+**Tier 3 — recording session & operators**
+- [ ] **Prompter rewind/back-10s + elapsed timer** — arrow keys currently change *speed* only; no recovery from a flub, no pacing clock. Pure JS in the existing script block.
+- [ ] **Status-change webhook** (ntfy/Slack/generic POST) — the idiomatic self-hoster integration; far cheaper than an API. Site-setting URL + goroutine POST on status change.
+- [ ] **Activity/audit log** — no history beyond `updated_at`; add an `events(entity, entity_id, user_id, action, at)` table (also the data source for the webhook). Useful now that RBAC has shipped.
+
+**v2 candidates (from the explicitly-out-of-v1 list)**
+- [ ] **RSS feed generation** — highest-value v2 item; the model already holds ~90% of a valid feed. Add enclosure URL + `GET /shows/{id}/feed.xml` to turn Skald from planner into publisher.
+- [ ] Read-only API — second pick, but only after webhooks deliver most of the automation value.
+- Note: **multi-user shipped** (RBAC, admin pages) despite being "out of v1" — CLAUDE.md/README framing should catch up. Analytics / audio / social / AI remain correctly out of scope.

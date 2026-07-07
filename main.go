@@ -53,6 +53,20 @@ func (n noListFS) Open(name string) (http.File, error) {
 	return f, nil
 }
 
+// forceDownload makes every served file download instead of rendering inline.
+// Uploads keep their original extension, so http.FileServer would serve an
+// uploaded .html/.svg with an executable Content-Type and it would run as
+// script on the app's own origin (stored XSS). Content-Disposition: attachment
+// turns any top-level navigation into a download, closing that vector for every
+// extension. Inline artwork is unaffected: <img>/<link rel=icon> subresource
+// loads ignore Content-Disposition.
+func forceDownload(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Disposition", "attachment")
+		next.ServeHTTP(w, r)
+	})
+}
+
 // maxBodyBytes caps the size of request bodies (uploads spool to disk during
 // multipart parsing, so an unbounded body is a disk-exhaustion vector). Applied
 // to methods that carry a body; GETs are untouched.
@@ -206,7 +220,7 @@ func main() {
 	// RequireAuth (below), except /uploads/site/* which holds public branding
 	// (the site logo, referenced on the unauthenticated login page). Directory
 	// listing is disabled so the tree can't be enumerated.
-	uploadsServer := http.StripPrefix("/uploads/", http.FileServer(noListFS{http.Dir(filepath.Join(cfg.DataDir, "uploads"))}))
+	uploadsServer := forceDownload(http.StripPrefix("/uploads/", http.FileServer(noListFS{http.Dir(filepath.Join(cfg.DataDir, "uploads"))})))
 	r.Handle("/uploads/site/*", uploadsServer)
 
 	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
