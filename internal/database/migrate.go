@@ -4,14 +4,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 )
 
-func Migrate(db *sql.DB, migrationsDir string) error {
+func Migrate(db *sql.DB, fsys fs.FS) error {
 	// Create migrations tracking table
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
 		version TEXT PRIMARY KEY,
@@ -22,7 +21,7 @@ func Migrate(db *sql.DB, migrationsDir string) error {
 	}
 
 	// Read migration files
-	entries, err := os.ReadDir(migrationsDir)
+	entries, err := fs.ReadDir(fsys, ".")
 	if err != nil {
 		return fmt.Errorf("reading migrations directory: %w", err)
 	}
@@ -52,7 +51,7 @@ func Migrate(db *sql.DB, migrationsDir string) error {
 
 		log.Printf("Applying migration: %s", file)
 
-		content, err := os.ReadFile(filepath.Join(migrationsDir, file))
+		content, err := fs.ReadFile(fsys, file)
 		if err != nil {
 			return fmt.Errorf("reading migration %s: %w", file, err)
 		}

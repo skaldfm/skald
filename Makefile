@@ -37,7 +37,9 @@ lint:
 test:
 	go test ./...
 
-# Cross-compile for all platforms
+# Cross-compile for all platforms. CGO_ENABLED=0 produces static binaries with
+# no libc dependency (run `make tailwind` first so the embedded CSS is current).
+dist: export CGO_ENABLED=0
 dist:
 	GOOS=linux   GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o dist/skald-linux-amd64 .
 	GOOS=linux   GOARCH=arm64 go build -ldflags="$(LDFLAGS)" -o dist/skald-linux-arm64 .

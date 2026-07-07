@@ -51,4 +51,9 @@ ENV PGID=1000
 
 EXPOSE 7707
 
+# wget ships with busybox; /health pings the DB so an unhealthy container is
+# one that can't serve, not merely one whose port is open.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -qO- "http://127.0.0.1:${SKALD_PORT}/health" >/dev/null 2>&1 || exit 1
+
 ENTRYPOINT ["./entrypoint.sh"]

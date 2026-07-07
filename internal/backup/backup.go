@@ -55,6 +55,13 @@ func (m *Manager) Create(label string) (string, error) {
 		return "", fmt.Errorf("creating backup: %w", err)
 	}
 
+	// Verify the freshly written backup is a valid, uncorrupted database before
+	// we trust it (and before Prune may delete an older good one).
+	if err := validateSQLite(destPath); err != nil {
+		_ = os.Remove(destPath)
+		return "", fmt.Errorf("verifying backup: %w", err)
+	}
+
 	log.Printf("Backup created: %s", filename)
 	return filename, nil
 }
@@ -122,34 +129,41 @@ func (m *Manager) Prune() error {
 
 // Restore replaces the live database with a backup file.
 // It validates the backup, creates a safety backup, closes the DB, and atomically
-// replaces the DB file. The caller should exit the process after this returns.
-func (m *Manager) Restore(name string) error {
+// replaces the DB file.
+//
+// The returned restart flag reports whether the live DB handle has been closed.
+// Once it is true the process can no longer serve requests (every query hits a
+// closed DB) and the caller MUST exit so it restarts against the new DB file —
+// this holds on both success and failure, since the close happens before the
+// swap and is not undone on error.
+func (m *Manager) Restore(name string) (restart bool, err error) {
 	// Sanitize filename
 	name = filepath.Base(name)
 	if !strings.HasSuffix(name, ".db") {
-		return fmt.Errorf("invalid backup filename")
+		return false, fmt.Errorf("invalid backup filename")
 	}
 
 	backupPath := filepath.Join(m.backupDir, name)
 	if _, err := os.Stat(backupPath); err != nil {
-		return fmt.Errorf("backup file not found: %w", err)
+		return false, fmt.Errorf("backup file not found: %w", err)
 	}
 
 	// Validate the backup is a valid SQLite database
 	if err := validateSQLite(backupPath); err != nil {
-		return fmt.Errorf("backup validation failed: %w", err)
+		return false, fmt.Errorf("backup validation failed: %w", err)
 	}
 
 	// Create a safety backup before doing anything destructive
 	safetyName, err := m.Create("pre-restore")
 	if err != nil {
-		return fmt.Errorf("creating safety backup: %w", err)
+		return false, fmt.Errorf("creating safety backup: %w", err)
 	}
 	log.Printf("Safety backup created: %s", safetyName)
 
-	// Close the live database connection
+	// Close the live database connection. From here on the process must restart
+	// regardless of outcome — the DB handle is dead.
 	if err := m.db.Close(); err != nil {
-		return fmt.Errorf("closing database: %w", err)
+		return false, fmt.Errorf("closing database: %w", err)
 	}
 
 	// Remove WAL files to prevent stale WAL from corrupting the restored DB
@@ -159,16 +173,16 @@ func (m *Manager) Restore(name string) error {
 	// Atomic replace: copy to temp file, then rename over the live DB
 	tmpPath := m.dbPath + ".restoring"
 	if err := copyFile(backupPath, tmpPath); err != nil {
-		return fmt.Errorf("copying backup: %w", err)
+		return true, fmt.Errorf("copying backup: %w", err)
 	}
 
 	if err := os.Rename(tmpPath, m.dbPath); err != nil {
 		os.Remove(tmpPath)
-		return fmt.Errorf("replacing database: %w", err)
+		return true, fmt.Errorf("replacing database: %w", err)
 	}
 
 	log.Printf("Database restored from %s", name)
-	return nil
+	return true, nil
 }
 
 func validateSQLite(path string) error {
@@ -216,15 +230,22 @@ func (m *Manager) StartSchedule(interval time.Duration) {
 		return
 	}
 	go func() {
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-		for range ticker.C {
+		// Take one backup immediately so a crash shortly after boot still leaves a
+		// recent copy, rather than waiting a full interval for the first one.
+		runBackup := func() {
 			if _, err := m.Create("scheduled"); err != nil {
 				log.Printf("Scheduled backup failed: %v", err)
 			}
 			if err := m.Prune(); err != nil {
 				log.Printf("Backup prune failed: %v", err)
 			}
+		}
+		runBackup()
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for range ticker.C {
+			runBackup()
 		}
 	}()
 	log.Printf("Backup scheduler started (every %s, retain %d)", interval, m.retain)

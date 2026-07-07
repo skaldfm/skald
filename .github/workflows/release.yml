@@ -21,7 +21,22 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The static/ tree (including the built CSS) is embedded into the binary,
+      # so the CSS must be compiled before `go build` or releases ship unstyled.
+      - name: Build CSS
+        run: |
+          npm install tailwindcss @tailwindcss/typography
+          npx @tailwindcss/cli -i static/css/input.css -o static/css/style.css --minify
+
       - name: Build binaries
+        env:
+          # Static binaries (no libc dependency) so releases run on any Linux,
+          # matching the CGO_ENABLED=0 build the Docker image uses.
+          CGO_ENABLED: "0"
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
           LDFLAGS="-s -w -X main.version=${VERSION}"

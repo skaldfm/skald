@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 	"net/http"
-	"path/filepath"
+	"path"
 	"strings"
 	"sync"
 
@@ -206,24 +207,25 @@ func containsInt64(slice []int64, val int64) bool {
 	return false
 }
 
-// Load parses all templates from the templates directory.
-func Load(templatesDir string) error {
+// Load parses all templates from the given filesystem (an embedded FS in release
+// builds, or the on-disk templates directory during development).
+func Load(fsys fs.FS) error {
 	mu.Lock()
 	defer mu.Unlock()
 
 	templates = make(map[string]*template.Template)
-	layout := filepath.Join(templatesDir, "layouts", "base.html")
-	authLayout := filepath.Join(templatesDir, "layouts", "auth.html")
-	components, _ := filepath.Glob(filepath.Join(templatesDir, "components", "*.html"))
+	layout := "layouts/base.html"
+	authLayout := "layouts/auth.html"
+	components, _ := fs.Glob(fsys, "components/*.html")
 
 	// Parse each page template with the layout and components
 	pageDirs := []string{"shows", "episodes", "guests", "sponsorships", "prompter", "admin"}
 	for _, dir := range pageDirs {
-		pages, _ := filepath.Glob(filepath.Join(templatesDir, dir, "*.html"))
+		pages, _ := fs.Glob(fsys, dir+"/*.html")
 		for _, page := range pages {
-			name := filepath.Base(page)
+			name := path.Base(page)
 			files := append([]string{layout, page}, components...)
-			t, err := template.New(filepath.Base(layout)).Funcs(FuncMap()).ParseFiles(files...)
+			t, err := template.New(path.Base(layout)).Funcs(FuncMap()).ParseFS(fsys, files...)
 			if err != nil {
 				return fmt.Errorf("parsing template %s: %w", name, err)
 			}
@@ -233,10 +235,10 @@ func Load(templatesDir string) error {
 	}
 
 	// Parse auth templates with the auth layout
-	authPages, _ := filepath.Glob(filepath.Join(templatesDir, "auth", "*.html"))
+	authPages, _ := fs.Glob(fsys, "auth/*.html")
 	for _, page := range authPages {
-		name := filepath.Base(page)
-		t, err := template.New(filepath.Base(authLayout)).Funcs(FuncMap()).ParseFiles(authLayout, page)
+		name := path.Base(page)
+		t, err := template.New(path.Base(authLayout)).Funcs(FuncMap()).ParseFS(fsys, authLayout, page)
 		if err != nil {
 			return fmt.Errorf("parsing auth template %s: %w", name, err)
 		}
@@ -244,11 +246,11 @@ func Load(templatesDir string) error {
 	}
 
 	// Also parse standalone pages (like home)
-	standalones, _ := filepath.Glob(filepath.Join(templatesDir, "*.html"))
+	standalones, _ := fs.Glob(fsys, "*.html")
 	for _, page := range standalones {
-		name := filepath.Base(page)
+		name := path.Base(page)
 		files := append([]string{layout, page}, components...)
-		t, err := template.New(filepath.Base(layout)).Funcs(FuncMap()).ParseFiles(files...)
+		t, err := template.New(path.Base(layout)).Funcs(FuncMap()).ParseFS(fsys, files...)
 		if err != nil {
 			return fmt.Errorf("parsing template %s: %w", name, err)
 		}

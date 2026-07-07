@@ -94,9 +94,25 @@ func (h *AdminHandler) RestoreBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.backups.Restore(name); err != nil {
+	restart, err := h.backups.Restore(name)
+	if err != nil {
 		log.Printf("Restore failed: %v", err)
-		http.Error(w, "Restore failed. Check the server logs for details.", http.StatusInternalServerError)
+		if !restart {
+			// DB was never closed; the app is still healthy, just report failure.
+			http.Error(w, "Restore failed. Check the server logs for details.", http.StatusInternalServerError)
+			return
+		}
+		// The DB has been closed but not successfully swapped: the process can no
+		// longer serve requests. Report, then exit non-zero so the supervisor
+		// restarts us against the (intact) original database file.
+		http.Error(w, "Restore failed after the database was taken offline. The server is restarting; check the logs.", http.StatusInternalServerError)
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		go func() {
+			time.Sleep(500 * time.Millisecond)
+			os.Exit(1)
+		}()
 		return
 	}
 

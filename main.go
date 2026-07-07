@@ -110,12 +110,12 @@ func main() {
 	}
 
 	// Run migrations
-	if err := database.Migrate(db, "migrations"); err != nil {
+	if err := database.Migrate(db, assetFS("migrations")); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	// Load templates
-	if err := views.Load("templates"); err != nil {
+	if err := views.Load(assetFS("templates")); err != nil {
 		log.Fatalf("Failed to load templates: %v", err)
 	}
 
@@ -187,7 +187,8 @@ func main() {
 	r.Use(securityHeaders(cfg.SecureCookies))
 
 	// Public routes (no auth required)
-	fileServer := http.FileServer(http.Dir("static"))
+	staticFS := assetFS("static")
+	fileServer := http.FileServer(http.FS(staticFS))
 	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
 
 	// User uploads: everything under /uploads is private and served behind
@@ -198,7 +199,7 @@ func main() {
 	r.Handle("/uploads/site/*", uploadsServer)
 
 	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "static/robots.txt")
+		http.ServeFileFS(w, r, staticFS, "robots.txt")
 	})
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)

@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	_ "modernc.org/sqlite"
@@ -39,18 +38,4 @@ func Open(dbURL, dataDir string) (*sql.DB, error) {
 	}
 
 	return db, nil
-}
-
-func MigrationsDir() string {
-	// Check for migrations relative to the binary or working directory
-	candidates := []string{
-		"migrations",
-		filepath.Join("..", "migrations"),
-	}
-	for _, dir := range candidates {
-		if info, err := os.Stat(dir); err == nil && info.IsDir() {
-			return dir
-		}
-	}
-	return "migrations"
 }

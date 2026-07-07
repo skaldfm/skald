@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -17,7 +18,7 @@ func newTestDB(t *testing.T) *sql.DB {
 		t.Fatalf("opening test db: %v", err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if err := database.Migrate(db, filepath.Join("..", "..", "migrations")); err != nil {
+	if err := database.Migrate(db, os.DirFS(filepath.Join("..", "..", "migrations"))); err != nil {
 		t.Fatalf("migrating test db: %v", err)
 	}
 	return db
