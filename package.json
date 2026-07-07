@@ -1,0 +1,10 @@
+{
+  "name": "skald-css",
+  "private": true,
+  "description": "Pinned Tailwind toolchain for building static/css/style.css (see Dockerfile).",
+  "devDependencies": {
+    "@tailwindcss/cli": "4.1.11",
+    "@tailwindcss/typography": "0.5.16",
+    "tailwindcss": "4.1.11"
+  }
+}

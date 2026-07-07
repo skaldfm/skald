@@ -37,7 +37,8 @@ tailwindcss
 
 # Node (Tailwind plugins)
 node_modules/
-package.json
+# package.json is tracked — it pins the Tailwind toolchain for the Docker/release
+# CSS build (see Dockerfile). package-lock.json stays ignored (no lockfile checked in).
 package-lock.json
 
 # Tailwind output
