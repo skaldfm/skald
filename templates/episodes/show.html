@@ -88,6 +88,9 @@
         var pipeline = document.getElementById('status-pipeline');
         if (!pipeline) return;
         pipeline.addEventListener('htmx:afterRequest', function(e) {
+            // Only repaint when the status change actually succeeded — otherwise
+            // the pipeline would show a new status the server never persisted.
+            if (!e.detail.successful) return;
             var form = e.target.closest('form');
             if (!form) return;
             var newStatus = form.querySelector('input[name="status"]').value;

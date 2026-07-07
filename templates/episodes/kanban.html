@@ -202,15 +202,21 @@ function handleDrop(event, newStatus) {
         headers: { 'HX-Request': 'true' }
     }).then(response => {
         if (!response.ok) {
-            // Reload on failure to reset state
+            // Server rejected the move; reload to undo the optimistic card move.
             window.location.reload();
+            return;
         }
-        // Update column counts
+        // Refresh every column's count, updating both the expanded and the
+        // collapsed count badges (each column has two).
         document.querySelectorAll('[data-status]').forEach(col => {
-            const status = col.dataset.status;
-            const count = col.querySelector('.space-y-2').children.length;
-            col.querySelector('.rounded-full').textContent = count;
+            const body = col.querySelector('.space-y-2');
+            const count = body ? body.children.length : 0;
+            col.querySelectorAll('.kanban-count').forEach(el => { el.textContent = count; });
         });
+    }).catch(() => {
+        // Network failure — the card was moved locally but the server never
+        // confirmed. Reload so the board reflects the real state.
+        window.location.reload();
     });
 }
 </script>

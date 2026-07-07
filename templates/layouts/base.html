@@ -25,7 +25,14 @@
     <script src="/static/js/tag-picker.js"></script>
     <script>
     document.addEventListener('submit', function(e) {
-        var btn = e.target.querySelector('button[type="submit"]');
+        // A confirm() dialog or validation handler that cancelled the submit
+        // sets defaultPrevented; don't stick the button at "Saving\u2026" for a
+        // submission that never happened.
+        if (e.defaultPrevented) return;
+        // e.submitter is the actual button that triggered the submit, so we
+        // disable Save rather than whichever submit button appears first (e.g.
+        // a Delete button earlier in the form).
+        var btn = e.submitter || e.target.querySelector('button[type="submit"]');
         if (btn && !btn.disabled) {
             btn.disabled = true;
             btn.dataset.originalText = btn.textContent;
@@ -33,8 +40,10 @@
         }
     });
     document.addEventListener('htmx:afterRequest', function(e) {
-        var btn = e.target.querySelector('button[type="submit"]');
-        if (btn && btn.dataset.originalText) {
+        // Re-enable the specific button we disabled (matched by the marker),
+        // not just the first submit button in the form.
+        var btn = e.target.querySelector('button[data-original-text]');
+        if (btn) {
             btn.disabled = false;
             btn.textContent = btn.dataset.originalText;
             delete btn.dataset.originalText;
