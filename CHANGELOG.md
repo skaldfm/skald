@@ -4,6 +4,38 @@ All notable changes to Skald will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-07
+
+Security-hardening and quality release from a deep code review (see `docs/code-review-2026-07.md`).
+
+### Security
+- **Content-Security-Policy** — per-request nonce; all inline scripts nonce'd and every inline event handler removed in favour of delegated listeners. `script-src 'self' 'nonce-…'` (no `unsafe-inline`).
+- **Stored-XSS via uploads fixed** — all user uploads are served with `Content-Disposition: attachment` so an uploaded `.html`/`.svg` can't execute on the app origin; upload file-type allowlists; `X-Content-Type-Options: nosniff`.
+- **Access-control (IDOR) fixes** — asset download, episode reassignment, and guest/sponsor detail are now show-scoped; out-of-scope entities return 404.
+- **Login rate-limiting** — per-IP failure throttle; `X-Forwarded-For`/`X-Real-IP` only trusted when `SKALD_TRUST_PROXY=true`.
+- **Setup wizard fails closed** on a database error (no accidental second admin on a populated instance).
+- **Secure by default** — `SKALD_SECURE_COOKIES` (default true), CSRF hardening, security headers (HSTS/X-Frame-Options/Referrer-Policy), idle session timeout, password length bounds, timing-equalized login.
+- Optional `SKALD_METRICS_TOKEN` to require a bearer token on `/metrics`.
+
+### Added
+- **Kanban keyboard/touch move** — each card has an accessible "move to stage" select alongside drag-and-drop.
+- Structured logging (`log/slog`) with `SKALD_LOG_LEVEL` / `SKALD_LOG_FORMAT`.
+- Prometheus `/metrics` endpoint (uptime, request counts, last-backup age).
+- Graceful shutdown with server timeouts; `/health` pings the DB; container `HEALTHCHECK`.
+- Configurable upload cap (`SKALD_MAX_UPLOAD_MB`); backup interval/retention config.
+
+### Fixed
+- Episode/show deletion now removes the associated upload files from disk (was leaking orphans).
+- Transactional episode save — the row and all its tag/guest/host/sponsor links commit atomically.
+- Backups run `integrity_check`; restore prunes its pre-restore safety backups and restarts safely on failure.
+- Internal error text no longer leaked to browsers (generic 500s).
+- Prompter and kanban/calendar/timeline tablet, markdown, and progressive-enhancement fixes; a11y (aria-labels, `<noscript>` fallbacks, rune-safe avatar initials).
+- Correctness: episode-number NULL-season uniqueness, data-dir-relative asset paths, ignored `Atoi`/query errors, hot-path caching, reverse-lookup indexes, admin N+1.
+
+### Changed
+- Release binaries embed templates/migrations/static and run standalone; Docker/release builds are gated on lint+test+build and use a pinned CSS build.
+- Removed dead `SKALD_SECRET_KEY` config; `SKALD_DB_TYPE=postgres` now fails fast instead of silently opening SQLite.
+
 ## [0.3.0] - 2026-03-01
 
 ### Added
