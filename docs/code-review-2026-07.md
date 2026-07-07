@@ -137,12 +137,13 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
   Bails on `e.defaultPrevented`; disables `e.submitter`; re-enable matches the specific button via `[data-original-text]`.
 
 ### Progressive enhancement / a11y (contradicts CLAUDE.md "works without JS")
-- [ ] Filter selects use `onchange=submit` with no fallback button, no labels — `episodes/index.html:20`, `kanban.html:11`, `calendar.html:22`, `timeline.html:11`, admin role select (also changes role instantly, no confirm).
-- [ ] Show Notes toggle is JS-only (`episodes/show.html:135`) → unreachable without JS. Use `<details>/<summary>`.
-- [ ] Empty-state "Create your first…" CTAs not permission-gated → viewers get a link into a 403 (`episodes/index.html:89`, guests/sponsorships/shows index).
-- [ ] Kanban drag has no keyboard path and unreliable touch support (`kanban.html:55`). Add a "move to column" affordance.
-- [ ] `dark:bg-gray-750` doesn't exist (`calendar.html:42`) → weekday header has no dark bg.
-- [ ] Avatar initial byte-slices UTF-8 (`guests/index.html:28`, `{{slice .Name 0 1}}`) → "Östen" → "Ã". Use a rune-safe helper.
+> **Status (2026-07-07):** ✅ Fixed in commit `4971756`, except the kanban keyboard affordance (deferred as an enhancement).
+- [x] Filter selects — ✅ aria-labels + `<noscript>` submit button added on episodes list, kanban, calendar, timeline; admin role select now confirms before submit and restores prior value on cancel.
+- [x] Show Notes / Script toggles — ✅ converted to `<details>/<summary>` (work without JS).
+- [x] Empty-state CTAs — ✅ gated behind `.CanEdit`/`.IsAdmin` (episodes, guests, sponsorships, shows).
+- [ ] Kanban drag has no keyboard path and unreliable touch support (`kanban.html:55`). Add a "move to column" affordance. _(deferred — genuine enhancement, not a quick bug)_
+- [x] `dark:bg-gray-750` → ✅ `dark:bg-gray-700` (`calendar.html`).
+- [x] Avatar initial byte-slices UTF-8 — ✅ rune-safe `initial` template helper.
 
 ---
 
