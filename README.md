@@ -146,11 +146,11 @@ Configuration can be set via environment variables or an optional `.env` file in
 
 ## Screenshots
 
-![Dashboard](static/images/screenshot-dashboard.png)
+![Dashboard](docs/images/screenshot-dashboard.png)
 
-![Kanban Board](static/images/screenshot-kanban.png)
+![Kanban Board](docs/images/screenshot-kanban.png)
 
-![Episode Detail](static/images/screenshot-episode.png)
+![Episode Detail](docs/images/screenshot-episode.png)
 
 ## License
 

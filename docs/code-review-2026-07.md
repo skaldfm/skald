@@ -82,35 +82,34 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 
 ## P2 — Infra / ops
 
-- [ ] **Release binaries are unrunnable standalone** — `release.yml`, `main.go:50,55,114`
-  No `go:embed`; templates/migrations/static read from cwd. Downloaded `skald-linux-amd64` fatals at "Failed to load templates."
-  **Fix:** `embed.FS` (disk fallback for dev) or ship tarballs with asset dirs.
+> **Status (2026-07-07):** ✅ All six main infra bugs fixed in commit `8944d29`, build/test/lint/standalone-run verified. Uploads-in-backup is deliberately **not** auto-tarred — see note under that item. Remaining: lower-severity ops cleanups (secret key, db_type guard, down migrations, README) and the two ops improvements (slog, /metrics).
 
-- [ ] **Docker images publish with zero gating** — `docker.yml:3-6`
-  Builds/pushes `:latest` on every push to main with no dependency on CI. A commit failing lint+tests still ships to users on `pull: latest` + `restart: unless-stopped`.
-  **Fix:** gate with `needs:` / `workflow_run` on CI success.
+- [x] **Release binaries are unrunnable standalone** — `release.yml`, `main.go:50,55,114` — ✅ DONE
+  Fixed with `go:embed` (`embed.go`): templates/migrations/static baked into the binary, `assetFS()` disk-fallback keeps live editing in dev. `views.Load`/`database.Migrate` take an `fs.FS`; robots.txt + static server read from it. release.yml now builds CSS before compiling. Verified: binary runs from a foreign cwd with no asset dirs present.
 
-- [ ] **Backups cover the DB only** — `backup.go:54`
-  `VACUUM INTO` is correct, but `data/uploads/` is never captured, and restore desyncs DB rows against missing files. Document at minimum; better, tar uploads alongside. Also run `integrity_check` on the fresh backup, and do one backup immediately at scheduler start (currently first scheduled backup is a full interval after boot).
+- [x] **Docker images publish with zero gating** — `docker.yml:3-6` — ✅ DONE
+  `docker` job now `needs: verify` (lint+test+build). Same job also fixes the `VERSION=main` string → `main-<sha>`.
 
-- [ ] **entrypoint crashloops on PUID/PGID collisions** — `entrypoint.sh:8-13`
-  Checks by name (`skald`), not uid/gid. `PGID=100` (alpine "users") → `addgroup` fails under `set -e` → crashloop.
-  **Fix:** detect existing uid/gid and reuse.
+- [x] **Backups cover the DB only** — `backup.go:54` — ✅ DONE (DB side); uploads intentionally out of scope
+  `integrity_check` now runs on every freshly written backup; one backup is taken immediately at scheduler start. **Uploads are deliberately not tarred by the app** — re-tarring up to 512 MB of audio every interval is a poor fit; uploads live on the data volume and should be captured at the volume/filesystem level (snapshot, restic, etc.). To be documented in README.
 
-- [ ] **No container healthcheck** despite `/health` existing (`main.go:121`). Also `/health` doesn't ping the DB (stays green with a broken database).
-  **Fix:** `HEALTHCHECK CMD wget -qO- http://127.0.0.1:${SKALD_PORT}/health`; make `/health` do `db.Ping()`.
+- [x] **entrypoint crashloops on PUID/PGID collisions** — `entrypoint.sh:8-13` — ✅ DONE
+  Resolves existing uid/gid via `getent group/passwd <id>` and reuses them; recursive chown gated on a `stat -c %u` check.
 
-- [ ] **Restore failure can strand app with a closed DB** — `backup.go:151-168`, `admin.go:99`
-  After `db.Close()`, if copy/rename fails, process keeps running with a closed DB (every request 500s). Exit on error after Close.
+- [x] **No container healthcheck** — ✅ DONE
+  `HEALTHCHECK` added to Dockerfile hitting `/health` (which already pings the DB via `PingContext`).
+
+- [x] **Restore failure can strand app with a closed DB** — `backup.go:151-168`, `admin.go:99` — ✅ DONE
+  `Restore` now returns a `restart bool` (true once the DB is closed); the admin handler exits non-zero on a post-close failure so the supervisor restarts against the intact original DB. Covered by `internal/backup/backup_test.go`.
 
 ### Ops / config lower-severity
-- [ ] `linux-amd64` release binary is glibc-dynamic (CGO unset) while Dockerfile uses `CGO_ENABLED=0`. Set `CGO_ENABLED=0` in `release.yml` + `Makefile`.
+- [x] `linux-amd64` release binary is glibc-dynamic (CGO unset) — ✅ `CGO_ENABLED=0` set in `release.yml` + `Makefile dist`.
 - [ ] `SKALD_SECRET_KEY` is dead config (read `config.go:27`, never used). `.env.example` claims "auto-generated if empty" — false. Remove or wire up.
 - [ ] `SKALD_DB_TYPE=postgres` silently opens a garbage sqlite path (`database.go:18` hardcodes sqlite driver). Fail fast on `DBType != "sqlite"`.
 - [ ] Down migrations are dead code (only `*.up.sql` executed) and internally inconsistent. Add a down-runner or delete them.
-- [ ] `chown -R /app/data` on every start (`entrypoint.sh:15`) — O(uploads) startup cost; gate on a stat check.
-- [ ] Unpinned `npm install tailwindcss` (`Dockerfile:6`) → unreproducible CSS. `.dockerignore` misses `.github/`, `Makefile`, screenshots (which ship in runtime image and are publicly served). CI runs tests without `-race`; golangci-lint pinned to `latest`.
-- [ ] Docker branch builds get `VERSION=main` (`docker.yml:44`) → "Skald main starting". Use `github.sha` fallback.
+- [x] `chown -R /app/data` on every start — ✅ gated on a `stat` check in entrypoint.sh.
+- [ ] Unpinned `npm install tailwindcss` (`Dockerfile:6`) → unreproducible CSS. `.dockerignore` misses `.github/`, `Makefile`, screenshots (which ship in runtime image and are publicly served). CI runs tests without `-race`; golangci-lint pinned to `latest`. _(Note: screenshots are now also embedded in the binary via `go:embed static` — consider moving them out of `static/`.)_
+- [x] Docker branch builds get `VERSION=main` (`docker.yml:44`) — ✅ now `main-<sha>`.
 - [ ] README: add "download docker-compose.yml first" to Quick Start; remove `SKALD_SECRET_KEY` and postgres implications.
 
 ### Ops improvements worth adding
