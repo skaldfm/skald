@@ -119,12 +119,11 @@
                 {{end}}
             </div>
 
-            <div class="rounded-lg bg-white dark:bg-gray-800 shadow">
-                <button onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-180')"
-                        class="flex w-full items-center justify-between p-6 text-left">
+            <details open class="group rounded-lg bg-white dark:bg-gray-800 shadow">
+                <summary class="flex w-full cursor-pointer items-center justify-between p-6 text-left list-none [&::-webkit-details-marker]:hidden">
                     <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400">Script</h2>
-                    <svg class="h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                </button>
+                    <svg class="h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
                 <div class="px-6 pb-6">
                     {{if .Episode.Script}}
                     <div class="prose prose-sm max-w-none dark:prose-invert">{{renderMarkdown .Episode.Script}}</div>
@@ -132,22 +131,21 @@
                     <p class="text-sm text-gray-400 dark:text-gray-500 italic">No script yet.</p>
                     {{end}}
                 </div>
-            </div>
+            </details>
 
-            <div class="rounded-lg bg-white dark:bg-gray-800 shadow">
-                <button onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-180')"
-                        class="flex w-full items-center justify-between p-6 text-left">
+            <details class="group rounded-lg bg-white dark:bg-gray-800 shadow">
+                <summary class="flex w-full cursor-pointer items-center justify-between p-6 text-left list-none [&::-webkit-details-marker]:hidden">
                     <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400">Show Notes</h2>
-                    <svg class="h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                </button>
-                <div class="px-6 pb-6 hidden">
+                    <svg class="h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-6 pb-6">
                     {{if .Episode.ShowNotes}}
                     <div class="prose prose-sm max-w-none dark:prose-invert">{{renderMarkdown .Episode.ShowNotes}}</div>
                     {{else}}
                     <p class="text-sm text-gray-400 dark:text-gray-500 italic">No show notes yet.</p>
                     {{end}}
                 </div>
-            </div>
+            </details>
 
             <!-- Assets -->
             <div class="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">

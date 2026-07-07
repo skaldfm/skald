@@ -23,7 +23,7 @@
                 <img src="/uploads/{{.Image}}" alt="{{.Name}}" class="h-12 w-12 rounded-full object-cover flex-shrink-0">
                 {{else}}
                 <div class="h-12 w-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                    <span class="text-sm font-medium text-indigo-700 dark:text-indigo-400">{{slice .Name 0 1}}</span>
+                    <span class="text-sm font-medium text-indigo-700 dark:text-indigo-400">{{initial .Name}}</span>
                 </div>
                 {{end}}
                 <div class="min-w-0">
@@ -46,7 +46,9 @@
     {{else}}
     <div class="rounded-lg bg-white dark:bg-gray-800 p-12 text-center shadow">
         <p class="text-gray-500 dark:text-gray-400">No people yet.</p>
+        {{if .CanEdit}}
         <a href="/guests/new" class="mt-4 inline-block text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">Add your first person</a>
+        {{end}}
     </div>
     {{end}}
 </div>

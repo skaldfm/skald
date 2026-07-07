@@ -99,7 +99,8 @@
                         {{if ne .ID $.CurrentUser.ID}}
                         <form method="POST" action="/admin/users/{{.ID}}/role" class="inline">
                             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-                            <select name="role" onchange="this.form.submit()"
+                            <select name="role" aria-label="Change user role" data-prev="{{.Role}}"
+                                    onchange="if(confirm('Change this user\'s role to '+this.value+'?')){this.form.submit()}else{this.value=this.dataset.prev}"
                                     class="rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 px-2 py-1 text-xs focus:border-indigo-500 focus:outline-none">
                                 <option value="admin" {{if eq .Role "admin"}}selected{{end}}>Admin</option>
                                 <option value="editor" {{if eq .Role "editor"}}selected{{end}}>Editor</option>

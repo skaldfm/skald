@@ -35,3 +35,17 @@ func TestRenderMarkdownStructure(t *testing.T) {
 		}
 	}
 }
+
+func TestInitial(t *testing.T) {
+	cases := map[string]string{
+		"Östen": "Ö", // multi-byte first rune must survive intact, not become "Ã"
+		"alice": "A",
+		"":      "",
+		"李雷":    "李",
+	}
+	for in, want := range cases {
+		if got := initial(in); got != want {
+			t.Errorf("initial(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

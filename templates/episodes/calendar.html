@@ -22,13 +22,17 @@
             <form method="GET" action="/calendar">
                 <input type="hidden" name="year" value="{{.Year}}">
                 <input type="hidden" name="month" value="{{.Month}}">
-                <select name="show" onchange="this.form.submit()"
+                <select name="show" aria-label="Filter by show" onchange="this.form.submit()"
                         class="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:bg-gray-700 dark:text-gray-100">
                     <option value="">All Shows</option>
                     {{range .Shows}}
                     <option value="{{.ID}}" {{if eq .ID $.Filter.ShowID}}selected{{end}}>{{.Name}}</option>
                     {{end}}
                 </select>
+                <!-- Shown only without JS; the select auto-submits via onchange otherwise. -->
+                <noscript>
+                    <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-700">Filter</button>
+                </noscript>
             </form>
             <a href="/episodes" class="rounded-md bg-white dark:bg-gray-800 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">List</a>
             <a href="/kanban{{if .Filter.ShowID}}?show={{.Filter.ShowID}}{{end}}" class="rounded-md bg-white dark:bg-gray-800 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm ring-1 ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">Kanban</a>
@@ -39,7 +43,7 @@
     <!-- Calendar grid -->
     <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
         <!-- Day headers -->
-        <div class="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
+        <div class="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
             <div class="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Mon</div>
             <div class="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Tue</div>
             <div class="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Wed</div>

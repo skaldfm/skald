@@ -90,7 +90,17 @@ func FuncMap() template.FuncMap {
 		"contains":         containsInt64,
 		"toJSON":           toJSON,
 		"hasPrefix":        strings.HasPrefix,
+		"initial":          initial,
 	}
+}
+
+// initial returns the first character of s as an uppercase string, decoding by
+// rune so multi-byte names ("Östen") don't get sliced mid-codepoint into mojibake.
+func initial(s string) string {
+	for _, r := range s {
+		return strings.ToUpper(string(r))
+	}
+	return ""
 }
 
 func StatusLabel(s string) string {

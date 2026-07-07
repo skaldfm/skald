@@ -34,7 +34,9 @@
     {{else}}
     <div class="rounded-lg bg-white dark:bg-gray-800 p-12 text-center shadow">
         <p class="text-gray-500 dark:text-gray-400">No sponsorships yet.</p>
+        {{if .CanEdit}}
         <a href="/sponsorships/new" class="mt-4 inline-block text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-400">Add your first sponsorship</a>
+        {{end}}
     </div>
     {{end}}
 </div>
