@@ -120,24 +120,21 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 
 ## P2 — Frontend / UX bugs
 
-- [ ] **Prompter unusable on tablet (the stated target device)** — `templates/prompter/show.html:6-7`
-  ~18 controls in a single non-wrapping centered flex row (~900px) overflow both edges on iPad portrait (768px); touch targets ~24px vs 44px guideline.
-  **Fix:** `flex-wrap` (or two rows on `<md`), bigger touch padding.
+> **Status (2026-07-07):** ✅ All five frontend bugs below fixed in commit `f6ee865` (template-parse + renderMarkdown-structure verified). Progressive-enhancement / a11y section below is still open.
 
-- [ ] **Prompter renders markdown as flat text** — `prompter/show.html:83,117-120`
-  No `prose` class → `# Segment` headings look identical to body, lists lose bullets. Guts the MVP "segment markers" promise.
-  **Fix:** style headings/lists/blockquote/hr in `.prompter-content`; build a jump list from headings.
+- [x] **Prompter unusable on tablet (the stated target device)** — `templates/prompter/show.html` — ✅ DONE
+  Controls bar now `flex flex-wrap` with `gap-y-2` so it wraps instead of overflowing; adjust buttons bumped to `px-2.5 py-1 text-sm` and colour swatches to `h-7 w-7` for tappability.
 
-- [ ] **Status pipeline repaints as success on server error** — `episodes/show.html:90-103`
-  `htmx:afterRequest` recolors without checking `e.detail.successful`. One-line fix: `if (!e.detail.successful) return;`.
+- [x] **Prompter renders markdown as flat text** — ✅ DONE
+  Added heading/list/blockquote/hr rules to `.prompter-content` (sizes relative to base font, `currentColor` so they respect the reader's font colour; `h2` gets an underline divider as the segment marker). Jump-list-from-headings deferred to the Features section.
 
-- [ ] **Kanban drop has no `.catch()`** — `kanban.html:196-214`
-  Network failure leaves card in wrong column with no feedback; only expanded header count updates (collapsed `.kanban-count` bar goes stale).
-  **Fix:** `.catch(() => location.reload())`; update via `querySelectorAll('.kanban-count')`.
+- [x] **Status pipeline repaints as success on server error** — `episodes/show.html` — ✅ DONE (`if (!e.detail.successful) return;`).
 
-- [ ] **Global submit-disabler misfires** — `base.html:27-42`
-  (a) Doesn't check `defaultPrevented` → cancelling any `confirm()` sticks the button at "Saving…" forever. (b) Grabs the Delete button instead of Save on edit pages.
-  **Fix:** bail on `e.defaultPrevented`; use `e.submitter`.
+- [x] **Kanban drop has no `.catch()`** — `episodes/kanban.html` — ✅ DONE
+  Added `.catch(() => reload())`, early-return + reload on `!response.ok`, and count refresh now updates all `.kanban-count` badges (expanded + collapsed).
+
+- [x] **Global submit-disabler misfires** — `base.html` — ✅ DONE
+  Bails on `e.defaultPrevented`; disables `e.submitter`; re-enable matches the specific button via `[data-original-text]`.
 
 ### Progressive enhancement / a11y (contradicts CLAUDE.md "works without JS")
 - [ ] Filter selects use `onchange=submit` with no fallback button, no labels — `episodes/index.html:20`, `kanban.html:11`, `calendar.html:22`, `timeline.html:11`, admin role select (also changes role instantly, no confirm).
