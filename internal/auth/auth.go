@@ -26,6 +26,16 @@ func CheckPassword(hash, password string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
 
+// dummyHash is a valid bcrypt hash used only to equalize timing.
+var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("skald-timing-equalizer"), bcrypt.DefaultCost)
+
+// CheckDummyPassword performs a bcrypt comparison against a fixed hash so that a
+// login attempt for a non-existent account takes about as long as one for a
+// real account, preventing user enumeration via response timing.
+func CheckDummyPassword(password string) {
+	_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
+}
+
 // WithUser stores a user in the request context.
 func WithUser(ctx context.Context, u *models.User) context.Context {
 	return context.WithValue(ctx, userKey, u)

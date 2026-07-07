@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -256,13 +257,17 @@ func (h *GuestHandler) handleImageUpload(r *http.Request, guest *models.Guest) e
 	}
 	defer file.Close()
 
+	ext, ok := imageExt(header.Filename)
+	if !ok {
+		return fmt.Errorf("unsupported image format")
+	}
+
 	idStr := strconv.FormatInt(guest.ID, 10)
 	uploadDir := filepath.Join(h.dataDir, "uploads", "guests", idStr)
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		return err
 	}
 
-	ext := filepath.Ext(header.Filename)
 	destPath := filepath.Join(uploadDir, "image"+ext)
 
 	// Remove old image if it exists and differs

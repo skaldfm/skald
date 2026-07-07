@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/alexedwards/scs/v2"
@@ -47,6 +50,26 @@ func (n noListFS) Open(name string) (http.File, error) {
 	return f, nil
 }
 
+// securityHeaders sets response headers that harden the app without breaking
+// its inline scripts/styles (a Content-Security-Policy is intentionally omitted
+// until the templates drop inline handlers). nosniff also stops browsers from
+// content-sniffing uploaded files into an executable type. HSTS is only sent
+// when the deployment is expected to be behind TLS.
+func securityHeaders(tls bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h := w.Header()
+			h.Set("X-Content-Type-Options", "nosniff")
+			h.Set("X-Frame-Options", "DENY")
+			h.Set("Referrer-Policy", "same-origin")
+			if tls {
+				h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 func main() {
 	_ = godotenv.Load() // optional .env file
 
@@ -86,8 +109,14 @@ func main() {
 	sessionManager := scs.New()
 	sessionManager.Store = sessionStore
 	sessionManager.Lifetime = 30 * 24 * time.Hour
-	sessionManager.Cookie.Secure = false // allow HTTP for local dev
+	sessionManager.Cookie.Secure = cfg.SecureCookies
 	sessionManager.Cookie.SameSite = http.SameSiteLaxMode
+
+	// Periodically purge expired sessions from the store (scs does not do this
+	// for custom stores). Runs until the process exits.
+	if _, err := sessionStore.Cleanup(time.Hour); err != nil {
+		log.Printf("Warning: session cleanup scheduler failed to start: %v", err)
+	}
 
 	// CSRF protection middleware
 	csrfProtect := func(next http.Handler) http.Handler {
@@ -95,7 +124,7 @@ func main() {
 		h.SetBaseCookie(http.Cookie{
 			Path:     "/",
 			HttpOnly: true,
-			Secure:   false,
+			Secure:   cfg.SecureCookies,
 			SameSite: http.SameSiteLaxMode,
 		})
 		// nosurf v1.2.0 defaults isTLS to true, which forces Referer checks
@@ -134,6 +163,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(sessionManager.LoadAndSave)
 	r.Use(csrfProtect)
+	r.Use(securityHeaders(cfg.SecureCookies))
 
 	// Public routes (no auth required)
 	fileServer := http.FileServer(http.Dir("static"))
@@ -150,6 +180,12 @@ func main() {
 		http.ServeFile(w, r, "static/robots.txt")
 	})
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := db.PingContext(ctx); err != nil {
+			http.Error(w, "database unavailable", http.StatusServiceUnavailable)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
@@ -222,8 +258,33 @@ func main() {
 	// Start scheduled backups
 	backupMgr.StartSchedule(cfg.BackupInterval)
 
-	log.Printf("Skald %s starting on :%s", version, cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
-		log.Fatalf("Server failed: %v", err)
+	srv := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		// No ReadTimeout/WriteTimeout: asset uploads and downloads can be large
+		// and slow; ReadHeaderTimeout still bounds slowloris on the headers.
+	}
+
+	// Graceful shutdown on SIGINT/SIGTERM so in-flight requests finish and the
+	// database is closed cleanly.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		log.Printf("Skald %s starting on :%s", version, cfg.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server failed: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
+	log.Println("Shutting down...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("Graceful shutdown failed: %v", err)
 	}
 }

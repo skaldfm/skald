@@ -9,6 +9,16 @@ import (
 
 var Statuses = []string{"idea", "research", "scripted", "recorded", "edited", "published"}
 
+// IsValidStatus reports whether s is one of the allowed episode statuses.
+func IsValidStatus(s string) bool {
+	for _, v := range Statuses {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
 type Episode struct {
 	ID            int64
 	ShowID        int64

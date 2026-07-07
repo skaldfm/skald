@@ -339,8 +339,8 @@ func (h *AdminHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	ext := strings.ToLower(filepath.Ext(header.Filename))
-	if ext != ".png" && ext != ".jpg" && ext != ".jpeg" && ext != ".gif" && ext != ".svg" && ext != ".webp" {
+	ext, ok := imageExt(header.Filename)
+	if !ok {
 		http.Error(w, "Unsupported image format", http.StatusBadRequest)
 		return
 	}

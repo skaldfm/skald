@@ -259,6 +259,12 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		defer file.Close()
 
+		ext, ok := imageExt(header.Filename)
+		if !ok {
+			http.Error(w, "Unsupported image format", http.StatusBadRequest)
+			return
+		}
+
 		idStr := strconv.FormatInt(show.ID, 10)
 		uploadDir := filepath.Join(h.dataDir, "uploads", "shows", idStr)
 		if err := os.MkdirAll(uploadDir, 0755); err != nil {
@@ -266,7 +272,6 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ext := filepath.Ext(header.Filename)
 		destPath := filepath.Join(uploadDir, "artwork"+ext)
 
 		// Remove old artwork if it exists and differs
@@ -400,7 +405,7 @@ func groupBySeason(episodes []models.Episode) []seasonGroup {
 	}
 
 	// Group by season number
-	grouped := map[int][]models.Episode{}  // keyed by season number
+	grouped := map[int][]models.Episode{} // keyed by season number
 	var unassigned []models.Episode
 	seasonsSeen := map[int]bool{}
 

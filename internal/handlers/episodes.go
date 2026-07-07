@@ -123,6 +123,10 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	title := strings.TrimSpace(r.FormValue("title"))
 	description := strings.TrimSpace(r.FormValue("description"))
 	status := r.FormValue("status")
+	if status != "" && !models.IsValidStatus(status) {
+		http.Error(w, "Invalid status", http.StatusBadRequest)
+		return
+	}
 	showIDStr := r.FormValue("show_id")
 
 	showID, _ := strconv.ParseInt(showIDStr, 10, 64)
@@ -206,6 +210,12 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if artErr == nil {
 		defer file.Close()
 
+		ext, ok := imageExt(header.Filename)
+		if !ok {
+			http.Error(w, "Unsupported image format", http.StatusBadRequest)
+			return
+		}
+
 		idStr := strconv.FormatInt(ep.ID, 10)
 		uploadDir := filepath.Join(h.dataDir, "uploads", "episodes", idStr)
 		if err := os.MkdirAll(uploadDir, 0755); err != nil {
@@ -213,7 +223,6 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ext := filepath.Ext(header.Filename)
 		destPath := filepath.Join(uploadDir, "artwork"+ext)
 
 		dest, err := os.Create(destPath)
@@ -321,10 +330,20 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	ep.Title = strings.TrimSpace(r.FormValue("title"))
 	ep.Description = strings.TrimSpace(r.FormValue("description"))
 	ep.Status = r.FormValue("status")
+	if !models.IsValidStatus(ep.Status) {
+		http.Error(w, "Invalid status", http.StatusBadRequest)
+		return
+	}
 	ep.Script = r.FormValue("script")
 	ep.ShowNotes = r.FormValue("show_notes")
 
-	if showID, err := strconv.ParseInt(r.FormValue("show_id"), 10, 64); err == nil {
+	if showID, err := strconv.ParseInt(r.FormValue("show_id"), 10, 64); err == nil && showID != ep.ShowID {
+		// Reassigning to a different show requires access to the target show,
+		// not just the current one (which requireShowEdit already checked).
+		if !auth.CanAccessShow(r.Context(), showID) {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
 		ep.ShowID = showID
 	}
 	if epNum := r.FormValue("episode_number"); epNum != "" {
@@ -368,6 +387,12 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		defer file.Close()
 
+		ext, ok := imageExt(header.Filename)
+		if !ok {
+			http.Error(w, "Unsupported image format", http.StatusBadRequest)
+			return
+		}
+
 		idStr := strconv.FormatInt(ep.ID, 10)
 		uploadDir := filepath.Join(h.dataDir, "uploads", "episodes", idStr)
 		if err := os.MkdirAll(uploadDir, 0755); err != nil {
@@ -375,7 +400,6 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ext := filepath.Ext(header.Filename)
 		destPath := filepath.Join(uploadDir, "artwork"+ext)
 
 		// Remove old artwork if it exists and differs
@@ -521,6 +545,10 @@ func (h *EpisodeHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	status := r.FormValue("status")
+	if !models.IsValidStatus(status) {
+		http.Error(w, "Invalid status", http.StatusBadRequest)
+		return
+	}
 	if err := h.episodes.UpdateStatus(ep.ID, status); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

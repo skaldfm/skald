@@ -25,57 +25,52 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 
 ## P1 — Security (remaining)
 
-- [ ] **Upload file type never validated** — `episodes.go:216`, `guests.go:265`, `sponsorships.go:306`
-  Extension taken verbatim from client filename → `artwork.html`/`.svg` served with executable content type (compounds public-uploads issue). Admin logo path allowlists but includes `.svg` (scriptable).
-  **Fix:** allowlist image extensions + `http.DetectContentType`; serve user uploads with `Content-Disposition: attachment` + `X-Content-Type-Options: nosniff`.
+> **Status (2026-07-07, second pass):** most of P1 landed and was build/vet/smoke-verified. Two items are intentionally **deferred**: the transactional episode-save (multi-store refactor, do deliberately) and the guest/sponsor scoping (needs a product decision). See the ⏸ markers.
 
-- [ ] **Episode reassignment escapes scope** — `internal/handlers/episodes.go:327`
-  `Update` checks `requireShowEdit` on the *old* show, then overwrites `ShowID` from the form with no check on the *new* target. `Create` checks it (line 130); `Update` doesn't.
-  **Fix:** validate `CanAccessShow(ctx, newShowID)` before assigning.
+- [x] **Upload file type never validated** — fixed
+  **Applied:** added `internal/handlers/upload.go` with image/doc extension allowlists (SVG excluded — scriptable); applied to episode/show artwork, guest image, sponsor order file; admin logo now uses the shared helper (drops `.svg`). Combined with `X-Content-Type-Options: nosniff` (added globally) this closes the stored-XSS-via-upload vector.
 
-- [ ] **Guest & sponsorship detail/edit ignore show scoping** — `guests.go:117`, `sponsorships.go:117` (+ Edit/Update/Delete)
+- [x] **Episode reassignment escapes scope** — `handlers/episodes.go` → fixed
+  **Applied:** `Update` now checks `CanAccessShow` on the target show before accepting a `show_id` change.
+
+- [ ] ⏸ **Guest & sponsorship detail/edit ignore show scoping** — `guests.go`, `sponsorships.go` (+ Edit/Update/Delete) — **DEFERRED, decision needed**
   Lists are scoped via `ListByShowIDs`, but `Show`/`Edit`/`Update`/`Delete` fetch by ID with no scope check. Restricted users can enumerate IDs to read all guest contacts and sponsor CPM/total-cost; any editor can edit/delete them.
-  **Decision needed:** is cross-show sharing intended? If not, add scope checks; if yes, the scoped lists are misleading.
+  **Decision needed:** are guests/sponsors instance-global (shared across shows) or show-scoped? The data model links them to episodes (many shows), suggesting global — but then sponsor financials leak across tenants. This also gates full per-show scoping of `/uploads`.
 
-- [ ] **Session & CSRF cookies hardcoded `Secure=false`** — `main.go:64,73`
-  No override; behind an HTTPS reverse proxy the cookies still ship without Secure.
-  **Fix:** config flag (default true) or derive from `X-Forwarded-Proto` (RealIP already trusts the proxy).
+- [x] **Session & CSRF cookies hardcoded `Secure=false`** — fixed
+  **Applied:** driven by `SKALD_SECURE_COOKIES` (default **true**); set `false` for plain-HTTP LAN access without a TLS proxy. Verified the CSRF cookie now carries `Secure`.
 
-- [ ] **Login user-enumeration (timing + messages)** — `auth.go:51`
-  bcrypt only runs for existing emails (short-circuit) → timing oracle; explicit "email already exists" messages on register/create.
-  **Fix:** dummy bcrypt compare against a constant hash when user not found.
+- [x] **Login user-enumeration (timing)** — `auth.go` → fixed
+  **Applied:** `CheckDummyPassword` runs a bcrypt compare against a fixed hash when the account doesn't exist, equalizing response time. (The explicit "email already exists" register message is a minor secondary leak, left as-is.)
 
 ### Hardening (not bugs)
-- [ ] Security headers middleware: CSP (blunts SVG/HTML upload XSS), `X-Content-Type-Options: nosniff`, `X-Frame-Options`, HSTS when TLS.
-- [ ] Idle/absolute session timeout — currently a flat 30-day lifetime, no idle expiry.
-- [ ] Password max length (bcrypt truncates at 72 bytes) + basic login rate-limit/lockout (internet-exposed, no brute-force protection today).
+- [x] Security headers middleware — `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS when secure. **CSP intentionally omitted** (templates use inline `<script>`/`onclick`; needs a template refactor first).
+- [ ] Idle/absolute session timeout — still a flat 30-day lifetime, no idle expiry.
+- [ ] Password max length + login rate-limit/lockout — bcrypt's lib already errors on >72 bytes; explicit max-length message and brute-force lockout still not added.
 
 ---
 
 ## P1 — Correctness & data safety
 
-- [ ] **`SKALD_BACKUP_INTERVAL=0` panics the process** — `config.go:48`, `backup.go:213`
-  `time.NewTicker(0)` panics in the scheduler goroutine → whole app dies. "0 to disable" is the obvious thing to try. Treat `<=0` as disabled; validate garbage values instead of silently defaulting to 24h.
+- [x] **`SKALD_BACKUP_INTERVAL=0` panics the process** — `backup.go` → fixed
+  **Applied:** `StartSchedule` returns early (logs "disabled") on a non-positive interval. Verified: boots cleanly with `SKALD_BACKUP_INTERVAL=0`.
 
-- [ ] **Episode save is non-transactional, all errors swallowed** — `episodes.go:249,450-509` (+ Create at 187-236)
-  Tags/guests/hosts/sponsors synced via individual autocommit statements, every error discarded (`_ =`). A `SQLITE_BUSY` silently drops the user's selections while the redirect reports success; a crash mid-way leaves partial state.
-  **Fix:** one transaction covering episode + link tables; propagate errors.
+- [ ] ⏸ **Episode save is non-transactional, all errors swallowed** — `episodes.go` — **DEFERRED (refactor)**
+  Tags/guests/hosts/sponsors synced via individual autocommit statements, every error discarded (`_ =`). Needs a transaction threaded through the guest/tag/sponsorship stores (they each hold `*sql.DB`) — a deliberate multi-file change, not a quick edit. Partially mitigated already: `SetMaxOpenConns(1)` (P0) removes the `SQLITE_BUSY` trigger that was the most likely cause of silent drops.
+  **Fix:** `EpisodeStore.SaveWithLinks(tx, ...)` or pass a `*sql.Tx` into the link stores; propagate errors.
 
-- [ ] **Multipart size limits are dead code** — `episodes.go:118` etc.
-  nosurf's CSRF check parses the form before the handler's `ParseMultipartForm`, so "Form too large" branches never fire → unbounded request bodies spooled to disk.
-  **Fix:** `http.MaxBytesReader` in middleware.
+- [ ] **Multipart size limits are dead code** — **DEFERRED (needs decision)**
+  A global `MaxBytesReader` would break large **audio** asset uploads (podcast files are big). Needs a configurable max-upload size (e.g. `SKALD_MAX_UPLOAD`) applied per-route, not a blanket cap.
 
-- [ ] **Expired sessions never cleaned up** — `sessionstore.go:75`
-  `Cleanup` has zero callers; `sessions` table grows forever (30-day lifetime).
-  **Fix:** start the cleanup goroutine in `NewSQLiteStore`.
+- [x] **Expired sessions never cleaned up** — `main.go` → fixed
+  **Applied:** `sessionStore.Cleanup(time.Hour)` started at boot.
 
-- [ ] **No graceful shutdown or server timeouts** — `main.go:190`
-  Bare `ListenAndServe`: `docker stop` kills in-flight uploads, `defer db.Close()` never runs, no `ReadHeaderTimeout` (slowloris).
-  **Fix:** `http.Server{...timeouts...}` + `signal.NotifyContext` + `srv.Shutdown`.
+- [x] **No graceful shutdown or server timeouts** — `main.go` → fixed
+  **Applied:** `http.Server` with `ReadHeaderTimeout`/`IdleTimeout`, `signal.NotifyContext(SIGINT/SIGTERM)` + `srv.Shutdown`. Verified clean exit on SIGTERM. `/health` now does `db.PingContext` (returns 503 on a dead DB).
 
-- [ ] **Internal error text leaked to browsers** — nearly every handler (`http.Error(w, err.Error(), 500)`)
-  Exposes SQL/driver/path detail. Invalid `status` surfaces as raw CHECK-constraint 500 instead of 400 (`episodes.go:524`).
-  **Fix:** central error helper (log detail, return generic message); validate status against `models.Statuses`.
+- [ ] **Internal error text leaked to browsers** — **partially done**
+  `http.Error(w, err.Error(), 500)` still used in most handlers (info disclosure). **Done:** invalid episode status now returns 400 (validated against `models.Statuses` in Create/Update/UpdateStatus) instead of a raw CHECK-constraint 500.
+  **Remaining:** central error helper (log detail, return generic message) applied across handlers.
 
 ### Lower-severity correctness
 - [ ] Episode-number uniqueness check-then-write race + NULL season loophole — `episodes.go:163-185`, `003_unique_episode_number.up.sql`.

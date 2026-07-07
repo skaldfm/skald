@@ -208,7 +208,13 @@ func copyFile(src, dst string) error {
 }
 
 // StartSchedule runs backups on a fixed interval in a background goroutine.
+// A non-positive interval disables scheduled backups (time.NewTicker panics on
+// a zero/negative duration).
 func (m *Manager) StartSchedule(interval time.Duration) {
+	if interval <= 0 {
+		log.Printf("Scheduled backups disabled (interval %s)", interval)
+		return
+	}
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()

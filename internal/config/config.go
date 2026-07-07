@@ -16,18 +16,22 @@ type Config struct {
 	BackupInterval   time.Duration
 	BackupRetain     int
 	OpenRegistration bool
+	SecureCookies    bool
 }
 
 func Load() *Config {
 	cfg := &Config{
-		Port:           envOr("SKALD_PORT", "7707"),
-		DataDir:        envOr("SKALD_DATA_DIR", "./data"),
-		DBType:         envOr("SKALD_DB_TYPE", "sqlite"),
-		DBURL:          os.Getenv("SKALD_DB_URL"),
-		SecretKey:      os.Getenv("SKALD_SECRET_KEY"),
-		BackupInterval: parseDuration(envOr("SKALD_BACKUP_INTERVAL", "24h")),
+		Port:             envOr("SKALD_PORT", "7707"),
+		DataDir:          envOr("SKALD_DATA_DIR", "./data"),
+		DBType:           envOr("SKALD_DB_TYPE", "sqlite"),
+		DBURL:            os.Getenv("SKALD_DB_URL"),
+		SecretKey:        os.Getenv("SKALD_SECRET_KEY"),
+		BackupInterval:   parseDuration(envOr("SKALD_BACKUP_INTERVAL", "24h")),
 		BackupRetain:     parseInt(envOr("SKALD_BACKUP_RETAIN", "14")),
 		OpenRegistration: os.Getenv("SKALD_OPEN_REGISTRATION") == "true",
+		// Default to secure cookies; operators serving plain HTTP on localhost
+		// can set SKALD_SECURE_COOKIES=false.
+		SecureCookies: envOr("SKALD_SECURE_COOKIES", "true") != "false",
 	}
 
 	// For SQLite, default DB path is inside data dir

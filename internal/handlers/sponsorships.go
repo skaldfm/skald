@@ -297,13 +297,17 @@ func (h *SponsorshipHandler) handleOrderUpload(sp *models.Sponsorship, r *http.R
 	}
 	defer file.Close()
 
+	ext, ok := docExt(header.Filename)
+	if !ok {
+		return // reject unsupported document types
+	}
+
 	idStr := strconv.FormatInt(sp.ID, 10)
 	uploadDir := filepath.Join(h.dataDir, "uploads", "sponsorships", idStr)
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		return
 	}
 
-	ext := filepath.Ext(header.Filename)
 	destPath := filepath.Join(uploadDir, "order"+ext)
 
 	// Remove old order file if different

@@ -48,7 +48,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	user, err := h.users.GetByEmail(email)
-	if err != nil || user == nil || !auth.CheckPassword(user.PasswordHash, password) {
+	valid := false
+	if err == nil && user != nil {
+		valid = auth.CheckPassword(user.PasswordHash, password)
+	} else {
+		// Equalize timing so a missing account is indistinguishable from a
+		// wrong password (prevents user enumeration).
+		auth.CheckDummyPassword(password)
+	}
+	if !valid {
 		data := map[string]any{
 			"Error":            "Invalid email or password",
 			"Email":            email,
