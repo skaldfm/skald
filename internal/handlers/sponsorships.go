@@ -242,6 +242,20 @@ func (h *SponsorshipHandler) getSponsorship(w http.ResponseWriter, r *http.Reque
 		return nil, nil
 	}
 
+	// Scope to the user's shows. showIDs == nil means admin (all access).
+	// 404 (not 403) so a sponsorship outside the user's shows can't be enumerated.
+	if showIDs := auth.AccessibleShowIDs(r.Context()); showIDs != nil {
+		ok, err := h.store.AccessibleToShows(sp.ID, showIDs)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return nil, err
+		}
+		if !ok {
+			http.NotFound(w, r)
+			return nil, nil
+		}
+	}
+
 	return sp, nil
 }
 

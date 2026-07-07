@@ -312,5 +312,19 @@ func (h *GuestHandler) getGuest(w http.ResponseWriter, r *http.Request) (*models
 		return nil, nil
 	}
 
+	// Scope to the user's shows. showIDs == nil means admin (all access).
+	// 404 (not 403) so a guest outside the user's shows can't be enumerated.
+	if showIDs := auth.AccessibleShowIDs(r.Context()); showIDs != nil {
+		ok, err := h.store.AccessibleToShows(guest.ID, showIDs)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return nil, err
+		}
+		if !ok {
+			http.NotFound(w, r)
+			return nil, nil
+		}
+	}
+
 	return guest, nil
 }

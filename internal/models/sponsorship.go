@@ -98,6 +98,38 @@ func (s *SponsorshipStore) ListByShowIDs(showIDs []int64) ([]Sponsorship, error)
 	return sponsorships, rows.Err()
 }
 
+// AccessibleToShows reports whether a sponsorship is visible to a user limited
+// to showIDs: true if it is linked to an episode in one of those shows, or if
+// it is an orphan (linked to no episode at all) so a just-created sponsorship
+// can still be viewed and edited by its creator.
+func (s *SponsorshipStore) AccessibleToShows(sponsorshipID int64, showIDs []int64) (bool, error) {
+	if len(showIDs) > 0 {
+		ph := "?" + strings.Repeat(",?", len(showIDs)-1)
+		q := fmt.Sprintf(`SELECT EXISTS(
+			SELECT 1 FROM episode_sponsorships es JOIN episodes e ON e.id = es.episode_id
+			WHERE es.sponsorship_id = ? AND e.show_id IN (%s))`, ph)
+		args := make([]any, 0, 1+len(showIDs))
+		args = append(args, sponsorshipID)
+		for _, id := range showIDs {
+			args = append(args, id)
+		}
+		var inScope bool
+		if err := s.db.QueryRow(q, args...).Scan(&inScope); err != nil {
+			return false, fmt.Errorf("checking sponsorship access: %w", err)
+		}
+		if inScope {
+			return true, nil
+		}
+	}
+
+	var linked bool
+	if err := s.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM episode_sponsorships WHERE sponsorship_id = ?)`,
+		sponsorshipID).Scan(&linked); err != nil {
+		return false, fmt.Errorf("checking sponsorship links: %w", err)
+	}
+	return !linked, nil // accessible only if orphaned
+}
+
 func (s *SponsorshipStore) Get(id int64) (*Sponsorship, error) {
 	var sp Sponsorship
 	err := s.db.QueryRow(`SELECT id, name, description, script, cpm, average_listens, total_cost,
@@ -221,6 +253,27 @@ func (s *SponsorshipStore) UnlinkEpisode(sponsorshipID, episodeID int64) error {
 		return fmt.Errorf("unlinking sponsorship %d from episode %d: %w", sponsorshipID, episodeID, err)
 	}
 	return nil
+}
+
+// SetEpisodeSponsorships replaces an episode's sponsorship links with the given
+// IDs, atomically. Propagates errors instead of leaving partial state.
+func (s *SponsorshipStore) SetEpisodeSponsorships(episodeID int64, sponsorshipIDs []int64) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.Exec(`DELETE FROM episode_sponsorships WHERE episode_id = ?`, episodeID); err != nil {
+		return fmt.Errorf("clearing sponsorship links: %w", err)
+	}
+	for _, id := range sponsorshipIDs {
+		if _, err := tx.Exec(`INSERT OR REPLACE INTO episode_sponsorships (episode_id, sponsorship_id) VALUES (?, ?)`,
+			episodeID, id); err != nil {
+			return fmt.Errorf("linking sponsorship %d: %w", id, err)
+		}
+	}
+	return tx.Commit()
 }
 
 // SponsorshipIDsForEpisode returns just the IDs for checkbox pre-selection.

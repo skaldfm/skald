@@ -132,6 +132,47 @@ func (s *GuestStore) ListByShowIDs(showIDs []int64) ([]Guest, error) {
 	return guests, rows.Err()
 }
 
+// AccessibleToShows reports whether a guest is visible to a user limited to
+// showIDs. A guest is accessible if it is linked to an episode in one of those
+// shows or is a host of one of them, or if it is an orphan (not linked to any
+// episode and not a host of any show) — orphans stay visible so that a
+// just-created, not-yet-linked guest can be viewed and edited by its creator.
+func (s *GuestStore) AccessibleToShows(guestID int64, showIDs []int64) (bool, error) {
+	if len(showIDs) > 0 {
+		ph := "?" + strings.Repeat(",?", len(showIDs)-1)
+		q := fmt.Sprintf(`SELECT EXISTS(
+			SELECT 1 FROM episode_guests eg JOIN episodes e ON e.id = eg.episode_id
+			WHERE eg.guest_id = ? AND e.show_id IN (%s)
+			UNION
+			SELECT 1 FROM show_hosts WHERE guest_id = ? AND show_id IN (%s))`, ph, ph)
+		args := make([]any, 0, 2+len(showIDs)*2)
+		args = append(args, guestID)
+		for _, id := range showIDs {
+			args = append(args, id)
+		}
+		args = append(args, guestID)
+		for _, id := range showIDs {
+			args = append(args, id)
+		}
+		var inScope bool
+		if err := s.db.QueryRow(q, args...).Scan(&inScope); err != nil {
+			return false, fmt.Errorf("checking guest access: %w", err)
+		}
+		if inScope {
+			return true, nil
+		}
+	}
+
+	var linked bool
+	if err := s.db.QueryRow(`SELECT EXISTS(
+		SELECT 1 FROM episode_guests WHERE guest_id = ?
+		UNION
+		SELECT 1 FROM show_hosts WHERE guest_id = ?)`, guestID, guestID).Scan(&linked); err != nil {
+		return false, fmt.Errorf("checking guest links: %w", err)
+	}
+	return !linked, nil // accessible only if orphaned
+}
+
 func (s *GuestStore) Get(id int64) (*Guest, error) {
 	var g Guest
 	err := s.db.QueryRow(`SELECT id, name, email, bio, website, company, podcast,
@@ -319,6 +360,41 @@ func (s *GuestStore) LinkGuest(episodeID, guestID int64, role string) error {
 		return fmt.Errorf("linking guest %d to episode %d: %w", guestID, episodeID, err)
 	}
 	return nil
+}
+
+// SetEpisodeGuests replaces an episode's non-host guest links with the given
+// guest IDs, atomically. Propagates errors instead of leaving partial state.
+func (s *GuestStore) SetEpisodeGuests(episodeID int64, guestIDs []int64) error {
+	return s.setEpisodeGuestsByRole(episodeID, guestIDs, "guest")
+}
+
+// SetEpisodeHosts replaces an episode's host links with the given guest IDs.
+func (s *GuestStore) SetEpisodeHosts(episodeID int64, hostIDs []int64) error {
+	return s.setEpisodeGuestsByRole(episodeID, hostIDs, "host")
+}
+
+func (s *GuestStore) setEpisodeGuestsByRole(episodeID int64, ids []int64, role string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Clear only the links of this role so guests and hosts don't clobber each other.
+	del := `DELETE FROM episode_guests WHERE episode_id = ? AND role != 'host'`
+	if role == "host" {
+		del = `DELETE FROM episode_guests WHERE episode_id = ? AND role = 'host'`
+	}
+	if _, err := tx.Exec(del, episodeID); err != nil {
+		return fmt.Errorf("clearing %s links: %w", role, err)
+	}
+	for _, id := range ids {
+		if _, err := tx.Exec(`INSERT OR REPLACE INTO episode_guests (episode_id, guest_id, role) VALUES (?, ?, ?)`,
+			episodeID, id, role); err != nil {
+			return fmt.Errorf("linking guest %d as %s: %w", id, role, err)
+		}
+	}
+	return tx.Commit()
 }
 
 // UnlinkGuest removes a guest from an episode.

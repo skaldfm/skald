@@ -445,7 +445,8 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update tags
+	// Update tags and link tables. Each Set is atomic; propagate errors so a
+	// failure surfaces instead of silently dropping the user's selections.
 	tagsInput := strings.TrimSpace(r.FormValue("tags"))
 	var tagNames []string
 	if tagsInput != "" {
@@ -455,81 +456,21 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	_ = h.tags.SetEpisodeTags(ep.ID, tagNames)
-
-	// Update sponsorship links
-	selectedSponsorships := r.Form["sponsorship_ids"]
-	selectedMap := make(map[int64]bool)
-	for _, s := range selectedSponsorships {
-		if id, err := strconv.ParseInt(s, 10, 64); err == nil {
-			selectedMap[id] = true
-		}
+	if err := h.tags.SetEpisodeTags(ep.ID, tagNames); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	// Get current links and diff
-	currentIDs, _ := h.sponsorships.SponsorshipIDsForEpisode(ep.ID)
-	currentMap := make(map[int64]bool)
-	for _, id := range currentIDs {
-		currentMap[id] = true
+	if err := h.sponsorships.SetEpisodeSponsorships(ep.ID, parseIDs(r.Form["sponsorship_ids"])); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	// Add new links
-	for id := range selectedMap {
-		if !currentMap[id] {
-			_ = h.sponsorships.LinkEpisode(id, ep.ID)
-		}
+	if err := h.guests.SetEpisodeGuests(ep.ID, parseIDs(r.Form["guest_ids"])); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	// Remove old links
-	for _, id := range currentIDs {
-		if !selectedMap[id] {
-			_ = h.sponsorships.UnlinkEpisode(id, ep.ID)
-		}
-	}
-
-	// Update guest links
-	selectedGuests := r.Form["guest_ids"]
-	selectedGuestMap := make(map[int64]bool)
-	for _, s := range selectedGuests {
-		if id, err := strconv.ParseInt(s, 10, 64); err == nil {
-			selectedGuestMap[id] = true
-		}
-	}
-	currentGuestIDs, _ := h.guests.GuestIDsForEpisode(ep.ID)
-	currentGuestMap := make(map[int64]bool)
-	for _, id := range currentGuestIDs {
-		currentGuestMap[id] = true
-	}
-	for id := range selectedGuestMap {
-		if !currentGuestMap[id] {
-			_ = h.guests.LinkGuest(ep.ID, id, "guest")
-		}
-	}
-	for _, id := range currentGuestIDs {
-		if !selectedGuestMap[id] {
-			_ = h.guests.UnlinkGuest(ep.ID, id)
-		}
-	}
-
-	// Update host links
-	selectedHosts := r.Form["host_ids"]
-	selectedHostMap := make(map[int64]bool)
-	for _, s := range selectedHosts {
-		if id, err := strconv.ParseInt(s, 10, 64); err == nil {
-			selectedHostMap[id] = true
-		}
-	}
-	currentHostIDs, _ := h.guests.HostIDsForEpisode(ep.ID)
-	currentHostMap := make(map[int64]bool)
-	for _, id := range currentHostIDs {
-		currentHostMap[id] = true
-	}
-	for id := range selectedHostMap {
-		if !currentHostMap[id] {
-			_ = h.guests.LinkGuest(ep.ID, id, "host")
-		}
-	}
-	for _, id := range currentHostIDs {
-		if !selectedHostMap[id] {
-			_ = h.guests.UnlinkGuest(ep.ID, id)
-		}
+	if err := h.guests.SetEpisodeHosts(ep.ID, parseIDs(r.Form["host_ids"])); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	http.Redirect(w, r, "/episodes/"+strconv.FormatInt(ep.ID, 10), http.StatusSeeOther)
@@ -621,6 +562,17 @@ func (h *EpisodeHandler) NextNumber(w http.ResponseWriter, r *http.Request) {
 	}
 	// OOB swap to auto-fill the episode number input
 	fmt.Fprintf(w, `<input type="number" name="episode_number" id="episode_number" min="1" value="%d" hx-swap-oob="true" class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100">`, next)
+}
+
+// parseIDs converts form values to a slice of int64, skipping invalid entries.
+func parseIDs(values []string) []int64 {
+	ids := make([]int64, 0, len(values))
+	for _, v := range values {
+		if id, err := strconv.ParseInt(v, 10, 64); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
 func formatIntSlice(nums []int) string {

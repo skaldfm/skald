@@ -25,7 +25,7 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 
 ## P1 — Security (remaining)
 
-> **Status (2026-07-07, second pass):** most of P1 landed and was build/vet/smoke-verified. Two items are intentionally **deferred**: the transactional episode-save (multi-store refactor, do deliberately) and the guest/sponsor scoping (needs a product decision). See the ⏸ markers.
+> **Status (2026-07-07):** all P1 security, lifecycle, and correctness items are done (build/vet/test/smoke-verified). Guest/sponsor scoping (show-scoped isolation) and the episode-save transactionality both landed with unit tests. Remaining P1 leftovers are minor: idle session timeout, login rate-limit, the central error-message helper, and the lower-severity correctness list below.
 
 - [x] **Upload file type never validated** — fixed
   **Applied:** added `internal/handlers/upload.go` with image/doc extension allowlists (SVG excluded — scriptable); applied to episode/show artwork, guest image, sponsor order file; admin logo now uses the shared helper (drops `.svg`). Combined with `X-Content-Type-Options: nosniff` (added globally) this closes the stored-XSS-via-upload vector.
@@ -33,9 +33,8 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 - [x] **Episode reassignment escapes scope** — `handlers/episodes.go` → fixed
   **Applied:** `Update` now checks `CanAccessShow` on the target show before accepting a `show_id` change.
 
-- [ ] ⏸ **Guest & sponsorship detail/edit ignore show scoping** — `guests.go`, `sponsorships.go` (+ Edit/Update/Delete) — **DEFERRED, decision needed**
-  Lists are scoped via `ListByShowIDs`, but `Show`/`Edit`/`Update`/`Delete` fetch by ID with no scope check. Restricted users can enumerate IDs to read all guest contacts and sponsor CPM/total-cost; any editor can edit/delete them.
-  **Decision needed:** are guests/sponsors instance-global (shared across shows) or show-scoped? The data model links them to episodes (many shows), suggesting global — but then sponsor financials leak across tenants. This also gates full per-show scoping of `/uploads`.
+- [x] **Guest & sponsorship detail/edit ignore show scoping** — fixed (decision: **show-scoped isolation**)
+  **Applied:** added `GuestStore.AccessibleToShows` and `SponsorshipStore.AccessibleToShows` (accessible = linked to an episode in one of the user's shows, or — for guests — a host of one; **orphans** with no links stay visible so create-then-view works). Enforced centrally in `getGuest`/`getSponsorship`, returning **404** (not 403) so out-of-scope entities can't be enumerated. Admins bypass. Covered by unit tests (`internal/models/scoping_test.go`).
 
 - [x] **Session & CSRF cookies hardcoded `Secure=false`** — fixed
   **Applied:** driven by `SKALD_SECURE_COOKIES` (default **true**); set `false` for plain-HTTP LAN access without a TLS proxy. Verified the CSRF cookie now carries `Secure`.
@@ -55,9 +54,8 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 - [x] **`SKALD_BACKUP_INTERVAL=0` panics the process** — `backup.go` → fixed
   **Applied:** `StartSchedule` returns early (logs "disabled") on a non-positive interval. Verified: boots cleanly with `SKALD_BACKUP_INTERVAL=0`.
 
-- [ ] ⏸ **Episode save is non-transactional, all errors swallowed** — `episodes.go` — **DEFERRED (refactor)**
-  Tags/guests/hosts/sponsors synced via individual autocommit statements, every error discarded (`_ =`). Needs a transaction threaded through the guest/tag/sponsorship stores (they each hold `*sql.DB`) — a deliberate multi-file change, not a quick edit. Partially mitigated already: `SetMaxOpenConns(1)` (P0) removes the `SQLITE_BUSY` trigger that was the most likely cause of silent drops.
-  **Fix:** `EpisodeStore.SaveWithLinks(tx, ...)` or pass a `*sql.Tx` into the link stores; propagate errors.
+- [x] **Episode save is non-transactional, all errors swallowed** — fixed
+  **Applied:** added atomic replace-all `SetEpisodeGuests`/`SetEpisodeHosts`/`SetEpisodeSponsorships` (each in its own transaction, matching the existing `SetEpisodeTags`/`SetShowHosts` pattern), and the `Update` handler now **propagates** their errors as 500s instead of `_ =` swallowing them. Guest/host role separation is unit-tested. Note: this is **per-relation** atomicity, not one global transaction across all link tables — a deliberate choice for simplicity given the app's scale; `SetMaxOpenConns(1)` already removed the `SQLITE_BUSY` trigger that caused the original silent drops.
 
 - [ ] **Multipart size limits are dead code** — **DEFERRED (needs decision)**
   A global `MaxBytesReader` would break large **audio** asset uploads (podcast files are big). Needs a configurable max-upload size (e.g. `SKALD_MAX_UPLOAD`) applied per-route, not a blanket cap.
