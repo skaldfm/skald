@@ -170,6 +170,14 @@ func (m *Manager) Restore(name string) (restart bool, err error) {
 	}
 	slog.Info("safety backup created", "file", safetyName)
 
+	// Prune here so repeated restores don't let pre-restore backups accumulate
+	// past the retention count (the scheduler's prune won't run before the
+	// process exits for the restart). Best-effort: a prune failure must not abort
+	// the restore.
+	if err := m.Prune(); err != nil {
+		slog.Warn("pruning after safety backup failed", "err", err)
+	}
+
 	// Close the live database connection. From here on the process must restart
 	// regardless of outcome — the DB handle is dead.
 	if err := m.db.Close(); err != nil {

@@ -255,7 +255,11 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) SetupForm(w http.ResponseWriter, r *http.Request) {
-	hasUser, _ := h.users.HasAnyUser()
+	hasUser, err := h.users.HasAnyUser()
+	if err != nil {
+		serverError(w, r, err)
+		return
+	}
 	if hasUser {
 		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
 		return
@@ -266,7 +270,13 @@ func (h *AuthHandler) SetupForm(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
-	hasUser, _ := h.users.HasAnyUser()
+	// Fail closed on error: a discarded error here would let a transient DB
+	// failure read as "no users" and create a second admin on a populated system.
+	hasUser, err := h.users.HasAnyUser()
+	if err != nil {
+		serverError(w, r, err)
+		return
+	}
 	if hasUser {
 		http.Error(w, "Setup already completed", http.StatusConflict)
 		return

@@ -77,6 +77,51 @@ func TestCreateAndRestore(t *testing.T) {
 	}
 }
 
+// TestRestorePrunesSafetyBackups verifies that Restore prunes back to the
+// retention count after taking its pre-restore safety backup, so repeated
+// restores can't let pre-restore copies accumulate past retention.
+func TestRestorePrunesSafetyBackups(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "skald.db")
+	db := openDB(t, dbPath)
+	if _, err := db.Exec("CREATE TABLE items (id INTEGER PRIMARY KEY)"); err != nil {
+		t.Fatalf("creating table: %v", err)
+	}
+
+	m := NewManager(db, dir, dbPath, 2) // retain only 2
+
+	// Distinct labels keep the per-second timestamp from collapsing files by name.
+	var restoreFrom string
+	for _, label := range []string{"a", "b", "c"} {
+		n, err := m.Create(label)
+		if err != nil {
+			t.Fatalf("Create(%s): %v", label, err)
+		}
+		restoreFrom = n
+	}
+	if got := len(mustList(t, m)); got != 3 {
+		t.Fatalf("expected 3 backups before restore (Create doesn't prune), got %d", got)
+	}
+
+	if _, err := m.Restore(restoreFrom); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+
+	// 3 existing + 1 pre-restore = 4, pruned back to retain (2).
+	if got := len(mustList(t, m)); got != 2 {
+		t.Fatalf("expected 2 backups after restore prune, got %d", got)
+	}
+}
+
+func mustList(t *testing.T, m *Manager) []Info {
+	t.Helper()
+	l, err := m.List()
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	return l
+}
+
 // TestRestoreRejectsBadName guards the filename validation without closing the DB.
 func TestRestoreRejectsBadName(t *testing.T) {
 	dir := t.TempDir()

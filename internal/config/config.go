@@ -16,6 +16,8 @@ type Config struct {
 	BackupRetain     int
 	OpenRegistration bool
 	SecureCookies    bool
+	TrustProxy       bool
+	MetricsToken     string
 	MaxUploadBytes   int64
 	LogLevel         string
 	LogFormat        string
@@ -33,8 +35,16 @@ func Load() *Config {
 		// Default to secure cookies; operators serving plain HTTP on localhost
 		// can set SKALD_SECURE_COOKIES=false.
 		SecureCookies: envOr("SKALD_SECURE_COOKIES", "true") != "false",
-		LogLevel:      envOr("SKALD_LOG_LEVEL", "info"),
-		LogFormat:     envOr("SKALD_LOG_FORMAT", "text"),
+		// Only trust X-Forwarded-For/X-Real-IP when a reverse proxy is actually in
+		// front of the app. On a direct deployment these headers are client-
+		// controlled and would let an attacker spoof the source IP (defeating the
+		// login rate-limiter), so default off.
+		TrustProxy: os.Getenv("SKALD_TRUST_PROXY") == "true",
+		// Optional bearer token guarding /metrics. Empty leaves it open (as before);
+		// set it to require `Authorization: Bearer <token>` on scrapes.
+		MetricsToken: os.Getenv("SKALD_METRICS_TOKEN"),
+		LogLevel:     envOr("SKALD_LOG_LEVEL", "info"),
+		LogFormat:    envOr("SKALD_LOG_FORMAT", "text"),
 	}
 
 	// For SQLite, default DB path is inside data dir

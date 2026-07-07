@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -199,11 +201,14 @@ func main() {
 
 	// Set up router
 	r := chi.NewRouter()
-	// RealIP trusts X-Forwarded-For/X-Real-IP, which is only safe behind a
-	// reverse proxy that sets them — Skald's documented deployment. It gives the
-	// real client IP for logging and login rate-limiting; a direct-to-internet
-	// deployment should front the app with such a proxy.
-	r.Use(middleware.RealIP) //nolint:staticcheck // trusted-proxy deployment; see comment above
+	// RealIP trusts X-Forwarded-For/X-Real-IP to derive the client IP for logging
+	// and login rate-limiting. Those headers are client-controlled, so trusting
+	// them on a direct deployment lets an attacker spoof a fresh IP per request
+	// and defeat the rate-limiter — only enable it when a reverse proxy actually
+	// sets them (SKALD_TRUST_PROXY=true).
+	if cfg.TrustProxy {
+		r.Use(middleware.RealIP) //nolint:staticcheck // gated on SKALD_TRUST_PROXY; see comment above
+	}
 	r.Use(logging.RequestLogger)
 	r.Use(middleware.Recoverer)
 	r.Use(maxBodyBytes(cfg.MaxUploadBytes))
@@ -237,11 +242,22 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	// Prometheus metrics (text exposition, no client library). Unauthenticated
-	// like /health — firewall the port or scrape it over a private network. The
-	// last-backup gauge is the one alert a self-hoster needs; it reports 0 when
-	// no backup exists yet so "backup age" alerts fire.
+	// Prometheus metrics (text exposition, no client library). The single-port
+	// topology means this shares the app's public listener, so it is guarded by
+	// SKALD_METRICS_TOKEN when set (send `Authorization: Bearer <token>`); left
+	// empty it stays open, matching /health. The last-backup gauge is the one
+	// alert a self-hoster needs; it reports 0 when no backup exists yet so
+	// "backup age" alerts fire.
 	r.Get("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		if cfg.MetricsToken != "" {
+			const prefix = "Bearer "
+			auth := r.Header.Get("Authorization")
+			if !strings.HasPrefix(auth, prefix) ||
+				subtle.ConstantTimeCompare([]byte(auth[len(prefix):]), []byte(cfg.MetricsToken)) != 1 {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+		}
 		var mem runtime.MemStats
 		runtime.ReadMemStats(&mem)
 		var lastBackup int64

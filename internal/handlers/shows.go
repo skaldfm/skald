@@ -316,10 +316,19 @@ func (h *ShowHandler) DeleteConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Enumerate episodes before the delete: they cascade away with the show (FK
+	// ON DELETE CASCADE), so this is the last chance to learn their IDs and clean
+	// up their upload directories.
+	episodes, _ := h.episodeStore.List(models.EpisodeFilter{ShowID: show.ID})
+
 	if err := h.store.Delete(show.ID); err != nil {
 		serverError(w, r, err)
 		return
 	}
+	for _, ep := range episodes {
+		removeEpisodeUploads(h.dataDir, ep.ID)
+	}
+	removeShowUploads(h.dataDir, show.ID)
 
 	http.Redirect(w, r, "/shows", http.StatusSeeOther)
 }

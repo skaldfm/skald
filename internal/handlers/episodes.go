@@ -469,6 +469,7 @@ func (h *EpisodeHandler) DeleteConfirm(w http.ResponseWriter, r *http.Request) {
 		serverError(w, r, err)
 		return
 	}
+	removeEpisodeUploads(h.dataDir, ep.ID)
 
 	http.Redirect(w, r, "/episodes", http.StatusSeeOther)
 }

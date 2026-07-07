@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -70,6 +71,22 @@ func saveUpload(r *http.Request, spec uploadSpec) (relPath string, uploaded bool
 	}
 
 	return path.Join(spec.Subdir, name), true, nil
+}
+
+// removeEpisodeUploads deletes an episode's on-disk upload directories: fixed-
+// name artwork under uploads/episodes/<id> and generic attachments under
+// uploads/<id>. Best-effort — called after the DB row (and its cascaded asset
+// rows) are already gone, so a filesystem error can't be surfaced to the user.
+func removeEpisodeUploads(dataDir string, episodeID int64) {
+	id := strconv.FormatInt(episodeID, 10)
+	_ = os.RemoveAll(filepath.Join(dataDir, "uploads", "episodes", id))
+	_ = os.RemoveAll(filepath.Join(dataDir, "uploads", id))
+}
+
+// removeShowUploads deletes a show's on-disk artwork directory
+// (uploads/shows/<id>). Best-effort, like removeEpisodeUploads.
+func removeShowUploads(dataDir string, showID int64) {
+	_ = os.RemoveAll(filepath.Join(dataDir, "uploads", "shows", strconv.FormatInt(showID, 10)))
 }
 
 // Allowed upload extensions. SVG is deliberately excluded from images because

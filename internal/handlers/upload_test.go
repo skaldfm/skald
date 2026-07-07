@@ -72,3 +72,51 @@ func TestSaveUpload(t *testing.T) {
 		}
 	})
 }
+
+func TestRemoveEpisodeUploads(t *testing.T) {
+	dataDir := t.TempDir()
+	// Episode 7 has both an artwork dir and a generic-asset dir; a sibling
+	// episode's dirs must be left untouched.
+	mustWrite(t, filepath.Join(dataDir, "uploads", "episodes", "7", "artwork.png"))
+	mustWrite(t, filepath.Join(dataDir, "uploads", "7", "notes.txt"))
+	mustWrite(t, filepath.Join(dataDir, "uploads", "episodes", "8", "artwork.png"))
+
+	removeEpisodeUploads(dataDir, 7)
+
+	for _, gone := range []string{
+		filepath.Join(dataDir, "uploads", "episodes", "7"),
+		filepath.Join(dataDir, "uploads", "7"),
+	} {
+		if _, err := os.Stat(gone); !os.IsNotExist(err) {
+			t.Errorf("expected %s removed, stat err = %v", gone, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dataDir, "uploads", "episodes", "8")); err != nil {
+		t.Errorf("sibling episode 8 should survive: %v", err)
+	}
+}
+
+func TestRemoveShowUploads(t *testing.T) {
+	dataDir := t.TempDir()
+	mustWrite(t, filepath.Join(dataDir, "uploads", "shows", "3", "artwork.png"))
+	mustWrite(t, filepath.Join(dataDir, "uploads", "shows", "4", "artwork.png"))
+
+	removeShowUploads(dataDir, 3)
+
+	if _, err := os.Stat(filepath.Join(dataDir, "uploads", "shows", "3")); !os.IsNotExist(err) {
+		t.Errorf("expected show 3 uploads removed, stat err = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dataDir, "uploads", "shows", "4")); err != nil {
+		t.Errorf("sibling show 4 should survive: %v", err)
+	}
+}
+
+func mustWrite(t *testing.T, path string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
