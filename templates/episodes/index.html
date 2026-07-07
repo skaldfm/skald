@@ -17,14 +17,14 @@
     <!-- Filters -->
     <div class="flex flex-wrap items-center gap-3">
         <form method="GET" action="/episodes" class="flex flex-wrap items-center gap-3">
-            <select name="show" aria-label="Filter by show" onchange="this.form.submit()"
+            <select name="show" aria-label="Filter by show" data-autosubmit
                     class="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:bg-gray-700 dark:text-gray-100">
                 <option value="">All Shows</option>
                 {{range .Shows}}
                 <option value="{{.ID}}" {{if eq .ID $.Filter.ShowID}}selected{{end}}>{{.Name}}</option>
                 {{end}}
             </select>
-            <select name="status" aria-label="Filter by status" onchange="this.form.submit()"
+            <select name="status" aria-label="Filter by status" data-autosubmit
                     class="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:bg-gray-700 dark:text-gray-100">
                 <option value="">All Statuses</option>
                 {{range .Statuses}}

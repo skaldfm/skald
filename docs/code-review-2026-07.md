@@ -25,7 +25,7 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 
 ## P1 — Security (remaining)
 
-> **Status (2026-07-07):** ✅ **P1 fully complete** — all security, lifecycle, and correctness items done and build/vet/test/smoke-verified, including login rate-limiting, password bounds, the episode-number NULL-season fix (migration 015), and a configurable upload cap. The only thing not addressed is a CSP (needs a template refactor to drop inline scripts — tracked under P2/frontend). Dependency advisories are also cleared (`govulncheck` clean). Next up: P2.
+> **Status (2026-07-07):** ✅ **P1 fully complete** — all security, lifecycle, and correctness items done and build/vet/test/smoke-verified, including login rate-limiting, password bounds, the episode-number NULL-season fix (migration 015), and a configurable upload cap. The CSP (originally deferred pending a template refactor) has since been implemented — see the Hardening section below. Dependency advisories are also cleared (`govulncheck` clean).
 
 - [x] **Upload file type never validated** — fixed
   **Applied:** added `internal/handlers/upload.go` with image/doc extension allowlists (SVG excluded — scriptable); applied to episode/show artwork, guest image, sponsor order file; admin logo now uses the shared helper (drops `.svg`). Combined with `X-Content-Type-Options: nosniff` (added globally) this closes the stored-XSS-via-upload vector.
@@ -43,7 +43,8 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
   **Applied:** `CheckDummyPassword` runs a bcrypt compare against a fixed hash when the account doesn't exist, equalizing response time. (The explicit "email already exists" register message is a minor secondary leak, left as-is.)
 
 ### Hardening (not bugs)
-- [x] Security headers middleware — `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS when secure. **CSP intentionally omitted** (templates use inline `<script>`/`onclick`; needs a template refactor first).
+- [x] Security headers middleware — `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS when secure.
+- [x] **Content-Security-Policy** — ✅ DONE (follow-up). `contentSecurityPolicy` middleware (`main.go`) emits a per-request URL-safe-base64 nonce (threaded to templates via `views.WithNonce` → `injectContext` → `{{.Nonce}}`) and the policy `default-src 'self'; script-src 'self' 'nonce-…'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`. All 9 inline `<script>` blocks were nonce'd in place; all ~46 inline `on*` handlers were removed in favour of delegated `addEventListener` (four recurring patterns — file-input labels, confirm guards, filter auto-submit, date fields — collapsed into global handlers in `base.html`). `style-src` keeps `'unsafe-inline'` deliberately (dynamic width bars, prompter swatches, htmx's runtime indicator styles). Verified end-to-end: header present on every page, header nonce matches every rendered script nonce, zero inline handlers in rendered HTML across all authenticated pages + login/setup.
 - [x] Idle session timeout — `sessionManager.IdleTimeout = 14d` added (absolute lifetime stays 30d).
 - [x] Password max length + login rate-limit/lockout — fixed
   **Applied:** `passwordProblem` helper enforces 8–72 chars (bcrypt truncates past 72) at register/setup/profile/admin-create; `loginLimiter` (in-memory, per-IP, 10 failures / 15 min → 429) throttles online guessing. Both unit-tested.
@@ -142,7 +143,7 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 - [x] Filter selects — ✅ aria-labels + `<noscript>` submit button added on episodes list, kanban, calendar, timeline; admin role select now confirms before submit and restores prior value on cancel.
 - [x] Show Notes / Script toggles — ✅ converted to `<details>/<summary>` (work without JS).
 - [x] Empty-state CTAs — ✅ gated behind `.CanEdit`/`.IsAdmin` (episodes, guests, sponsorships, shows).
-- [ ] Kanban drag has no keyboard path and unreliable touch support (`kanban.html:55`). Add a "move to column" affordance. _(deferred — genuine enhancement, not a quick bug)_
+- [x] Kanban drag has no keyboard path and unreliable touch support — ✅ DONE. Each card now has a per-card "move to stage" `<select>` (native, keyboard- and touch-accessible, `aria-label`ed) that drives the same optimistic move + status POST as drag-and-drop (shared `moveEpisodeToColumn`). Drag-and-drop was also rewritten off inline handlers onto `addEventListener` as part of the CSP work.
 - [x] `dark:bg-gray-750` → ✅ `dark:bg-gray-700` (`calendar.html`).
 - [x] Avatar initial byte-slices UTF-8 — ✅ rune-safe `initial` template helper.
 
@@ -172,7 +173,7 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 
 - [x] Middleware runs `users.Count()` on **every request** — ✅ DONE. Replaced with `users.HasAnyUser()` backed by an `atomic.Bool` cache (`middleware.go:18`, `user.go:25,35`).
 - [x] `site_settings` SELECT on every page render for logo path — ✅ DONE. Cached via `atomic.Pointer[string]`, invalidated in `Update` (`settings.go:19,53`).
-- [ ] Calendar/timeline/dashboard load every episode ever and filter by month in Go (`calendar.go:58`, `dashboard.go:43`). Add publish-date range to `EpisodeFilter`; dashboard counts can use `CountByStatus` (method now exists at `episode.go:260` but is unused). **Still open** — `EpisodeFilter` still has no date range.
+- [~] Calendar/timeline/dashboard load every episode ever and filter by month in Go (`calendar.go:58`, `dashboard.go:43`). **Decision: won't do (premature at this scale).** For a self-hosted single-podcaster instance the episode table is small and `List` selects only lightweight metadata (no script/show_notes TEXT), so one full scan is cheaper and simpler than the alternative. The dashboard also genuinely needs the rows (recent, upcoming, per-show cards), so `CountByStatus` wouldn't remove the `List` call — it would add a query. Adding a date-range filter also drags in NULL/unscheduled handling and scoped counts for negligible benefit. Revisit only if a real instance shows this as a hot path. Reverse-lookup indexes (migration 016) already cover the join costs.
 - [x] Missing reverse-lookup indexes — ✅ DONE. `migrations/016` adds `episode_guests(guest_id)`, `episode_sponsorships(sponsorship_id)`, `episodes(updated_at)`.
 - [x] Admin users page N+1 — ✅ DONE. All assignments loaded in one query (`admin.go:143`).
 

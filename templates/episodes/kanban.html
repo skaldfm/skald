@@ -9,7 +9,7 @@
         </div>
         <div class="flex items-center space-x-3">
             <form method="GET" action="/kanban">
-                <select name="show" aria-label="Filter by show" onchange="this.form.submit()"
+                <select name="show" aria-label="Filter by show" data-autosubmit
                         class="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:bg-gray-700 dark:text-gray-100">
                     <option value="">All Shows</option>
                     {{range .Shows}}
@@ -36,11 +36,7 @@
         {{range .Statuses}}
         <div class="flex-shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700 transition-all duration-200"
              data-status="{{.}}"
-             {{if $.CanEdit}}
-             ondragover="event.preventDefault(); if(!this.classList.contains('kanban-collapsed')) this.classList.add('ring-2', 'ring-indigo-400')"
-             ondragleave="this.classList.remove('ring-2', 'ring-indigo-400')"
-             ondrop="handleDrop(event, '{{.}}')"
-             {{end}}>
+             {{if $.CanEdit}}data-dropzone{{end}}>
             <!-- Expanded header -->
             <div class="kanban-expanded p-3">
                 <div class="flex items-center justify-between cursor-pointer select-none kanban-header" data-col="{{.}}">
@@ -56,10 +52,10 @@
                 <div class="space-y-2 mt-3" id="column-{{.}}">
                     {{$episodes := index $.Columns .}}
                     {{range $episodes}}
+                    {{$cur := .Status}}
                     <div class="{{if $.CanEdit}}cursor-grab{{end}} rounded-md bg-white dark:bg-gray-800 p-3 shadow-sm hover:shadow transition-all duration-300"
                          {{if $.CanEdit}}draggable="true"{{end}}
-                         data-episode-id="{{.ID}}"
-                         {{if $.CanEdit}}ondragstart="event.dataTransfer.setData('text/plain', '{{.ID}}')"{{end}}>
+                         data-episode-id="{{.ID}}">
                         <a href="/episodes/{{.ID}}" class="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400">
                             {{.Title}}
                         </a>
@@ -68,6 +64,15 @@
                         <span class="mt-1 inline-block text-xs text-gray-400 dark:text-gray-500">
                             {{episodeCode .SeasonNumber .EpisodeNumber}}
                         </span>
+                        {{end}}
+                        {{if $.CanEdit}}
+                        <!-- Keyboard/touch-accessible alternative to drag-and-drop. -->
+                        <select data-move-select aria-label="Move {{.Title}} to a different stage"
+                                class="mt-2 block w-full rounded border border-gray-200 dark:border-gray-600 dark:bg-gray-700 px-1.5 py-1 text-xs text-gray-500 dark:text-gray-400 focus:border-indigo-500 focus:outline-none">
+                            {{range $.Statuses}}
+                            <option value="{{.}}" {{if eq . $cur}}selected{{end}}>{{statusLabel .}}</option>
+                            {{end}}
+                        </select>
                         {{end}}
                     </div>
                     {{end}}
@@ -87,7 +92,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{.Nonce}}">
 (function() {
     var STORAGE_KEY = 'skald-kanban-collapsed';
 
@@ -176,53 +181,81 @@
 </script>
 
 {{if .CanEdit}}
-<script>
-function handleDrop(event, newStatus) {
-    event.preventDefault();
-    event.currentTarget.classList.remove('ring-2', 'ring-indigo-400');
+<script nonce="{{.Nonce}}">
+(function() {
+    // Move a card to a new status column optimistically, then persist. Shared by
+    // drag-and-drop and the per-card "move to stage" select (keyboard/touch path).
+    function moveEpisodeToColumn(episodeId, newStatus) {
+        if (!episodeId) return;
 
-    // Auto-expand target column if collapsed
-    if (window._kanbanExpandOnDrop) window._kanbanExpandOnDrop(newStatus);
+        // Auto-expand target column if collapsed
+        if (window._kanbanExpandOnDrop) window._kanbanExpandOnDrop(newStatus);
 
-    const episodeId = event.dataTransfer.getData('text/plain');
-    if (!episodeId) return;
+        const card = document.querySelector(`[data-episode-id="${episodeId}"]`);
+        const column = document.getElementById(`column-${newStatus}`);
+        if (card && column) {
+            column.appendChild(card);
+            const sel = card.querySelector('select[data-move-select]');
+            if (sel) sel.value = newStatus; // keep the select in sync after a drag
+            card.classList.add('ring-2', 'ring-indigo-400');
+            setTimeout(function() { card.classList.remove('ring-2', 'ring-indigo-400'); }, 1000);
+        }
 
-    // Move card visually
-    const card = document.querySelector(`[data-episode-id="${episodeId}"]`);
-    const column = document.getElementById(`column-${newStatus}`);
-    if (card && column) {
-        column.appendChild(card);
-        card.classList.add('ring-2', 'ring-indigo-400');
-        setTimeout(function() { card.classList.remove('ring-2', 'ring-indigo-400'); }, 1000);
+        const formData = new FormData();
+        formData.append('status', newStatus);
+        formData.append('csrf_token', '{{.CSRFToken}}');
+        fetch(`/episodes/${episodeId}/status`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'HX-Request': 'true' }
+        }).then(response => {
+            if (!response.ok) {
+                // Server rejected the move; reload to undo the optimistic change.
+                window.location.reload();
+                return;
+            }
+            // Refresh every column's count, updating both the expanded and the
+            // collapsed count badges (each column has two).
+            document.querySelectorAll('[data-status]').forEach(col => {
+                const body = col.querySelector('.space-y-2');
+                const count = body ? body.children.length : 0;
+                col.querySelectorAll('.kanban-count').forEach(el => { el.textContent = count; });
+            });
+        }).catch(() => {
+            // Network failure — reload so the board reflects the real state.
+            window.location.reload();
+        });
     }
 
-    // Update on server
-    const formData = new FormData();
-    formData.append('status', newStatus);
-    formData.append('csrf_token', '{{.CSRFToken}}');
-    fetch(`/episodes/${episodeId}/status`, {
-        method: 'POST',
-        body: formData,
-        headers: { 'HX-Request': 'true' }
-    }).then(response => {
-        if (!response.ok) {
-            // Server rejected the move; reload to undo the optimistic card move.
-            window.location.reload();
-            return;
-        }
-        // Refresh every column's count, updating both the expanded and the
-        // collapsed count badges (each column has two).
-        document.querySelectorAll('[data-status]').forEach(col => {
-            const body = col.querySelector('.space-y-2');
-            const count = body ? body.children.length : 0;
-            col.querySelectorAll('.kanban-count').forEach(el => { el.textContent = count; });
+    // Drag-and-drop wiring (was inline ondragover/ondragleave/ondrop/ondragstart).
+    document.querySelectorAll('#kanban-board [data-dropzone]').forEach(function(col) {
+        col.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            if (!col.classList.contains('kanban-collapsed')) col.classList.add('ring-2', 'ring-indigo-400');
         });
-    }).catch(() => {
-        // Network failure — the card was moved locally but the server never
-        // confirmed. Reload so the board reflects the real state.
-        window.location.reload();
+        col.addEventListener('dragleave', function() {
+            col.classList.remove('ring-2', 'ring-indigo-400');
+        });
+        col.addEventListener('drop', function(e) {
+            e.preventDefault();
+            col.classList.remove('ring-2', 'ring-indigo-400');
+            moveEpisodeToColumn(e.dataTransfer.getData('text/plain'), col.dataset.status);
+        });
     });
-}
+    document.querySelectorAll('#kanban-board [data-episode-id][draggable="true"]').forEach(function(card) {
+        card.addEventListener('dragstart', function(e) {
+            e.dataTransfer.setData('text/plain', card.dataset.episodeId);
+        });
+    });
+
+    // Keyboard/touch path: the per-card status select.
+    document.addEventListener('change', function(e) {
+        const sel = e.target;
+        if (!sel.matches('select[data-move-select]')) return;
+        const card = sel.closest('[data-episode-id]');
+        if (card) moveEpisodeToColumn(card.dataset.episodeId, sel.value);
+    });
+})();
 </script>
 {{end}}
 {{end}}

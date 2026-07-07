@@ -54,7 +54,7 @@
             <div class="mt-2 flex items-center gap-3">
                 <label for="artwork" class="cursor-pointer rounded-md bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50">Choose file</label>
                 <span class="text-sm text-gray-500 dark:text-gray-400">No file chosen</span>
-                <input type="file" name="artwork" id="artwork" accept="image/*" class="sr-only" onchange="this.previousElementSibling.textContent = this.files[0]?.name || 'No file chosen'">
+                <input type="file" name="artwork" id="artwork" accept="image/*" class="sr-only" data-file-label>
             </div>
         </div>
 
@@ -95,7 +95,7 @@
     </form>
     {{if .IsAdmin}}
     <form id="delete-form" method="POST" action="/shows/{{.Show.ID}}/delete"
-          onsubmit="return confirm('Delete this show? All episodes will also be deleted.')"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"></form>
+          data-confirm="Delete this show? All episodes will also be deleted."><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"></form>
     {{end}}
 </div>
 {{end}}

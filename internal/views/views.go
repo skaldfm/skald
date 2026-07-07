@@ -2,6 +2,7 @@ package views
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -26,6 +27,20 @@ var (
 // SetLogoPathFunc sets the function used to resolve the current site logo path.
 func SetLogoPathFunc(fn func() string) {
 	logoPathFunc = fn
+}
+
+type nonceCtxKey struct{}
+
+// WithNonce stores the per-request CSP nonce in the context so templates can
+// stamp it onto inline <script> tags (`nonce="{{.Nonce}}"`). Set by the CSP
+// middleware, which also emits the matching `script-src 'nonce-…'` header.
+func WithNonce(ctx context.Context, nonce string) context.Context {
+	return context.WithValue(ctx, nonceCtxKey{}, nonce)
+}
+
+func nonceFromContext(ctx context.Context) string {
+	n, _ := ctx.Value(nonceCtxKey{}).(string)
+	return n
 }
 
 // ShowColorPalette is the ordered list of available show color keys.
@@ -286,6 +301,7 @@ func injectContext(r *http.Request, data any) map[string]any {
 		m["CSRFToken"] = nosurf.Token(r)
 		m["CurrentUser"] = auth.UserFromContext(r.Context())
 		m["RequestPath"] = r.URL.Path
+		m["Nonce"] = nonceFromContext(r.Context())
 	}
 
 	// Inject logo path

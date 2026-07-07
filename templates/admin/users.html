@@ -8,7 +8,7 @@
             <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Users</h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage login accounts and roles</p>
         </div>
-        <button onclick="document.getElementById('create-user-form').classList.toggle('hidden')"
+        <button data-toggle-target="create-user-form"
                 class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
             Add User
         </button>
@@ -99,8 +99,7 @@
                         {{if ne .ID $.CurrentUser.ID}}
                         <form method="POST" action="/admin/users/{{.ID}}/role" class="inline">
                             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
-                            <select name="role" aria-label="Change user role" data-prev="{{.Role}}"
-                                    onchange="if(confirm('Change this user\'s role to '+this.value+'?')){this.form.submit()}else{this.value=this.dataset.prev}"
+                            <select name="role" aria-label="Change user role" data-prev="{{.Role}}" data-role-select
                                     class="rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 px-2 py-1 text-xs focus:border-indigo-500 focus:outline-none">
                                 <option value="admin" {{if eq .Role "admin"}}selected{{end}}>Admin</option>
                                 <option value="editor" {{if eq .Role "editor"}}selected{{end}}>Editor</option>
@@ -110,7 +109,7 @@
                         {{if ne .Role "admin"}}
                         <a href="/admin/users/{{.ID}}/shows" class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">Shows</a>
                         {{end}}
-                        <form method="POST" action="/admin/users/{{.ID}}/delete" class="inline" onsubmit="return confirm('Delete this user?')">
+                        <form method="POST" action="/admin/users/{{.ID}}/delete" class="inline" data-confirm="Delete this user?">
                             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                             <button type="submit" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">Delete</button>
                         </form>
@@ -124,4 +123,17 @@
         </table>
     </div>
 </div>
+
+<script nonce="{{.Nonce}}">
+// Role change: confirm before submitting; on cancel, restore the previous value.
+document.addEventListener('change', function(e) {
+    var sel = e.target;
+    if (!sel.matches('select[data-role-select]')) return;
+    if (confirm('Change this user\'s role to ' + sel.value + '?')) {
+        sel.form.submit();
+    } else {
+        sel.value = sel.dataset.prev;
+    }
+});
+</script>
 {{end}}

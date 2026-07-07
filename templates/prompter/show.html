@@ -13,17 +13,17 @@
             <!-- Speed control -->
             <div class="flex items-center gap-1">
                 <label class="text-xs text-gray-400">Speed</label>
-                <button onclick="adjustSpeed(-1)" class="rounded bg-gray-700 px-2.5 py-1 text-sm hover:bg-gray-600">-</button>
+                <button data-pa="speed" data-arg="-1" class="rounded bg-gray-700 px-2.5 py-1 text-sm hover:bg-gray-600">-</button>
                 <span id="speed-display" class="w-6 text-center text-xs">5</span>
-                <button onclick="adjustSpeed(1)" class="rounded bg-gray-700 px-2.5 py-1 text-sm hover:bg-gray-600">+</button>
+                <button data-pa="speed" data-arg="1" class="rounded bg-gray-700 px-2.5 py-1 text-sm hover:bg-gray-600">+</button>
             </div>
 
             <!-- Font size -->
             <div class="flex items-center gap-1">
                 <label class="text-xs text-gray-400">Font</label>
-                <button onclick="adjustFont(-4)" class="rounded bg-gray-700 px-2.5 py-1 text-sm hover:bg-gray-600">A-</button>
+                <button data-pa="font" data-arg="-4" class="rounded bg-gray-700 px-2.5 py-1 text-sm hover:bg-gray-600">A-</button>
                 <span id="font-display" class="w-6 text-center text-xs">32</span>
-                <button onclick="adjustFont(4)" class="rounded bg-gray-700 px-2.5 py-1 text-sm hover:bg-gray-600">A+</button>
+                <button data-pa="font" data-arg="4" class="rounded bg-gray-700 px-2.5 py-1 text-sm hover:bg-gray-600">A+</button>
             </div>
 
             <div class="h-4 border-l border-gray-600"></div>
@@ -31,34 +31,34 @@
             <!-- Font color -->
             <div class="flex items-center gap-1">
                 <label class="text-xs text-gray-400">Color</label>
-                <button onclick="setFontColor('#ffffff')" class="h-7 w-7 rounded border border-gray-600" style="background:#ffffff" title="White"></button>
-                <button onclick="setFontColor('#fde047')" class="h-7 w-7 rounded border border-gray-600" style="background:#fde047" title="Yellow"></button>
-                <button onclick="setFontColor('#4ade80')" class="h-7 w-7 rounded border border-gray-600" style="background:#4ade80" title="Green"></button>
-                <button onclick="setFontColor('#22d3ee')" class="h-7 w-7 rounded border border-gray-600" style="background:#22d3ee" title="Cyan"></button>
+                <button data-pa="fontColor" data-arg="#ffffff" class="h-7 w-7 rounded border border-gray-600" style="background:#ffffff" title="White"></button>
+                <button data-pa="fontColor" data-arg="#fde047" class="h-7 w-7 rounded border border-gray-600" style="background:#fde047" title="Yellow"></button>
+                <button data-pa="fontColor" data-arg="#4ade80" class="h-7 w-7 rounded border border-gray-600" style="background:#4ade80" title="Green"></button>
+                <button data-pa="fontColor" data-arg="#22d3ee" class="h-7 w-7 rounded border border-gray-600" style="background:#22d3ee" title="Cyan"></button>
             </div>
 
             <!-- Background color -->
             <div class="flex items-center gap-1">
                 <label class="text-xs text-gray-400">BG</label>
-                <button onclick="setBgColor('#000000')" class="h-7 w-7 rounded border border-gray-600" style="background:#000000" title="Black"></button>
-                <button onclick="setBgColor('#1e1b4b')" class="h-7 w-7 rounded border border-gray-600" style="background:#1e1b4b" title="Dark Blue"></button>
-                <button onclick="setBgColor('#052e16')" class="h-7 w-7 rounded border border-gray-600" style="background:#052e16" title="Dark Green"></button>
-                <button onclick="setBgColor('#1f2937')" class="h-7 w-7 rounded border border-gray-600" style="background:#1f2937" title="Dark Gray"></button>
+                <button data-pa="bgColor" data-arg="#000000" class="h-7 w-7 rounded border border-gray-600" style="background:#000000" title="Black"></button>
+                <button data-pa="bgColor" data-arg="#1e1b4b" class="h-7 w-7 rounded border border-gray-600" style="background:#1e1b4b" title="Dark Blue"></button>
+                <button data-pa="bgColor" data-arg="#052e16" class="h-7 w-7 rounded border border-gray-600" style="background:#052e16" title="Dark Green"></button>
+                <button data-pa="bgColor" data-arg="#1f2937" class="h-7 w-7 rounded border border-gray-600" style="background:#1f2937" title="Dark Gray"></button>
             </div>
 
             <div class="h-4 border-l border-gray-600"></div>
 
             <!-- Toggle buttons -->
-            <button id="center-btn" onclick="toggleCenter()"
+            <button id="center-btn" data-pa="center"
                     class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600" title="Toggle center alignment">
                 Center
             </button>
-            <button onclick="toggleMirror()"
+            <button data-pa="mirror"
                     class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600"
                     title="Mirror text (for reflected teleprompter)">
                 Mirror
             </button>
-            <button onclick="toggleFullscreen()"
+            <button data-pa="fullscreen"
                     class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">
                 Fullscreen
             </button>
@@ -66,7 +66,7 @@
             <div class="h-4 border-l border-gray-600"></div>
 
             <!-- Play/Pause -->
-            <button id="play-btn" onclick="togglePlay()"
+            <button id="play-btn" data-pa="play"
                     class="rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-medium hover:bg-indigo-700">
                 Play
             </button>
@@ -162,7 +162,7 @@
     }
 </style>
 
-<script>
+<script nonce="{{.Nonce}}">
 (function() {
     var scrollEl = document.getElementById('prompter-scroll');
     var textEl = document.getElementById('prompter-text');
@@ -326,6 +326,24 @@
             }
         }, 3000);
     }
+
+    // Control-bar buttons (was inline onclick). Each button carries data-pa
+    // (action) and, where relevant, data-arg.
+    document.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-pa]');
+        if (!el) return;
+        var arg = el.dataset.arg;
+        switch (el.dataset.pa) {
+            case 'speed': adjustSpeed(parseInt(arg, 10)); break;
+            case 'font': adjustFont(parseInt(arg, 10)); break;
+            case 'fontColor': setFontColor(arg); break;
+            case 'bgColor': setBgColor(arg); break;
+            case 'center': toggleCenter(); break;
+            case 'mirror': toggleMirror(); break;
+            case 'fullscreen': toggleFullscreen(); break;
+            case 'play': togglePlay(); break;
+        }
+    });
 
     // Keyboard controls
     document.addEventListener('keydown', function(e) {

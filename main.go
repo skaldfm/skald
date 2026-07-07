@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/subtle"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -84,11 +86,11 @@ func maxBodyBytes(n int64) func(http.Handler) http.Handler {
 	}
 }
 
-// securityHeaders sets response headers that harden the app without breaking
-// its inline scripts/styles (a Content-Security-Policy is intentionally omitted
-// until the templates drop inline handlers). nosniff also stops browsers from
-// content-sniffing uploaded files into an executable type. HSTS is only sent
-// when the deployment is expected to be behind TLS.
+// securityHeaders sets response headers that harden the app. nosniff also stops
+// browsers from content-sniffing uploaded files into an executable type. HSTS is
+// only sent when the deployment is expected to be behind TLS. The
+// Content-Security-Policy is set separately (contentSecurityPolicy) because it
+// carries a per-request nonce.
 func securityHeaders(tls bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -102,6 +104,37 @@ func securityHeaders(tls bool) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// contentSecurityPolicy emits a per-request nonce and a matching CSP. script-src
+// is 'self' plus that nonce, so injected inline scripts and inline event handlers
+// (onclick=…) are blocked — templates carry the nonce on their own <script> tags
+// and use addEventListener instead. style-src keeps 'unsafe-inline' because the
+// app has dynamic inline style attributes (progress-bar widths, prompter swatches)
+// and htmx injects its indicator styles at runtime; inline styles are a far weaker
+// vector than inline scripts.
+func contentSecurityPolicy(next http.Handler) http.Handler {
+	const policy = "default-src 'self'; " +
+		"script-src 'self' 'nonce-%s'; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"img-src 'self' data:; " +
+		"object-src 'none'; " +
+		"base-uri 'self'; " +
+		"form-action 'self'; " +
+		"frame-ancestors 'none'"
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var b [16]byte
+		if _, err := rand.Read(b[:]); err != nil {
+			slog.Error("generating CSP nonce", "err", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		// URL-safe base64 (no +, /, =) so html/template doesn't entity-escape the
+		// nonce attribute, keeping the rendered value byte-identical to the header.
+		nonce := base64.RawURLEncoding.EncodeToString(b[:])
+		w.Header().Set("Content-Security-Policy", fmt.Sprintf(policy, nonce))
+		next.ServeHTTP(w, r.WithContext(views.WithNonce(r.Context(), nonce)))
+	})
 }
 
 func main() {
@@ -215,6 +248,7 @@ func main() {
 	r.Use(sessionManager.LoadAndSave)
 	r.Use(csrfProtect)
 	r.Use(securityHeaders(cfg.SecureCookies))
+	r.Use(contentSecurityPolicy)
 
 	// Public routes (no auth required)
 	staticFS := assetFS("static")

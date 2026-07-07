@@ -70,7 +70,7 @@
             {{end}}
         </div>
     </div>
-    <script>
+    <script nonce="{{.Nonce}}">
     (function() {
         var statusColors = {
             'idea':      'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
@@ -163,7 +163,7 @@
                             <span class="ml-1 text-xs text-gray-400 dark:text-gray-500">{{formatBytes .Filesize}}</span>
                         </div>
                         {{if $.CanEdit}}
-                        <form method="POST" action="/assets/{{.ID}}/delete" onsubmit="return confirm('Delete this file?')">
+                        <form method="POST" action="/assets/{{.ID}}/delete" data-confirm="Delete this file?">
                             <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                             <button type="submit" class="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-400">Delete</button>
                         </form>
@@ -180,7 +180,7 @@
                     <div class="flex items-center gap-3">
                         <label for="asset-file" class="cursor-pointer rounded-md bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50">Choose file</label>
                         <span class="text-sm text-gray-500 dark:text-gray-400">No file chosen</span>
-                        <input type="file" name="file" id="asset-file" required class="sr-only" onchange="this.previousElementSibling.textContent = this.files[0]?.name || 'No file chosen'">
+                        <input type="file" name="file" id="asset-file" required class="sr-only" data-file-label>
                     </div>
                     <select name="asset_type" class="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-100">
                         <option value="other">Other</option>

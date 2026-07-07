@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="{{.LogoPath}}">
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="/static/js/htmx.min.js"></script>
-    <script>
+    <script nonce="{{.Nonce}}">
         if (localStorage.getItem('theme') === 'dark' ||
             (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
@@ -23,7 +23,16 @@
         </main>
     </div>
     <script src="/static/js/tag-picker.js"></script>
-    <script>
+    <script nonce="{{.Nonce}}">
+    // Confirm guards: forms carrying data-confirm ask before submitting. Registered
+    // before the submit-disabler so a cancelled submit (defaultPrevented) leaves the
+    // button untouched. Replaces the former inline onsubmit="return confirm(...)".
+    document.addEventListener('submit', function(e) {
+        var f = e.target;
+        if (f.dataset && f.dataset.confirm && !confirm(f.dataset.confirm)) {
+            e.preventDefault();
+        }
+    });
     document.addEventListener('submit', function(e) {
         // A confirm() dialog or validation handler that cancelled the submit
         // sets defaultPrevented; don't stick the button at "Saving\u2026" for a
@@ -48,6 +57,38 @@
             btn.textContent = btn.dataset.originalText;
             delete btn.dataset.originalText;
         }
+    });
+
+    // Auto-submit filter selects (was inline onchange). A <noscript> submit
+    // button covers the no-JS case.
+    document.addEventListener('change', function(e) {
+        if (e.target.matches('select[data-autosubmit]')) {
+            e.target.form.submit();
+        }
+    });
+
+    // File inputs: reflect the chosen filename into the preceding label span.
+    document.addEventListener('change', function(e) {
+        var t = e.target;
+        if (t.matches('input[type="file"][data-file-label]') && t.previousElementSibling) {
+            t.previousElementSibling.textContent = t.files[0] ? t.files[0].name : 'No file chosen';
+        }
+    });
+
+    // Buttons that toggle the "hidden" class on another element (by id).
+    document.addEventListener('click', function(e) {
+        var trigger = e.target.closest('[data-toggle-target]');
+        if (!trigger) return;
+        var target = document.getElementById(trigger.dataset.toggleTarget);
+        if (target) target.classList.toggle('hidden');
+    });
+
+    // Date fields that render as a text placeholder until focused.
+    document.addEventListener('focusin', function(e) {
+        if (e.target.matches('input[data-datefield]')) e.target.type = 'date';
+    });
+    document.addEventListener('focusout', function(e) {
+        if (e.target.matches('input[data-datefield]') && !e.target.value) e.target.type = 'text';
     });
     </script>
 </body>
