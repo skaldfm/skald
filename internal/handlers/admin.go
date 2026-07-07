@@ -2,8 +2,7 @@ package handlers
 
 import (
 	"database/sql"
-	"fmt"
-	"io"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -348,49 +347,30 @@ func (h *AdminHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, header, err := r.FormFile("logo")
-	if err != nil {
-		http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
-		return
+	oldLogo := ""
+	if ss, _ := h.settings.Get(); ss != nil {
+		oldLogo = ss.LogoPath
 	}
-	defer file.Close()
 
-	ext, ok := imageExt(header.Filename)
-	if !ok {
+	relPath, uploaded, err := saveUpload(r, uploadSpec{
+		Field: "logo", DataDir: h.dataDir,
+		Subdir: "site", Base: "logo", OldPath: oldLogo, Allowed: imageExt,
+	})
+	if errors.Is(err, errBadUploadType) {
 		http.Error(w, "Unsupported image format", http.StatusBadRequest)
 		return
 	}
-
-	// Remove old logo file if present
-	ss, _ := h.settings.Get()
-	if ss != nil && ss.LogoPath != "" {
-		oldFile := filepath.Join(h.dataDir, "uploads", ss.LogoPath)
-		_ = os.Remove(oldFile)
-	}
-
-	uploadDir := filepath.Join(h.dataDir, "uploads", "site")
-	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
-		serverError(w, r, err)
-		return
-	}
-
-	filename := "logo" + ext
-	destPath := filepath.Join(uploadDir, filename)
-
-	dst, err := os.Create(destPath)
 	if err != nil {
 		serverError(w, r, err)
 		return
 	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, file); err != nil {
-		serverError(w, r, err)
+	if !uploaded {
+		// No file submitted — nothing to change.
+		http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
 		return
 	}
 
-	relativePath := fmt.Sprintf("site/%s", filename)
-	if err := h.settings.Update(relativePath); err != nil {
+	if err := h.settings.Update(relPath); err != nil {
 		serverError(w, r, err)
 		return
 	}

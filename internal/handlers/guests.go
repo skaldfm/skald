@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"fmt"
-	"io"
+	"errors"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -108,6 +108,10 @@ func (h *GuestHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Handle image upload
 	if err := h.handleImageUpload(r, guest); err != nil {
+		if errors.Is(err, errBadUploadType) {
+			http.Error(w, "Unsupported image format", http.StatusBadRequest)
+			return
+		}
 		serverError(w, r, err)
 		return
 	}
@@ -194,6 +198,10 @@ func (h *GuestHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Handle image upload
 	if err := h.handleImageUpload(r, &models.Guest{ID: guest.ID, Image: g.Image}); err != nil {
+		if errors.Is(err, errBadUploadType) {
+			http.Error(w, "Unsupported image format", http.StatusBadRequest)
+			return
+		}
 		serverError(w, r, err)
 		return
 	}
@@ -251,45 +259,18 @@ func (h *GuestHandler) fillFromForm(r *http.Request) *models.Guest {
 }
 
 func (h *GuestHandler) handleImageUpload(r *http.Request, guest *models.Guest) error {
-	file, header, err := r.FormFile("image")
-	if err != nil {
-		return nil // no file uploaded
-	}
-	defer file.Close()
-
-	ext, ok := imageExt(header.Filename)
-	if !ok {
-		return fmt.Errorf("unsupported image format")
-	}
-
-	idStr := strconv.FormatInt(guest.ID, 10)
-	uploadDir := filepath.Join(h.dataDir, "uploads", "guests", idStr)
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		return err
-	}
-
-	destPath := filepath.Join(uploadDir, "image"+ext)
-
-	// Remove old image if it exists and differs
-	if guest.Image != "" {
-		oldPath := filepath.Join(h.dataDir, "uploads", guest.Image)
-		if oldPath != destPath {
-			os.Remove(oldPath)
-		}
-	}
-
-	dest, err := os.Create(destPath)
+	relPath, uploaded, err := saveUpload(r, uploadSpec{
+		Field: "image", DataDir: h.dataDir,
+		Subdir: path.Join("guests", strconv.FormatInt(guest.ID, 10)),
+		Base:   "image", OldPath: guest.Image, Allowed: imageExt,
+	})
 	if err != nil {
 		return err
 	}
-	defer dest.Close()
-
-	if _, err := io.Copy(dest, file); err != nil {
-		return err
+	if !uploaded {
+		return nil
 	}
 
-	// Update image path in DB
-	relPath := filepath.Join("guests", idStr, "image"+ext)
 	guest.Image = relPath
 	return h.store.UpdateImage(guest.ID, relPath)
 }

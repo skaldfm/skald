@@ -1,10 +1,11 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -214,38 +215,21 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	ep.ShowNotes = r.FormValue("show_notes")
 
 	// Handle artwork upload
-	file, header, artErr := r.FormFile("artwork")
-	if artErr == nil {
-		defer file.Close()
-
-		ext, ok := imageExt(header.Filename)
-		if !ok {
-			http.Error(w, "Unsupported image format", http.StatusBadRequest)
-			return
-		}
-
-		idStr := strconv.FormatInt(ep.ID, 10)
-		uploadDir := filepath.Join(h.dataDir, "uploads", "episodes", idStr)
-		if err := os.MkdirAll(uploadDir, 0755); err != nil {
-			http.Error(w, "Failed to create upload directory", http.StatusInternalServerError)
-			return
-		}
-
-		destPath := filepath.Join(uploadDir, "artwork"+ext)
-
-		dest, err := os.Create(destPath)
-		if err != nil {
-			http.Error(w, "Failed to save file", http.StatusInternalServerError)
-			return
-		}
-		defer dest.Close()
-
-		if _, err := io.Copy(dest, file); err != nil {
-			http.Error(w, "Failed to write file", http.StatusInternalServerError)
-			return
-		}
-
-		ep.Artwork = fmt.Sprintf("episodes/%s/artwork%s", idStr, ext)
+	artwork, uploaded, err := saveUpload(r, uploadSpec{
+		Field: "artwork", DataDir: h.dataDir,
+		Subdir: path.Join("episodes", strconv.FormatInt(ep.ID, 10)),
+		Base:   "artwork", Allowed: imageExt,
+	})
+	if errors.Is(err, errBadUploadType) {
+		http.Error(w, "Unsupported image format", http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		serverError(w, r, err)
+		return
+	}
+	if uploaded {
+		ep.Artwork = artwork
 	}
 
 	// A brand-new episode auto-inherits the show's hosts.
@@ -393,46 +377,21 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle artwork upload
-	file, header, err := r.FormFile("artwork")
-	if err == nil {
-		defer file.Close()
-
-		ext, ok := imageExt(header.Filename)
-		if !ok {
-			http.Error(w, "Unsupported image format", http.StatusBadRequest)
-			return
-		}
-
-		idStr := strconv.FormatInt(ep.ID, 10)
-		uploadDir := filepath.Join(h.dataDir, "uploads", "episodes", idStr)
-		if err := os.MkdirAll(uploadDir, 0755); err != nil {
-			http.Error(w, "Failed to create upload directory", http.StatusInternalServerError)
-			return
-		}
-
-		destPath := filepath.Join(uploadDir, "artwork"+ext)
-
-		// Remove old artwork if it exists and differs
-		if ep.Artwork != "" {
-			oldPath := filepath.Join(h.dataDir, "uploads", ep.Artwork)
-			if oldPath != destPath {
-				os.Remove(oldPath)
-			}
-		}
-
-		dest, err := os.Create(destPath)
-		if err != nil {
-			http.Error(w, "Failed to save file", http.StatusInternalServerError)
-			return
-		}
-		defer dest.Close()
-
-		if _, err := io.Copy(dest, file); err != nil {
-			http.Error(w, "Failed to write file", http.StatusInternalServerError)
-			return
-		}
-
-		ep.Artwork = fmt.Sprintf("episodes/%s/artwork%s", idStr, ext)
+	artwork, uploaded, err := saveUpload(r, uploadSpec{
+		Field: "artwork", DataDir: h.dataDir,
+		Subdir: path.Join("episodes", strconv.FormatInt(ep.ID, 10)),
+		Base:   "artwork", OldPath: ep.Artwork, Allowed: imageExt,
+	})
+	if errors.Is(err, errBadUploadType) {
+		http.Error(w, "Unsupported image format", http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		serverError(w, r, err)
+		return
+	}
+	if uploaded {
+		ep.Artwork = artwork
 	}
 
 	// Handle artwork removal

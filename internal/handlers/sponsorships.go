@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"fmt"
-	"io"
+	"errors"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -104,7 +104,14 @@ func (h *SponsorshipHandler) Create(w http.ResponseWriter, r *http.Request) {
 	h.fillFromForm(sp, r)
 
 	// Handle order file upload
-	h.handleOrderUpload(sp, r)
+	if err := h.handleOrderUpload(sp, r); err != nil {
+		if errors.Is(err, errBadUploadType) {
+			http.Error(w, "Unsupported document format", http.StatusBadRequest)
+			return
+		}
+		serverError(w, r, err)
+		return
+	}
 
 	if err := h.store.Update(sp); err != nil {
 		serverError(w, r, err)
@@ -183,7 +190,14 @@ func (h *SponsorshipHandler) Update(w http.ResponseWriter, r *http.Request) {
 	h.fillFromForm(sp, r)
 
 	// Handle order file upload
-	h.handleOrderUpload(sp, r)
+	if err := h.handleOrderUpload(sp, r); err != nil {
+		if errors.Is(err, errBadUploadType) {
+			http.Error(w, "Unsupported document format", http.StatusBadRequest)
+			return
+		}
+		serverError(w, r, err)
+		return
+	}
 
 	// Handle order file removal
 	if r.FormValue("remove_order_file") == "1" {
@@ -304,43 +318,17 @@ func (h *SponsorshipHandler) fillFromForm(sp *models.Sponsorship, r *http.Reques
 	}
 }
 
-func (h *SponsorshipHandler) handleOrderUpload(sp *models.Sponsorship, r *http.Request) {
-	file, header, err := r.FormFile("order_file")
+func (h *SponsorshipHandler) handleOrderUpload(sp *models.Sponsorship, r *http.Request) error {
+	relPath, uploaded, err := saveUpload(r, uploadSpec{
+		Field: "order_file", DataDir: h.dataDir,
+		Subdir: path.Join("sponsorships", strconv.FormatInt(sp.ID, 10)),
+		Base:   "order", OldPath: sp.OrderFile, Allowed: docExt,
+	})
 	if err != nil {
-		return
+		return err
 	}
-	defer file.Close()
-
-	ext, ok := docExt(header.Filename)
-	if !ok {
-		return // reject unsupported document types
+	if uploaded {
+		sp.OrderFile = relPath
 	}
-
-	idStr := strconv.FormatInt(sp.ID, 10)
-	uploadDir := filepath.Join(h.dataDir, "uploads", "sponsorships", idStr)
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		return
-	}
-
-	destPath := filepath.Join(uploadDir, "order"+ext)
-
-	// Remove old order file if different
-	if sp.OrderFile != "" {
-		oldPath := filepath.Join(h.dataDir, "uploads", sp.OrderFile)
-		if oldPath != destPath {
-			os.Remove(oldPath)
-		}
-	}
-
-	dest, err := os.Create(destPath)
-	if err != nil {
-		return
-	}
-	defer dest.Close()
-
-	if _, err := io.Copy(dest, file); err != nil {
-		return
-	}
-
-	sp.OrderFile = fmt.Sprintf("sponsorships/%s/order%s", idStr, ext)
+	return nil
 }

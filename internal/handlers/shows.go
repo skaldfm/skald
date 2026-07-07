@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"fmt"
-	"io"
+	"errors"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -255,46 +255,21 @@ func (h *ShowHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Handle artwork upload
 	artwork := show.Artwork
-	file, header, err := r.FormFile("artwork")
-	if err == nil {
-		defer file.Close()
-
-		ext, ok := imageExt(header.Filename)
-		if !ok {
-			http.Error(w, "Unsupported image format", http.StatusBadRequest)
-			return
-		}
-
-		idStr := strconv.FormatInt(show.ID, 10)
-		uploadDir := filepath.Join(h.dataDir, "uploads", "shows", idStr)
-		if err := os.MkdirAll(uploadDir, 0755); err != nil {
-			http.Error(w, "Failed to create upload directory", http.StatusInternalServerError)
-			return
-		}
-
-		destPath := filepath.Join(uploadDir, "artwork"+ext)
-
-		// Remove old artwork if it exists and differs
-		if show.Artwork != "" {
-			oldPath := filepath.Join(h.dataDir, "uploads", show.Artwork)
-			if oldPath != destPath {
-				os.Remove(oldPath)
-			}
-		}
-
-		dest, err := os.Create(destPath)
-		if err != nil {
-			http.Error(w, "Failed to save file", http.StatusInternalServerError)
-			return
-		}
-		defer dest.Close()
-
-		if _, err := io.Copy(dest, file); err != nil {
-			http.Error(w, "Failed to write file", http.StatusInternalServerError)
-			return
-		}
-
-		artwork = fmt.Sprintf("shows/%s/artwork%s", idStr, ext)
+	relPath, uploaded, upErr := saveUpload(r, uploadSpec{
+		Field: "artwork", DataDir: h.dataDir,
+		Subdir: path.Join("shows", strconv.FormatInt(show.ID, 10)),
+		Base:   "artwork", OldPath: show.Artwork, Allowed: imageExt,
+	})
+	if errors.Is(upErr, errBadUploadType) {
+		http.Error(w, "Unsupported image format", http.StatusBadRequest)
+		return
+	}
+	if upErr != nil {
+		serverError(w, r, upErr)
+		return
+	}
+	if uploaded {
+		artwork = relPath
 	}
 
 	// Handle artwork removal
