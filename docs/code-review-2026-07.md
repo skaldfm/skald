@@ -113,8 +113,8 @@ Checkboxes are for tracking. **P0 is done (2026-07-07)** — built, vetted, and 
 - [ ] README: add "download docker-compose.yml first" to Quick Start; remove `SKALD_SECRET_KEY` and postgres implications.
 
 ### Ops improvements worth adding
-- [ ] Structured logging (`log/slog`) + `SKALD_LOG_LEVEL`.
-- [ ] Prometheus `/metrics` — Go runtime, HTTP counts, **last-backup-timestamp gauge** (last-backup-age is the one alert a self-hoster needs).
+- [x] Structured logging (`log/slog`) + `SKALD_LOG_LEVEL` — ✅ DONE (commit adds `internal/logging`, `SKALD_LOG_FORMAT` text|json, slog request-logger, all call sites converted).
+- [x] Prometheus `/metrics` — ✅ DONE (hand-rolled text exposition, stdlib only; exposes `skald_last_backup_timestamp_seconds` + uptime/http_requests/goroutines/mem).
 
 ---
 
