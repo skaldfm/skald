@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"sync/atomic"
 	"time"
 )
 
@@ -18,10 +19,31 @@ type User struct {
 
 type UserStore struct {
 	db *sql.DB
+	// hasUser caches "at least one account exists". It only ever flips false→true
+	// (accounts aren't deleted to zero in normal use, and a restore restarts the
+	// process), so once set we can skip the per-request COUNT for setup detection.
+	hasUser atomic.Bool
 }
 
 func NewUserStore(db *sql.DB) *UserStore {
 	return &UserStore{db: db}
+}
+
+// HasAnyUser reports whether any account exists, used for the first-run setup
+// redirect on every request. The positive result is cached to avoid a COUNT on
+// the hot path.
+func (s *UserStore) HasAnyUser() (bool, error) {
+	if s.hasUser.Load() {
+		return true, nil
+	}
+	var exists bool
+	if err := s.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM users)`).Scan(&exists); err != nil {
+		return false, fmt.Errorf("checking for users: %w", err)
+	}
+	if exists {
+		s.hasUser.Store(true)
+	}
+	return exists, nil
 }
 
 func (s *UserStore) Get(id int64) (*User, error) {
@@ -103,14 +125,6 @@ func (s *UserStore) Delete(id int64) error {
 	return nil
 }
 
-func (s *UserStore) Count() (int, error) {
-	var count int
-	err := s.db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("counting users: %w", err)
-	}
-	return count, nil
-}
 
 func (s *UserStore) ShowIDsForUser(userID int64) ([]int64, error) {
 	rows, err := s.db.Query(`SELECT show_id FROM user_shows WHERE user_id = ?`, userID)
@@ -128,6 +142,26 @@ func (s *UserStore) ShowIDsForUser(userID int64) ([]int64, error) {
 		ids = append(ids, id)
 	}
 	return ids, rows.Err()
+}
+
+// AllUserShows returns every user's accessible show IDs in a single query,
+// keyed by user ID. Avoids a per-user round trip on the admin users page.
+func (s *UserStore) AllUserShows() (map[int64][]int64, error) {
+	rows, err := s.db.Query(`SELECT user_id, show_id FROM user_shows`)
+	if err != nil {
+		return nil, fmt.Errorf("getting user shows: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[int64][]int64)
+	for rows.Next() {
+		var userID, showID int64
+		if err := rows.Scan(&userID, &showID); err != nil {
+			return nil, fmt.Errorf("scanning user show: %w", err)
+		}
+		result[userID] = append(result[userID], showID)
+	}
+	return result, rows.Err()
 }
 
 func (s *UserStore) SetUserShows(userID int64, showIDs []int64) error {

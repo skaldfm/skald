@@ -255,8 +255,8 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) SetupForm(w http.ResponseWriter, r *http.Request) {
-	count, _ := h.users.Count()
-	if count > 0 {
+	hasUser, _ := h.users.HasAnyUser()
+	if hasUser {
 		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
 		return
 	}
@@ -266,8 +266,8 @@ func (h *AuthHandler) SetupForm(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
-	count, _ := h.users.Count()
-	if count > 0 {
+	hasUser, _ := h.users.HasAnyUser()
+	if hasUser {
 		http.Error(w, "Setup already completed", http.StatusConflict)
 		return
 	}

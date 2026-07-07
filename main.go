@@ -169,14 +169,8 @@ func main() {
 	userStore := models.NewUserStore(db)
 	settingsStore := models.NewSiteSettingsStore(db)
 
-	// Set global logo path resolver
-	views.SetLogoPathFunc(func() string {
-		s, err := settingsStore.Get()
-		if err != nil {
-			return ""
-		}
-		return s.LogoPath
-	})
+	// Set global logo path resolver (cached; refreshed on logo update)
+	views.SetLogoPathFunc(settingsStore.LogoPath)
 
 	// Set up router
 	r := chi.NewRouter()

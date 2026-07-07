@@ -141,16 +141,16 @@ func (h *AdminHandler) Users(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load show assignments per user
-	userShows := make(map[int64][]int64)
+	// Load show assignments for all users in one query (avoids a per-user N+1).
+	userShows, err := h.users.AllUserShows()
+	if err != nil {
+		serverError(w, r, err)
+		return
+	}
 	allShows, _ := h.shows.List()
 	showNames := make(map[int64]string)
 	for _, s := range allShows {
 		showNames[s.ID] = s.Name
-	}
-	for _, u := range users {
-		ids, _ := h.users.ShowIDsForUser(u.ID)
-		userShows[u.ID] = ids
 	}
 
 	data := map[string]any{

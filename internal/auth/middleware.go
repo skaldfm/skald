@@ -15,8 +15,8 @@ func LoadUser(sm *scs.SessionManager, users *models.UserStore) func(http.Handler
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Check if setup is needed (no users exist)
-			count, err := users.Count()
-			if err == nil && count == 0 {
+			hasUser, err := users.HasAnyUser()
+			if err == nil && !hasUser {
 				path := r.URL.Path
 				if !strings.HasPrefix(path, "/auth/") && !strings.HasPrefix(path, "/static/") && path != "/health" {
 					http.Redirect(w, r, "/auth/setup", http.StatusFound)
