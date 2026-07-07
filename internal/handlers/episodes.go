@@ -248,27 +248,21 @@ func (h *EpisodeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		ep.Artwork = fmt.Sprintf("episodes/%s/artwork%s", idStr, ext)
 	}
 
-	if err := h.episodes.Update(ep); err != nil {
+	// A brand-new episode auto-inherits the show's hosts.
+	showHostIDs, err := h.guests.HostIDsForShow(showID)
+	if err != nil {
 		serverError(w, r, err)
 		return
 	}
 
-	// Save tags
-	tagsInput := strings.TrimSpace(r.FormValue("tags"))
-	var tagNames []string
-	if tagsInput != "" {
-		for _, t := range strings.Split(tagsInput, ",") {
-			if name := strings.TrimSpace(t); name != "" {
-				tagNames = append(tagNames, name)
-			}
-		}
+	// Persist the episode row and its link tables atomically.
+	links := models.EpisodeLinks{
+		TagNames: parseTags(r.FormValue("tags")),
+		HostIDs:  showHostIDs,
 	}
-	_ = h.tags.SetEpisodeTags(ep.ID, tagNames)
-
-	// Auto-inherit show hosts
-	showHostIDs, _ := h.guests.HostIDsForShow(showID)
-	for _, hid := range showHostIDs {
-		_ = h.guests.LinkGuest(ep.ID, hid, "host")
+	if err := h.episodes.Save(ep, links); err != nil {
+		serverError(w, r, err)
+		return
 	}
 
 	http.Redirect(w, r, "/episodes/"+strconv.FormatInt(ep.ID, 10), http.StatusSeeOther)
@@ -456,35 +450,16 @@ func (h *EpisodeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.episodes.Update(ep); err != nil {
-		serverError(w, r, err)
-		return
+	// Persist the episode row and all its link tables (tags, sponsors, guests,
+	// hosts) in one transaction, so a failure can't leave the row updated but
+	// the user's selections half-applied.
+	links := models.EpisodeLinks{
+		TagNames:       parseTags(r.FormValue("tags")),
+		SponsorshipIDs: parseIDs(r.Form["sponsorship_ids"]),
+		GuestIDs:       parseIDs(r.Form["guest_ids"]),
+		HostIDs:        parseIDs(r.Form["host_ids"]),
 	}
-
-	// Update tags and link tables. Each Set is atomic; propagate errors so a
-	// failure surfaces instead of silently dropping the user's selections.
-	tagsInput := strings.TrimSpace(r.FormValue("tags"))
-	var tagNames []string
-	if tagsInput != "" {
-		for _, t := range strings.Split(tagsInput, ",") {
-			if name := strings.TrimSpace(t); name != "" {
-				tagNames = append(tagNames, name)
-			}
-		}
-	}
-	if err := h.tags.SetEpisodeTags(ep.ID, tagNames); err != nil {
-		serverError(w, r, err)
-		return
-	}
-	if err := h.sponsorships.SetEpisodeSponsorships(ep.ID, parseIDs(r.Form["sponsorship_ids"])); err != nil {
-		serverError(w, r, err)
-		return
-	}
-	if err := h.guests.SetEpisodeGuests(ep.ID, parseIDs(r.Form["guest_ids"])); err != nil {
-		serverError(w, r, err)
-		return
-	}
-	if err := h.guests.SetEpisodeHosts(ep.ID, parseIDs(r.Form["host_ids"])); err != nil {
+	if err := h.episodes.Save(ep, links); err != nil {
 		serverError(w, r, err)
 		return
 	}
@@ -589,6 +564,18 @@ func parseIDs(values []string) []int64 {
 		}
 	}
 	return ids
+}
+
+// parseTags splits the comma-separated tag input from an episode form into a
+// clean list, dropping blanks and surrounding whitespace.
+func parseTags(input string) []string {
+	var names []string
+	for _, t := range strings.Split(input, ",") {
+		if name := strings.TrimSpace(t); name != "" {
+			names = append(names, name)
+		}
+	}
+	return names
 }
 
 func formatIntSlice(nums []int) string {

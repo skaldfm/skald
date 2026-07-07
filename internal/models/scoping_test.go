@@ -154,6 +154,47 @@ func TestSetEpisodeGuestsAndHosts(t *testing.T) {
 	assertIDs("hosts unchanged after guest replace", hostIDs, h1)
 }
 
+// TestEpisodeSaveIsAtomic verifies that a failure while syncing link tables rolls
+// back the whole Save — the episode row change and the earlier link edits — so
+// the episode is never left partially updated.
+func TestEpisodeSaveIsAtomic(t *testing.T) {
+	db := newTestDB(t)
+	episodes := NewEpisodeStore(db)
+	guests := NewGuestStore(db)
+
+	show := mustExec(t, db, `INSERT INTO shows (name) VALUES ('S')`)
+	g := mustExec(t, db, `INSERT INTO guests (name) VALUES ('G')`)
+
+	ep, err := episodes.Create(show, "orig title", "d", "idea")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	// A valid save commits the row change and the links.
+	ep.Title = "updated title"
+	if err := episodes.Save(ep, EpisodeLinks{TagNames: []string{"a"}, GuestIDs: []int64{g}}); err != nil {
+		t.Fatalf("Save (valid): %v", err)
+	}
+
+	// A save referencing a non-existent guest violates the FK and must fail. The
+	// title change and the guest DELETE-before-INSERT must both roll back.
+	ep.Title = "should not persist"
+	if err := episodes.Save(ep, EpisodeLinks{GuestIDs: []int64{999999}}); err == nil {
+		t.Fatal("expected Save to fail on a dangling guest_id")
+	}
+
+	reloaded, err := episodes.Get(ep.ID)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if reloaded.Title != "updated title" {
+		t.Errorf("title = %q, want %q (row change should have rolled back)", reloaded.Title, "updated title")
+	}
+	if ids, _ := guests.GuestIDsForEpisode(ep.ID); len(ids) != 1 || ids[0] != g {
+		t.Errorf("guest links = %v, want [%d] (link edits should have rolled back)", ids, g)
+	}
+}
+
 func TestSponsorshipAccessibleToShows(t *testing.T) {
 	db := newTestDB(t)
 

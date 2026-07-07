@@ -349,19 +349,6 @@ func (s *GuestStore) GuestIDsForEpisode(episodeID int64) ([]int64, error) {
 	return ids, rows.Err()
 }
 
-// LinkGuest links a guest to an episode with a role.
-func (s *GuestStore) LinkGuest(episodeID, guestID int64, role string) error {
-	if role == "" {
-		role = "guest"
-	}
-	_, err := s.db.Exec(`INSERT OR REPLACE INTO episode_guests (episode_id, guest_id, role) VALUES (?, ?, ?)`,
-		episodeID, guestID, role)
-	if err != nil {
-		return fmt.Errorf("linking guest %d to episode %d: %w", guestID, episodeID, err)
-	}
-	return nil
-}
-
 // SetEpisodeGuests replaces an episode's non-host guest links with the given
 // guest IDs, atomically. Propagates errors instead of leaving partial state.
 func (s *GuestStore) SetEpisodeGuests(episodeID int64, guestIDs []int64) error {
@@ -374,27 +361,27 @@ func (s *GuestStore) SetEpisodeHosts(episodeID int64, hostIDs []int64) error {
 }
 
 func (s *GuestStore) setEpisodeGuestsByRole(episodeID int64, ids []int64, role string) error {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return fmt.Errorf("beginning transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
+	return withTx(s.db, func(tx *sql.Tx) error {
+		return setEpisodeGuestsByRole(tx, episodeID, ids, role)
+	})
+}
 
+func setEpisodeGuestsByRole(ex dbtx, episodeID int64, ids []int64, role string) error {
 	// Clear only the links of this role so guests and hosts don't clobber each other.
 	del := `DELETE FROM episode_guests WHERE episode_id = ? AND role != 'host'`
 	if role == "host" {
 		del = `DELETE FROM episode_guests WHERE episode_id = ? AND role = 'host'`
 	}
-	if _, err := tx.Exec(del, episodeID); err != nil {
+	if _, err := ex.Exec(del, episodeID); err != nil {
 		return fmt.Errorf("clearing %s links: %w", role, err)
 	}
 	for _, id := range ids {
-		if _, err := tx.Exec(`INSERT OR REPLACE INTO episode_guests (episode_id, guest_id, role) VALUES (?, ?, ?)`,
+		if _, err := ex.Exec(`INSERT OR REPLACE INTO episode_guests (episode_id, guest_id, role) VALUES (?, ?, ?)`,
 			episodeID, id, role); err != nil {
 			return fmt.Errorf("linking guest %d as %s: %w", id, role, err)
 		}
 	}
-	return tx.Commit()
+	return nil
 }
 
 // UnlinkGuest removes a guest from an episode.

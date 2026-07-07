@@ -142,7 +142,11 @@ func (s *EpisodeStore) Create(showID int64, title, description, status string) (
 }
 
 func (s *EpisodeStore) Update(ep *Episode) error {
-	_, err := s.db.Exec(`UPDATE episodes SET
+	return updateEpisodeRow(s.db, ep)
+}
+
+func updateEpisodeRow(ex dbtx, ep *Episode) error {
+	_, err := ex.Exec(`UPDATE episodes SET
 		show_id = ?, title = ?, episode_number = ?, season_number = ?,
 		description = ?, status = ?, publish_date = ?, script = ?, show_notes = ?,
 		artwork = ?, updated_at = CURRENT_TIMESTAMP
@@ -154,6 +158,35 @@ func (s *EpisodeStore) Update(ep *Episode) error {
 		return fmt.Errorf("updating episode %d: %w", ep.ID, err)
 	}
 	return nil
+}
+
+// EpisodeLinks is the set of association-table rows saved alongside an episode.
+type EpisodeLinks struct {
+	TagNames       []string
+	GuestIDs       []int64
+	HostIDs        []int64
+	SponsorshipIDs []int64
+}
+
+// Save writes the episode row and all of its association tables (tags, guests,
+// hosts, sponsorships) in a single transaction. A failure in any step rolls the
+// whole thing back, so the row is never left updated with links half-synced.
+func (s *EpisodeStore) Save(ep *Episode, links EpisodeLinks) error {
+	return withTx(s.db, func(tx *sql.Tx) error {
+		if err := updateEpisodeRow(tx, ep); err != nil {
+			return err
+		}
+		if err := setEpisodeTags(tx, ep.ID, links.TagNames); err != nil {
+			return err
+		}
+		if err := setEpisodeSponsorships(tx, ep.ID, links.SponsorshipIDs); err != nil {
+			return err
+		}
+		if err := setEpisodeGuestsByRole(tx, ep.ID, links.GuestIDs, "guest"); err != nil {
+			return err
+		}
+		return setEpisodeGuestsByRole(tx, ep.ID, links.HostIDs, "host")
+	})
 }
 
 func (s *EpisodeStore) UpdateStatus(id int64, status string) error {

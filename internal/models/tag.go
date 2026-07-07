@@ -74,15 +74,18 @@ func (s *TagStore) TagsForEpisode(episodeID int64) ([]Tag, error) {
 	return tags, rows.Err()
 }
 
+// SetEpisodeTags replaces an episode's tags with the named set, creating any
+// tags that don't exist yet. Atomic on its own; use setEpisodeTags to run it
+// inside a larger transaction.
 func (s *TagStore) SetEpisodeTags(episodeID int64, tagNames []string) error {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return fmt.Errorf("beginning transaction: %w", err)
-	}
+	return withTx(s.db, func(tx *sql.Tx) error {
+		return setEpisodeTags(tx, episodeID, tagNames)
+	})
+}
 
+func setEpisodeTags(ex dbtx, episodeID int64, tagNames []string) error {
 	// Clear existing tags
-	if _, err := tx.Exec(`DELETE FROM episode_tags WHERE episode_id = ?`, episodeID); err != nil {
-		_ = tx.Rollback()
+	if _, err := ex.Exec(`DELETE FROM episode_tags WHERE episode_id = ?`, episodeID); err != nil {
 		return fmt.Errorf("clearing tags: %w", err)
 	}
 
@@ -94,24 +97,22 @@ func (s *TagStore) SetEpisodeTags(episodeID int64, tagNames []string) error {
 
 		// Get or create tag
 		var tagID int64
-		err := tx.QueryRow(`SELECT id FROM tags WHERE name = ?`, name).Scan(&tagID)
+		err := ex.QueryRow(`SELECT id FROM tags WHERE name = ?`, name).Scan(&tagID)
 		if err != nil {
-			result, err := tx.Exec(`INSERT INTO tags (name) VALUES (?)`, name)
+			result, err := ex.Exec(`INSERT INTO tags (name) VALUES (?)`, name)
 			if err != nil {
-				_ = tx.Rollback()
 				return fmt.Errorf("creating tag %q: %w", name, err)
 			}
 			tagID, _ = result.LastInsertId()
 		}
 
 		// Link to episode
-		if _, err := tx.Exec(`INSERT OR IGNORE INTO episode_tags (episode_id, tag_id) VALUES (?, ?)`, episodeID, tagID); err != nil {
-			_ = tx.Rollback()
+		if _, err := ex.Exec(`INSERT OR IGNORE INTO episode_tags (episode_id, tag_id) VALUES (?, ?)`, episodeID, tagID); err != nil {
 			return fmt.Errorf("linking tag %q: %w", name, err)
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 // Delete removes a tag and its episode links.

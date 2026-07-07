@@ -258,22 +258,22 @@ func (s *SponsorshipStore) UnlinkEpisode(sponsorshipID, episodeID int64) error {
 // SetEpisodeSponsorships replaces an episode's sponsorship links with the given
 // IDs, atomically. Propagates errors instead of leaving partial state.
 func (s *SponsorshipStore) SetEpisodeSponsorships(episodeID int64, sponsorshipIDs []int64) error {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return fmt.Errorf("beginning transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
+	return withTx(s.db, func(tx *sql.Tx) error {
+		return setEpisodeSponsorships(tx, episodeID, sponsorshipIDs)
+	})
+}
 
-	if _, err := tx.Exec(`DELETE FROM episode_sponsorships WHERE episode_id = ?`, episodeID); err != nil {
+func setEpisodeSponsorships(ex dbtx, episodeID int64, sponsorshipIDs []int64) error {
+	if _, err := ex.Exec(`DELETE FROM episode_sponsorships WHERE episode_id = ?`, episodeID); err != nil {
 		return fmt.Errorf("clearing sponsorship links: %w", err)
 	}
 	for _, id := range sponsorshipIDs {
-		if _, err := tx.Exec(`INSERT OR REPLACE INTO episode_sponsorships (episode_id, sponsorship_id) VALUES (?, ?)`,
+		if _, err := ex.Exec(`INSERT OR REPLACE INTO episode_sponsorships (episode_id, sponsorship_id) VALUES (?, ?)`,
 			episodeID, id); err != nil {
 			return fmt.Errorf("linking sponsorship %d: %w", id, err)
 		}
 	}
-	return tx.Commit()
+	return nil
 }
 
 // SponsorshipIDsForEpisode returns just the IDs for checkbox pre-selection.
