@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
+	"log/slog"
 	"sort"
 	"strings"
 )
@@ -49,7 +49,7 @@ func Migrate(db *sql.DB, fsys fs.FS) error {
 			return fmt.Errorf("checking migration %s: %w", version, err)
 		}
 
-		log.Printf("Applying migration: %s", file)
+		slog.Info("applying migration", "file", file)
 
 		content, err := fs.ReadFile(fsys, file)
 		if err != nil {
@@ -75,7 +75,7 @@ func Migrate(db *sql.DB, fsys fs.FS) error {
 			return fmt.Errorf("committing migration %s: %w", file, err)
 		}
 
-		log.Printf("Applied migration: %s", file)
+		slog.Info("applied migration", "file", file)
 	}
 
 	return nil

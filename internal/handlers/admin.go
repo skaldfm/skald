@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -96,7 +96,7 @@ func (h *AdminHandler) RestoreBackup(w http.ResponseWriter, r *http.Request) {
 
 	restart, err := h.backups.Restore(name)
 	if err != nil {
-		log.Printf("Restore failed: %v", err)
+		slog.Error("restore failed", "err", err)
 		if !restart {
 			// DB was never closed; the app is still healthy, just report failure.
 			http.Error(w, "Restore failed. Check the server logs for details.", http.StatusInternalServerError)

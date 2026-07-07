@@ -17,6 +17,8 @@ type Config struct {
 	OpenRegistration bool
 	SecureCookies    bool
 	MaxUploadBytes   int64
+	LogLevel         string
+	LogFormat        string
 }
 
 func Load() *Config {
@@ -31,6 +33,8 @@ func Load() *Config {
 		// Default to secure cookies; operators serving plain HTTP on localhost
 		// can set SKALD_SECURE_COOKIES=false.
 		SecureCookies: envOr("SKALD_SECURE_COOKIES", "true") != "false",
+		LogLevel:      envOr("SKALD_LOG_LEVEL", "info"),
+		LogFormat:     envOr("SKALD_LOG_FORMAT", "text"),
 	}
 
 	// For SQLite, default DB path is inside data dir

@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -20,6 +22,7 @@ import (
 	"github.com/skaldfm/skald/internal/config"
 	"github.com/skaldfm/skald/internal/database"
 	"github.com/skaldfm/skald/internal/handlers"
+	"github.com/skaldfm/skald/internal/logging"
 	"github.com/skaldfm/skald/internal/models"
 	"github.com/skaldfm/skald/internal/views"
 )
@@ -88,18 +91,24 @@ func securityHeaders(tls bool) func(http.Handler) http.Handler {
 func main() {
 	_ = godotenv.Load() // optional .env file
 
+	startTime := time.Now()
+
 	cfg := config.Load()
+
+	logger := logging.Setup(cfg.LogLevel, cfg.LogFormat)
 
 	// Only SQLite is wired up; a stray SKALD_DB_TYPE=postgres would otherwise
 	// fall through and open a garbage SQLite path. Fail loudly instead.
 	if cfg.DBType != "sqlite" {
-		log.Fatalf("Unsupported SKALD_DB_TYPE %q: only \"sqlite\" is implemented", cfg.DBType)
+		slog.Error("unsupported SKALD_DB_TYPE: only \"sqlite\" is implemented", "value", cfg.DBType)
+		os.Exit(1)
 	}
 
 	// Open database
 	db, err := database.Open(cfg.DBURL, cfg.DataDir)
 	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
+		slog.Error("failed to open database", "err", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
@@ -110,19 +119,21 @@ func main() {
 	var hasMigrations int
 	if err := db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='schema_migrations'").Scan(&hasMigrations); err == nil && hasMigrations > 0 {
 		if _, err := backupMgr.Create("pre-migration"); err != nil {
-			log.Printf("Warning: pre-migration backup failed: %v", err)
+			slog.Warn("pre-migration backup failed", "err", err)
 		}
 		_ = backupMgr.Prune()
 	}
 
 	// Run migrations
 	if err := database.Migrate(db, assetFS("migrations")); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+		slog.Error("failed to run migrations", "err", err)
+		os.Exit(1)
 	}
 
 	// Load templates
 	if err := views.Load(assetFS("templates")); err != nil {
-		log.Fatalf("Failed to load templates: %v", err)
+		slog.Error("failed to load templates", "err", err)
+		os.Exit(1)
 	}
 
 	// Session manager (sessions stored server-side in SQLite, survive restarts)
@@ -137,7 +148,7 @@ func main() {
 	// Periodically purge expired sessions from the store (scs does not do this
 	// for custom stores). Runs until the process exits.
 	if _, err := sessionStore.Cleanup(time.Hour); err != nil {
-		log.Printf("Warning: session cleanup scheduler failed to start: %v", err)
+		slog.Warn("session cleanup scheduler failed to start", "err", err)
 	}
 
 	// CSRF protection middleware
@@ -153,7 +164,7 @@ func main() {
 		// on all requests. Override to actually check for TLS.
 		h.SetIsTLSFunc(func(r *http.Request) bool { return r.TLS != nil })
 		h.SetFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			log.Printf("CSRF failure: method=%s url=%s reason=%v", r.Method, r.URL, nosurf.Reason(r))
+			slog.Warn("CSRF failure", "method", r.Method, "url", r.URL.String(), "reason", nosurf.Reason(r))
 			http.Error(w, "CSRF token validation failed", http.StatusBadRequest)
 		}))
 		return h
@@ -179,7 +190,7 @@ func main() {
 	// real client IP for logging and login rate-limiting; a direct-to-internet
 	// deployment should front the app with such a proxy.
 	r.Use(middleware.RealIP) //nolint:staticcheck // trusted-proxy deployment; see comment above
-	r.Use(middleware.Logger)
+	r.Use(logging.RequestLogger)
 	r.Use(middleware.Recoverer)
 	r.Use(maxBodyBytes(cfg.MaxUploadBytes))
 	r.Use(sessionManager.LoadAndSave)
@@ -210,6 +221,38 @@ func main() {
 		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
+	})
+
+	// Prometheus metrics (text exposition, no client library). Unauthenticated
+	// like /health — firewall the port or scrape it over a private network. The
+	// last-backup gauge is the one alert a self-hoster needs; it reports 0 when
+	// no backup exists yet so "backup age" alerts fire.
+	r.Get("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		var mem runtime.MemStats
+		runtime.ReadMemStats(&mem)
+		var lastBackup int64
+		if ts, ok := backupMgr.LastBackupTime(); ok {
+			lastBackup = ts.Unix()
+		}
+		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+		fmt.Fprint(w,
+			"# HELP skald_up Always 1 when the process is scraped.\n"+
+				"# TYPE skald_up gauge\nskald_up 1\n"+
+				"# HELP skald_uptime_seconds Seconds since process start.\n"+
+				"# TYPE skald_uptime_seconds gauge\n")
+		fmt.Fprintf(w, "skald_uptime_seconds %d\n", int64(time.Since(startTime).Seconds()))
+		fmt.Fprint(w, "# HELP skald_http_requests_total Total HTTP requests handled.\n"+
+			"# TYPE skald_http_requests_total counter\n")
+		fmt.Fprintf(w, "skald_http_requests_total %d\n", logging.HTTPRequestCount())
+		fmt.Fprint(w, "# HELP skald_goroutines Current number of goroutines.\n"+
+			"# TYPE skald_goroutines gauge\n")
+		fmt.Fprintf(w, "skald_goroutines %d\n", runtime.NumGoroutine())
+		fmt.Fprint(w, "# HELP skald_memory_alloc_bytes Currently allocated heap bytes.\n"+
+			"# TYPE skald_memory_alloc_bytes gauge\n")
+		fmt.Fprintf(w, "skald_memory_alloc_bytes %d\n", mem.Alloc)
+		fmt.Fprint(w, "# HELP skald_last_backup_timestamp_seconds Unix time of the most recent backup (0 if none).\n"+
+			"# TYPE skald_last_backup_timestamp_seconds gauge\n")
+		fmt.Fprintf(w, "skald_last_backup_timestamp_seconds %d\n", lastBackup)
 	})
 
 	// Auth routes (public, but setup redirect handled by LoadUser)
@@ -285,6 +328,8 @@ func main() {
 		Handler:           r,
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
+		// Route the net/http server's own error logging through slog too.
+		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
 		// No ReadTimeout/WriteTimeout: asset uploads and downloads can be large
 		// and slow; ReadHeaderTimeout still bounds slowloris on the headers.
 	}
@@ -295,18 +340,19 @@ func main() {
 	defer stop()
 
 	go func() {
-		log.Printf("Skald %s starting on :%s", version, cfg.Port)
+		slog.Info("starting", "version", version, "port", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed: %v", err)
+			slog.Error("server failed", "err", err)
+			os.Exit(1)
 		}
 	}()
 
 	<-ctx.Done()
-	log.Println("Shutting down...")
+	slog.Info("shutting down")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("Graceful shutdown failed: %v", err)
+		slog.Warn("graceful shutdown failed", "err", err)
 	}
 }

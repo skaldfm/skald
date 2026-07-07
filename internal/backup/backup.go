@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -62,7 +62,7 @@ func (m *Manager) Create(label string) (string, error) {
 		return "", fmt.Errorf("verifying backup: %w", err)
 	}
 
-	log.Printf("Backup created: %s", filename)
+	slog.Info("backup created", "file", filename)
 	return filename, nil
 }
 
@@ -104,6 +104,16 @@ func (m *Manager) FilePath(name string) string {
 	return filepath.Join(m.backupDir, name)
 }
 
+// LastBackupTime returns the timestamp of the most recent backup, and false if
+// no backups exist yet. Used for the last-backup-age metric.
+func (m *Manager) LastBackupTime() (time.Time, bool) {
+	backups, err := m.List()
+	if err != nil || len(backups) == 0 {
+		return time.Time{}, false
+	}
+	return backups[0].CreatedAt, true // List is sorted newest-first
+}
+
 // Prune removes old backups beyond the retention count.
 func (m *Manager) Prune() error {
 	backups, err := m.List()
@@ -118,9 +128,9 @@ func (m *Manager) Prune() error {
 	for _, b := range backups[m.retain:] {
 		path := filepath.Join(m.backupDir, b.Name)
 		if err := os.Remove(path); err != nil {
-			log.Printf("Failed to remove old backup %s: %v", b.Name, err)
+			slog.Warn("failed to remove old backup", "file", b.Name, "err", err)
 		} else {
-			log.Printf("Pruned old backup: %s", b.Name)
+			slog.Info("pruned old backup", "file", b.Name)
 		}
 	}
 
@@ -158,7 +168,7 @@ func (m *Manager) Restore(name string) (restart bool, err error) {
 	if err != nil {
 		return false, fmt.Errorf("creating safety backup: %w", err)
 	}
-	log.Printf("Safety backup created: %s", safetyName)
+	slog.Info("safety backup created", "file", safetyName)
 
 	// Close the live database connection. From here on the process must restart
 	// regardless of outcome — the DB handle is dead.
@@ -181,7 +191,7 @@ func (m *Manager) Restore(name string) (restart bool, err error) {
 		return true, fmt.Errorf("replacing database: %w", err)
 	}
 
-	log.Printf("Database restored from %s", name)
+	slog.Info("database restored", "from", name)
 	return true, nil
 }
 
@@ -226,7 +236,7 @@ func copyFile(src, dst string) error {
 // a zero/negative duration).
 func (m *Manager) StartSchedule(interval time.Duration) {
 	if interval <= 0 {
-		log.Printf("Scheduled backups disabled (interval %s)", interval)
+		slog.Info("scheduled backups disabled", "interval", interval)
 		return
 	}
 	go func() {
@@ -234,10 +244,10 @@ func (m *Manager) StartSchedule(interval time.Duration) {
 		// recent copy, rather than waiting a full interval for the first one.
 		runBackup := func() {
 			if _, err := m.Create("scheduled"); err != nil {
-				log.Printf("Scheduled backup failed: %v", err)
+				slog.Error("scheduled backup failed", "err", err)
 			}
 			if err := m.Prune(); err != nil {
-				log.Printf("Backup prune failed: %v", err)
+				slog.Error("backup prune failed", "err", err)
 			}
 		}
 		runBackup()
@@ -248,5 +258,5 @@ func (m *Manager) StartSchedule(interval time.Duration) {
 			runBackup()
 		}
 	}()
-	log.Printf("Backup scheduler started (every %s, retain %d)", interval, m.retain)
+	slog.Info("backup scheduler started", "interval", interval, "retain", m.retain)
 }

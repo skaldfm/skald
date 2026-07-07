@@ -148,8 +148,15 @@ Configuration can be set via environment variables or an optional `.env` file in
 | `SKALD_BACKUP_INTERVAL` | `24h` | Scheduled backup frequency (Go duration) |
 | `SKALD_BACKUP_RETAIN` | `14` | Number of backups to keep |
 | `SKALD_OPEN_REGISTRATION` | `false` | Allow self-service account creation |
+| `SKALD_LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warn`, `error` |
+| `SKALD_LOG_FORMAT` | `text` | Log format: `text` or `json` |
 | `PUID` | `1000` | User ID for the container process (Docker only) |
 | `PGID` | `1000` | Group ID for the container process (Docker only) |
+
+### Endpoints for monitoring
+
+- `GET /health` — returns `200 ok` (pings the database); `503` if the DB is unreachable.
+- `GET /metrics` — Prometheus text metrics, including `skald_last_backup_timestamp_seconds` (alert on backup age). Both endpoints are **unauthenticated** — firewall the port or restrict scraping to a private network.
 
 ## Screenshots
 
