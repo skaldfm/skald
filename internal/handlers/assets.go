@@ -118,6 +118,19 @@ func (h *AssetHandler) Download(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ep, err := h.episodes.Get(asset.EpisodeID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if ep == nil {
+		http.NotFound(w, r)
+		return
+	}
+	if !requireShowAccess(w, r, ep.ShowID) {
+		return
+	}
+
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, asset.Filename))
 	http.ServeFile(w, r, asset.Filepath)
 }

@@ -23,7 +23,16 @@
     return svg;
   }
 
-  document.querySelectorAll('.tag-picker').forEach(initPicker);
+  document.querySelectorAll('.tag-picker').forEach(function (container) {
+    try {
+      initPicker(container);
+    } catch (err) {
+      // One malformed picker must not prevent the others from initializing,
+      // otherwise their hidden inputs never render and saving silently drops
+      // the user's existing selections.
+      console.error('tag-picker init failed', err, container);
+    }
+  });
 
   function initPicker(container) {
     var fieldName = container.dataset.name;

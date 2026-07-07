@@ -182,12 +182,19 @@ func formatFloat(f *float64) string {
 	return fmt.Sprintf("%.2f", *f)
 }
 
-func toJSON(v any) template.HTMLAttr {
+// toJSON returns a plain string so html/template applies contextual attribute
+// escaping. Returning template.HTMLAttr here would emit unescaped output: a
+// value containing a single quote (e.g. a guest named O'Brien) would break out
+// of the surrounding single-quoted attribute, corrupting the JSON (silent data
+// loss when the picker fails to parse) or injecting attributes (stored XSS).
+// The browser decodes the escaped entities before JS reads dataset, so
+// JSON.parse still receives valid JSON.
+func toJSON(v any) string {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return ""
 	}
-	return template.HTMLAttr(b)
+	return string(b)
 }
 
 func containsInt64(slice []int64, val int64) bool {

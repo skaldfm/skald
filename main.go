@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -21,6 +22,30 @@ import (
 )
 
 var version = "dev"
+
+// noListFS wraps an http.FileSystem to disable directory listings: opening a
+// directory returns "not exist" so http.FileServer responds 404 instead of
+// rendering an enumerable index of uploaded files.
+type noListFS struct {
+	fs http.FileSystem
+}
+
+func (n noListFS) Open(name string) (http.File, error) {
+	f, err := n.fs.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	info, err := f.Stat()
+	if err != nil {
+		_ = f.Close()
+		return nil, err
+	}
+	if info.IsDir() {
+		_ = f.Close()
+		return nil, os.ErrNotExist
+	}
+	return f, nil
+}
 
 func main() {
 	_ = godotenv.Load() // optional .env file
@@ -113,7 +138,13 @@ func main() {
 	// Public routes (no auth required)
 	fileServer := http.FileServer(http.Dir("static"))
 	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
-	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir(filepath.Join(cfg.DataDir, "uploads")))))
+
+	// User uploads: everything under /uploads is private and served behind
+	// RequireAuth (below), except /uploads/site/* which holds public branding
+	// (the site logo, referenced on the unauthenticated login page). Directory
+	// listing is disabled so the tree can't be enumerated.
+	uploadsServer := http.StripPrefix("/uploads/", http.FileServer(noListFS{http.Dir(filepath.Join(cfg.DataDir, "uploads"))}))
+	r.Handle("/uploads/site/*", uploadsServer)
 
 	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "static/robots.txt")
@@ -131,6 +162,11 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(auth.LoadUser(sessionManager, userStore))
 		r.Use(auth.RequireAuth)
+
+		// Private user uploads (episode/show/guest artwork, scripts, sponsor
+		// order docs). Any authenticated user may fetch these; per-show scoping
+		// is tracked separately (see docs/code-review-2026-07.md P1).
+		r.Handle("/uploads/*", uploadsServer)
 
 		// Home / Dashboard
 		dashboardHandler := handlers.NewDashboardHandler(episodeStore, showStore, guestStore)
